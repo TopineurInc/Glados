@@ -1,3 +1,10 @@
+{-
+-- EPITECH PROJECT, 2025
+-- G-FUN-500-LYN-5-1-glados-1
+-- File description:
+-- src/AST.hs
+-}
+
 {-# LANGUAGE DeriveGeneric #-}
 
 module AST

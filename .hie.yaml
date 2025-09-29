@@ -1,0 +1,9 @@
+cradle:
+  stack:
+    - path: "."
+      component: "lib:glados"
+    - path: "app"
+      component: "exe:glados-exe"
+    - path: "test"
+      component: "test:glados-test"
+
