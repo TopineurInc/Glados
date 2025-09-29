@@ -79,9 +79,9 @@ skipWhitespace = void $ many (satisfy isSpace)
 -- | Parse string literal
 parseString :: Parser String
 parseString = do
-  char '"'
+  _ <- char '"'
   chars <- many stringChar
-  char '"'
+  _ <- char '"'
   return chars
   where
     stringChar = satisfy (/= '"') <|> (char '\\' >> char '"' >> return '"')
@@ -106,8 +106,8 @@ parseBool =
 string :: String -> Parser String
 string [] = return []
 string (x:xs) = do
-  char x
-  string xs
+  _ <- char x
+  _ <- string xs
   return (x:xs)
 
 -- | Parse symbol (identifier)
@@ -139,11 +139,11 @@ parseSExpr = do
       return $ SAtom atom (Just pos)
 
     parseList pos = do
-      char '('
+      _ <- char '('
       skipWhitespace
       exprs <- many parseSExpr
       skipWhitespace
-      char ')'
+      _ <- char ')'
       return $ SList exprs (Just pos)
 
 -- | Parse multiple S-expressions
@@ -167,15 +167,3 @@ parseFromString input = do
                                (Just $ SourcePos (psLine finalState) (psCol finalState))
 
 -- | Test examples
-testParse :: String -> IO ()
-testParse input = do
-  putStrLn $ "Parsing: " ++ input
-  case parseFromString input of
-    Left err -> putStrLn $ "Error: " ++ show err
-    Right exprs -> putStrLn $ "Success: " ++ show exprs
-  putStrLn ""
-
--- Example usage:
--- testParse "42"
--- testParse "(+ 1 2)"
--- testParse "(define (square x) (* x x))"

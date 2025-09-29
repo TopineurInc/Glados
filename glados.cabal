@@ -27,10 +27,6 @@ library
   exposed-modules:
       AST
       SExprParser
-      MacroExpander
-      Desugar
-      AlphaRename
-      Parser
       Lib
   other-modules:
       Paths_glados
