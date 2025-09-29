@@ -7,9 +7,9 @@ import AST
 someFunc :: IO ()
 someFunc = do
   let pos = SourcePos 1 1
-      atom1 = AInteger 42
-      atom2 = ASymbol "factorial"
-      sexpr1 = SAtom atom1 (Just pos)
-      sexpr2 = SAtom atom2 (Just pos)
-      list = SList [sexpr2, sexpr1] (Just pos)
-  print list
+      sexpr = SList [SAtom (ASymbol "factorial") (Just pos), SAtom (AInteger 42) (Just pos)] (Just pos)
+      ast = EDefine "fact" (ELambda ["x"] (EIf (EApp (EVar "eq?") [EVar "x", EInt 1]) (EInt 1) (EApp (EVar "*") [EVar "x", EApp (EVar "fact") [EApp (EVar "-") [EVar "x", EInt 1]]])))
+  putStrLn "SExpr:"
+  print sexpr
+  putStrLn "\nAST:"
+  print ast
