@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.38.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -25,8 +25,9 @@ source-repository head
 
 library
   exposed-modules:
+      AST
+      SExprParser
       Lib
-      Parser
   other-modules:
       Paths_glados
   autogen-modules:
@@ -36,6 +37,9 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , containers
+    , mtl
+    , vector
   default-language: Haskell2010
 
 executable glados-exe
@@ -49,7 +53,10 @@ executable glados-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , containers
     , glados
+    , mtl
+    , vector
   default-language: Haskell2010
 
 test-suite glados-test
@@ -64,5 +71,8 @@ test-suite glados-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , containers
     , glados
+    , mtl
+    , vector
   default-language: Haskell2010
