@@ -94,6 +94,7 @@ data Instr
   | IReturn
   | IJump Int
   | IJumpIfFalse Int
+  | IPop
   | INop
   | IMakeClosure Name [Int]
   | ILoadClosure Int
