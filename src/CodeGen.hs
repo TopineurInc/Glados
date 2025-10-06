@@ -31,13 +31,11 @@ newtype CodeGenM a = CodeGenM { unCodeGenM :: State CodeGenState a }
 runCodeGen :: CodeGenM a -> CodeGenState -> (a, CodeGenState)
 runCodeGen m s = runState (unCodeGenM m) s
 
--- Generate bytecode from an expression
 generateCode :: Name -> Expr -> Either CompileError CodeObject
 generateCode name expr = do
   let (mainCode, _) = generateCodeWithDefs name expr
   mainCode
 
--- Generate bytecode and return both main code and all nested definitions
 generateCodeWithDefs :: Name -> Expr -> (Either CompileError CodeObject, Map.Map Name CodeObject)
 generateCodeWithDefs name expr =
   let (_, finalState) = runCodeGen (compileExpr expr >> emit IReturn) emptyCodeGenState
@@ -57,11 +55,9 @@ getArity :: Expr -> Int
 getArity (ELambda params _) = length params
 getArity _ = 0
 
--- Emit an instruction
 emit :: Instr -> CodeGenM ()
 emit instr = modify $ \s -> s { cgsInstructions = instr : cgsInstructions s }
 
--- Add a constant to the pool and return its index
 addConst :: Constant -> CodeGenM Int
 addConst c = do
   s <- get
@@ -70,7 +66,6 @@ addConst c = do
   put s { cgsConstants = c : consts }
   return idx
 
--- Allocate a local slot
 allocLocal :: Name -> CodeGenM Int
 allocLocal name = do
   s <- get
@@ -81,13 +76,11 @@ allocLocal name = do
         }
   return idx
 
--- Get local slot for a name
 getLocal :: Name -> CodeGenM (Maybe Int)
 getLocal name = do
   localMap <- gets cgsLocalMap
   return $ Map.lookup name localMap
 
--- Compile an expression (leaves result on stack)
 compileExpr :: Expr -> CodeGenM ()
 compileExpr (EInt n) = do
   idx <- addConst (CInt n)
@@ -106,37 +99,29 @@ compileExpr (EVar name) = do
   case mSlot of
     Just slot -> emit (ILoad slot)
     Nothing -> do
-      -- Assume it's a global/builtin
       idx <- addConst (CFuncRef name)
       emit (IConst idx)
 
 compileExpr (EIf cond thenE elseE) = do
   compileExpr cond
-  emit (IJumpIfFalse 0)  -- Placeholder
+  emit (IJumpIfFalse 0)
   elseLabelIdx <- gets (length . cgsInstructions)
 
   compileExpr thenE
-  emit (IJump 0)  -- Placeholder
+  emit (IJump 0)
   endLabelIdx <- gets (length . cgsInstructions)
 
-  -- Patch else jump
   patchJump (elseLabelIdx - 1) endLabelIdx
 
   compileExpr elseE
 
-  -- Patch end jump
   finalIdx <- gets (length . cgsInstructions)
   patchJump (endLabelIdx - 1) finalIdx
 
-compileExpr (ELambda _ _) = do
-  -- For now, generate a simple closure (simplified)
-  -- In full implementation, this would create a separate CodeObject
-  return ()
+compileExpr (ELambda _ _) = return ()
 
 compileExpr (EApp (EVar funcName) args) = do
-  -- Compile arguments (push onto stack)
   mapM_ compileExpr args
-  -- Check if it's a builtin primitive
   case funcName of
     "+" -> emit (IPrim "+")
     "-" -> emit (IPrim "-")
@@ -150,7 +135,6 @@ compileExpr (EApp (EVar funcName) args) = do
     _ -> emit (ICall (length args) funcName)
 
 compileExpr (EApp func args) = do
-  -- More complex application
   compileExpr func
   mapM_ compileExpr args
   emit (ICall (length args) "<lambda>")
@@ -158,47 +142,36 @@ compileExpr (EApp func args) = do
 compileExpr (EDefine name expr) = do
   case expr of
     ELambda params body -> do
-      -- Compile the lambda as a separate code object
       codeObj <- compileLambda name params body
-      -- Register the code object
       modify $ \s -> s { cgsCodeObjects = Map.insert name codeObj (cgsCodeObjects s) }
-      -- Push a function reference and store it
       idx <- addConst (CFuncRef name)
       emit (IConst idx)
       slot <- allocLocal name
       emit (IStore slot)
-      -- Push a dummy value so EList's IPop has something to pop
       dummyIdx <- addConst (CInt 0)
       emit (IConst dummyIdx)
     _ -> do
       compileExpr expr
       slot <- allocLocal name
       emit (IStore slot)
-      -- Push a dummy value so EList's IPop has something to pop
       dummyIdx <- addConst (CInt 0)
       emit (IConst dummyIdx)
 
-compileExpr (EList exprs) = do
-  -- Begin block: evaluate all expressions, keep only the last value
-  case exprs of
-    [] -> return ()  -- Empty begin evaluates to nothing
-    [e] -> compileExpr e  -- Single expression
-    (e:es) -> do
-      compileExpr e  -- Evaluate first expression
-      emit (IPop)    -- Pop its value (we don't need it)
-      compileExpr (EList es)  -- Continue with rest
+compileExpr (EList exprs) = case exprs of
+  [] -> return ()
+  [e] -> compileExpr e
+  (e:es) -> do
+    compileExpr e
+    emit (IPop)
+    compileExpr (EList es)
 
-compileExpr (EQuote _) = do
-  -- Quote: return the quoted value as-is
-  return ()
+compileExpr (EQuote _) = return ()
 
--- Patch a jump instruction
 patchJump :: Int -> Int -> CodeGenM ()
 patchJump instrIdx target = do
   s <- get
   let instrs = cgsInstructions s
   let len = length instrs
-  -- Instructions are stored in reverse, so convert index
   let reverseIdx = len - instrIdx - 1
   if reverseIdx >= 0 && reverseIdx < len
     then case splitAt reverseIdx instrs of
@@ -208,20 +181,15 @@ patchJump instrIdx target = do
               IJump _ -> IJump target
               other -> other
         put s { cgsInstructions = before ++ (patchedInstr : after) }
-      _ -> return ()  -- Should not happen, but handle empty list case
+      _ -> return ()
     else return ()
 
--- Compile a lambda as a separate code object
 compileLambda :: Name -> [Name] -> Expr -> CodeGenM CodeObject
 compileLambda name params body = do
-  -- Save current state
   currentState <- get
-  -- Create a fresh state for the lambda with the parameters as locals
   let freshState = emptyCodeGenState
   let (_, lambdaState) = runCodeGen (compileLambdaBody params body) freshState
-  -- Restore current state but keep the nested code objects
   put currentState
-  -- Build the code object for this lambda
   let instrs = Vector.fromList (reverse $ cgsInstructions lambdaState)
   let consts = Vector.fromList (reverse $ cgsConstants lambdaState)
   let codeObj = CodeObject
@@ -232,16 +200,11 @@ compileLambda name params body = do
         , coInstrs = instrs
         , coLabelMap = cgsLabels lambdaState
         }
-  -- Merge nested code objects from lambda into current state
   modify $ \s -> s { cgsCodeObjects = Map.union (cgsCodeObjects s) (cgsCodeObjects lambdaState) }
   return codeObj
 
--- Compile lambda body with parameters allocated
 compileLambdaBody :: [Name] -> Expr -> CodeGenM ()
 compileLambdaBody params body = do
-  -- Allocate locals for parameters
   mapM_ allocLocal params
-  -- Compile body
   compileExpr body
-  -- Return the result
   emit IReturn

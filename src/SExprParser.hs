@@ -12,14 +12,12 @@ import Control.Applicative
 import Control.Monad
 import Data.Char (isDigit, isSpace, isAlpha, isAlphaNum)
 
--- | Parser state with position tracking
 data ParseState = ParseState
   { psInput :: String
   , psLine  :: Int
   , psCol   :: Int
   } deriving (Show, Eq)
 
--- | Parser monad with position tracking
 newtype Parser a = Parser
   { runParser :: ParseState -> Either CompileError (a, ParseState)
   } deriving (Functor)
@@ -40,23 +38,19 @@ instance Alternative Parser where
       Left _ -> p2 s
       Right result -> Right result
 
--- | Get current position
 getCurrentPos :: Parser SourcePos
 getCurrentPos = Parser $ \s -> Right (SourcePos (psLine s) (psCol s), s)
 
--- | Advance position by one character
 advancePos :: Char -> ParseState -> ParseState
 advancePos '\n' s = s { psLine = psLine s + 1, psCol = 1 }
 advancePos _    s = s { psCol = psCol s + 1 }
 
--- | Parse any character
 anyChar :: Parser Char
 anyChar = Parser $ \s ->
   case psInput s of
     []     -> Left $ ParseError "unexpected end of input" (Just $ SourcePos (psLine s) (psCol s))
     (c:cs) -> Right (c, advancePos c (s { psInput = cs }))
 
--- | Parse specific character
 char :: Char -> Parser Char
 char expected = do
   c <- anyChar
@@ -64,7 +58,6 @@ char expected = do
     then return c
     else Parser $ \s -> Left $ ParseError ("expected '" ++ [expected] ++ "', got '" ++ [c] ++ "'") (Just $ SourcePos (psLine s) (psCol s))
 
--- | Parse character satisfying predicate
 satisfy :: (Char -> Bool) -> Parser Char
 satisfy predicate = do
   c <- anyChar
@@ -72,11 +65,9 @@ satisfy predicate = do
     then return c
     else Parser $ \s -> Left $ ParseError ("character does not satisfy predicate") (Just $ SourcePos (psLine s) (psCol s))
 
--- | Skip whitespace
 skipWhitespace :: Parser ()
 skipWhitespace = void $ many (satisfy isSpace)
 
--- | Parse string literal
 parseString :: Parser String
 parseString = do
   _ <- char '"'
@@ -86,7 +77,6 @@ parseString = do
   where
     stringChar = satisfy (/= '"') <|> (char '\\' >> char '"' >> return '"')
 
--- | Parse integer
 parseInteger :: Parser Integer
 parseInteger = do
   sign <- optional (char '-')
@@ -96,13 +86,11 @@ parseInteger = do
     Nothing -> num
     Just _  -> -num
 
--- | Parse boolean
 parseBool :: Parser Bool
 parseBool =
   (string "#t" >> return True) <|>
   (string "#f" >> return False)
 
--- | Parse string literal
 string :: String -> Parser String
 string [] = return []
 string (x:xs) = do
@@ -110,14 +98,12 @@ string (x:xs) = do
   _ <- string xs
   return (x:xs)
 
--- | Parse symbol (identifier)
 parseSymbol :: Parser String
 parseSymbol = do
   first <- satisfy (\c -> isAlpha c || c `elem` "+-*/<>=!?")
   rest <- many (satisfy (\c -> isAlphaNum c || c `elem` "+-*/<>=!?-"))
   return (first : rest)
 
--- | Parse atom
 parseAtom :: Parser Atom
 parseAtom =
   (AInteger <$> parseInteger) <|>
@@ -125,7 +111,6 @@ parseAtom =
   (AString <$> parseString) <|>
   (ASymbol <$> parseSymbol)
 
--- | Parse S-expression
 parseSExpr :: Parser SExpr
 parseSExpr = do
   skipWhitespace
@@ -146,7 +131,6 @@ parseSExpr = do
       _ <- char ')'
       return $ SList exprs (Just pos)
 
--- | Parse multiple S-expressions
 parseSExprs :: Parser [SExpr]
 parseSExprs = do
   skipWhitespace
@@ -154,7 +138,6 @@ parseSExprs = do
   skipWhitespace
   return exprs
 
--- | Parse from string with error handling
 parseFromString :: String -> Either CompileError [SExpr]
 parseFromString input = do
   let initState = ParseState input 1 1
@@ -165,5 +148,3 @@ parseFromString input = do
         then Right exprs
         else Left $ ParseError "unexpected characters at end of input"
                                (Just $ SourcePos (psLine finalState) (psCol finalState))
-
--- | Test examples

@@ -40,7 +40,6 @@ gensym base = do
 addFreeVar :: Name -> RenameM ()
 addFreeVar name = modify $ \st -> st { rsFreeVars = Set.insert name (rsFreeVars st) }
 
--- Alpha-rename an expression
 alphaRename :: Expr -> Either CompileError Expr
 alphaRename expr = Right $ fst $ runRename (renameExpr Map.empty expr)
 
@@ -57,22 +56,16 @@ renameExpr env (EVar name) =
       return $ EVar name
 
 renameExpr env (EList exprs) = do
-  -- Check if this is a letrec pattern (all defines followed by expressions)
   let (defines, rest) = span isDefine exprs
   if not (null defines)
     then do
-      -- This looks like a letrec: rename all defines simultaneously
-      -- Generate new names for all defined functions
       let defNames = map getDefineName defines
       newNames <- mapM gensym defNames
       let env' = Map.fromList (zip defNames newNames) `Map.union` env
-      -- Rename all define bodies with the extended environment
       defines' <- mapM (renameDefineWith env env') defines
-      -- Rename the rest with the extended environment
       (rest', _) <- foldM renameInSequence ([], env') rest
       return $ EList (defines' ++ reverse rest')
     else do
-      -- Not a letrec pattern, just thread environment normally
       (exprs', _) <- foldM renameInSequence ([], env) exprs
       return $ EList (reverse exprs')
   where
@@ -85,7 +78,7 @@ renameExpr env (EList exprs) = do
     renameDefineWith _oldEnv newEnv (EDefine name expr) = do
       case Map.lookup name newEnv of
         Just newName -> do
-          expr' <- renameExpr newEnv expr  -- Rename the value with new env (for letrec semantics)
+          expr' <- renameExpr newEnv expr
           return $ EDefine newName expr'
         Nothing -> error "Name not in new env"
     renameDefineWith _ _ _ = error "Not a define"
@@ -95,7 +88,6 @@ renameExpr env (EList exprs) = do
       return (expr' : acc, newEnv)
 
 renameExpr env (ELambda params body) = do
-  -- Generate new names for parameters
   newParams <- mapM gensym params
   let env' = Map.fromList (zip params newParams) `Map.union` env
   body' <- renameExpr env' body
@@ -103,7 +95,7 @@ renameExpr env (ELambda params body) = do
 
 renameExpr env (EDefine name expr) = do
   newName <- gensym name
-  expr' <- renameExpr env expr  -- Don't use env' here, the binding is for subsequent exprs
+  expr' <- renameExpr env expr
   return $ EDefine newName expr'
 
 renameExpr env (EIf cond thenE elseE) = do
@@ -119,7 +111,6 @@ renameExpr env (EApp func args) = do
 
 renameExpr _ (EQuote sexpr) = return $ EQuote sexpr
 
--- Helper that returns both renamed expr and updated environment (for EList threading)
 renameExprWithEnv :: Env -> Expr -> RenameM (Expr, Env)
 renameExprWithEnv env (EDefine name expr) = do
   newName <- gensym name
@@ -129,6 +120,3 @@ renameExprWithEnv env (EDefine name expr) = do
 renameExprWithEnv env expr = do
   expr' <- renameExpr env expr
   return (expr', env)
-
--- Note: freeVars and collectFreeVars are not used in current implementation
--- but kept for potential future use in closure conversion optimization

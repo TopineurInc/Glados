@@ -20,7 +20,6 @@ data VMError
   | RuntimeError String
   deriving (Eq, Show)
 
--- Initialize VM state with builtins
 initVMState :: VMState
 initVMState = VMState
   { vFrames = []
@@ -29,7 +28,6 @@ initVMState = VMState
   , vBuiltins = builtins
   }
 
--- Execute a code object in the VM
 execVM :: VMState -> CodeObject -> IO (Either VMError Value)
 execVM vmState code = do
   let initialFrame = Frame
@@ -41,7 +39,6 @@ execVM vmState code = do
   let vmState' = vmState { vFrames = [initialFrame] }
   runVM vmState'
 
--- Main VM execution loop
 runVM :: VMState -> IO (Either VMError Value)
 runVM vmState = case vFrames vmState of
   [] -> return $ Left $ RuntimeError "No frames to execute"
@@ -57,16 +54,13 @@ runVM vmState = case vFrames vmState of
         result <- executeInstr vmState frame instr
         case result of
           Left err -> return $ Left err
-          Right (vmState', Nothing) -> runVM vmState'  -- Continue
-          Right (_, Just val) -> return $ Right val    -- Return value
+          Right (vmState', Nothing) -> runVM vmState'
+          Right (_, Just val) -> return $ Right val
 
--- Helper to update frame in vmState
 updateFrame :: VMState -> Frame -> VMState
 updateFrame vmState newFrame = case vFrames vmState of
   (_:rest) -> vmState { vFrames = newFrame : rest }
-  [] -> vmState  -- Should not happen
-
--- Execute a single instruction
+  [] -> vmState
 executeInstr :: VMState -> Frame -> Instr -> IO (Either VMError (VMState, Maybe Value))
 executeInstr vmState frame instr = case instr of
   IConst idx -> do
@@ -97,23 +91,17 @@ executeInstr vmState frame instr = case instr of
       let frame' = frame { fStack = stack', fLocals = locals', fPC = fPC frame + 1 }
       return $ Right (updateFrame vmState frame', Nothing)
 
-  IPrim op -> do
-    result <- executePrim vmState frame op
-    return result
+  IPrim op -> executePrim vmState frame op
 
-  ICall arity funcName -> do
-    result <- executeCall vmState frame arity funcName False
-    return result
+  ICall arity funcName -> executeCall vmState frame arity funcName False
 
-  ITailCall arity funcName -> do
-    result <- executeCall vmState frame arity funcName True
-    return result
+  ITailCall arity funcName -> executeCall vmState frame arity funcName True
 
   IReturn -> case fStack frame of
     [] -> return $ Left StackUnderflow
     (val:_) -> case vFrames vmState of
       [] -> return $ Left $ RuntimeError "No frames for return"
-      [_] -> return $ Right (vmState, Just val)  -- Top-level return
+      [_] -> return $ Right (vmState, Just val)
       (_:callerFrame:rest) -> do
         let callerFrame' = callerFrame { fStack = val : fStack callerFrame, fPC = fPC callerFrame + 1 }
         return $ Right (vmState { vFrames = callerFrame' : rest }, Nothing)
@@ -143,67 +131,55 @@ executeInstr vmState frame instr = case instr of
 
   _ -> return $ Left $ InvalidInstruction "Instruction not implemented"
 
--- Execute a primitive operation
 executePrim :: VMState -> Frame -> String -> IO (Either VMError (VMState, Maybe Value))
 executePrim vmState frame op =
   case Map.lookup op (vBuiltins vmState) of
     Nothing -> return $ Left $ UndefinedFunction op
-    Just (VBuiltin _ func) -> do
-      -- Arity depends on the operation (simplified: assume 2 args for now)
-      case fStack frame of
-        (arg2:arg1:stack') -> do
-          result <- func [arg1, arg2]
-          let frame' = frame { fStack = result : stack', fPC = fPC frame + 1 }
-          return $ Right (updateFrame vmState frame', Nothing)
-        _ -> return $ Left StackUnderflow
+    Just (VBuiltin _ func) -> case fStack frame of
+      (arg2:arg1:stack') -> do
+        result <- func [arg1, arg2]
+        let frame' = frame { fStack = result : stack', fPC = fPC frame + 1 }
+        return $ Right (updateFrame vmState frame', Nothing)
+      _ -> return $ Left StackUnderflow
     Just _ -> return $ Left $ TypeError "Not a builtin function"
-
--- Execute a function call
 executeCall :: VMState -> Frame -> Int -> Name -> Bool -> IO (Either VMError (VMState, Maybe Value))
 executeCall vmState frame arity funcName isTail = do
-  -- Pop arguments from stack
   let (args, stack') = splitAt arity (fStack frame)
   if length args < arity
     then return $ Left StackUnderflow
-    else do
-      -- Look up function (in globals, builtins, or code objects)
-      case Map.lookup funcName (vBuiltins vmState) of
-        Just (VBuiltin _ func) -> do
-          result <- func (reverse args)
-          let frame' = frame { fStack = result : stack', fPC = fPC frame + 1 }
+    else case Map.lookup funcName (vBuiltins vmState) of
+      Just (VBuiltin _ func) -> do
+        result <- func (reverse args)
+        let frame' = frame { fStack = result : stack', fPC = fPC frame + 1 }
+        case vFrames vmState of
+          (_:rest) -> return $ Right (vmState { vFrames = frame' : rest }, Nothing)
+          [] -> return $ Left $ RuntimeError "No frames for builtin call"
+
+      Just _ -> return $ Left $ TypeError "Not a builtin function"
+
+      Nothing -> case Map.lookup funcName (vCodeObjects vmState) of
+        Just code -> do
+          let newLocals = Vector.replicate (coMaxLocals code) Nothing
+          let argsVector = Vector.fromList (map Just (reverse args))
+          let newLocals' = newLocals Vector.// zip [0..] (Vector.toList argsVector)
+          let newFrame = Frame
+                { fLocals = newLocals'
+                , fStack = []
+                , fCode = code
+                , fPC = 0
+                }
+          let frame' = frame { fStack = stack' }
           case vFrames vmState of
-            (_:rest) -> return $ Right (vmState { vFrames = frame' : rest }, Nothing)
-            [] -> return $ Left $ RuntimeError "No frames for builtin call"
+            (_:rest) ->
+              let vmState' = if isTail
+                    then vmState { vFrames = newFrame : rest }
+                    else vmState { vFrames = newFrame : frame' : rest }
+              in return $ Right (vmState', Nothing)
+            [] -> return $ Left $ RuntimeError "No frames for function call"
 
-        Just _ -> return $ Left $ TypeError "Not a builtin function"
-
-        Nothing -> case Map.lookup funcName (vCodeObjects vmState) of
-          Just code -> do
-            -- Create new frame
-            let newLocals = Vector.replicate (coMaxLocals code) Nothing
-            let argsVector = Vector.fromList (map Just (reverse args))
-            let newLocals' = newLocals Vector.// zip [0..] (Vector.toList argsVector)
-            let newFrame = Frame
-                  { fLocals = newLocals'
-                  , fStack = []
-                  , fCode = code
-                  , fPC = 0
-                  }
-            -- Update caller frame to remove arguments from stack
-            let frame' = frame { fStack = stack' }
-            case vFrames vmState of
-              (_:rest) ->
-                let vmState' = if isTail
-                      then vmState { vFrames = newFrame : rest }
-                      else vmState { vFrames = newFrame : frame' : rest }
-                in return $ Right (vmState', Nothing)
-              [] -> return $ Left $ RuntimeError "No frames for function call"
-
-          Nothing -> return $ Left $ UndefinedFunction funcName
-
--- Convert constant to runtime value
+        Nothing -> return $ Left $ UndefinedFunction funcName
 constantToValue :: Constant -> Value
 constantToValue (CInt n) = VInt n
 constantToValue (CBool b) = VBool b
 constantToValue (CString s) = VString s
-constantToValue (CFuncRef name) = VBuiltin name undefined  -- Placeholder
+constantToValue (CFuncRef name) = VBuiltin name undefined
