@@ -132,6 +132,17 @@ compileExpr (EApp (EVar funcName) args) = do
     "<" -> emit (IPrim "<")
     ">" -> emit (IPrim ">")
     "print" -> emit (IPrim "print")
+    "display" -> emit (IPrim "display")
+    "input" -> emit (IPrim "input")
+    "read-line" -> emit (IPrim "read-line")
+    "string->number" -> emit (IPrim "string->number")
+    "number->string" -> emit (IPrim "number->string")
+    "string-length" -> emit (IPrim "string-length")
+    "string-append" -> emit (IPrim "string-append")
+    "substring" -> emit (IPrim "substring")
+    "not" -> emit (IPrim "not")
+    "and" -> emit (IPrim "and")
+    "or" -> emit (IPrim "or")
     _ -> emit (ICall (length args) funcName)
 
 compileExpr (EApp func args) = do

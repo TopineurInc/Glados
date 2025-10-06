@@ -131,16 +131,43 @@ executeInstr vmState frame instr = case instr of
 
   _ -> return $ Left $ InvalidInstruction "Instruction not implemented"
 
+builtinArity :: String -> Int
+builtinArity op = case op of
+  "+" -> 2
+  "-" -> 2
+  "*" -> 2
+  "div" -> 2
+  "mod" -> 2
+  "eq?" -> 2
+  "<" -> 2
+  ">" -> 2
+  "print" -> 1
+  "display" -> 1
+  "input" -> 0
+  "read-line" -> 0
+  "string->number" -> 1
+  "number->string" -> 1
+  "string-length" -> 1
+  "string-append" -> 2
+  "substring" -> 3
+  "not" -> 1
+  "and" -> 2
+  "or" -> 2
+  _ -> 2
+
 executePrim :: VMState -> Frame -> String -> IO (Either VMError (VMState, Maybe Value))
 executePrim vmState frame op =
   case Map.lookup op (vBuiltins vmState) of
     Nothing -> return $ Left $ UndefinedFunction op
-    Just (VBuiltin _ func) -> case fStack frame of
-      (arg2:arg1:stack') -> do
-        result <- func [arg1, arg2]
-        let frame' = frame { fStack = result : stack', fPC = fPC frame + 1 }
-        return $ Right (updateFrame vmState frame', Nothing)
-      _ -> return $ Left StackUnderflow
+    Just (VBuiltin _ func) ->
+      let arity = builtinArity op
+          (args, stack') = splitAt arity (fStack frame)
+      in if length args < arity
+        then return $ Left StackUnderflow
+        else do
+          result <- func (reverse args)
+          let frame' = frame { fStack = result : stack', fPC = fPC frame + 1 }
+          return $ Right (updateFrame vmState frame', Nothing)
     Just _ -> return $ Left $ TypeError "Not a builtin function"
 executeCall :: VMState -> Frame -> Int -> Name -> Bool -> IO (Either VMError (VMState, Maybe Value))
 executeCall vmState frame arity funcName isTail = do
