@@ -9,7 +9,6 @@ module VM
 
 import AST
 import Builtins
-import Control.Monad (foldM)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 
@@ -46,7 +45,7 @@ execVM vmState code = do
 runVM :: VMState -> IO (Either VMError Value)
 runVM vmState = case vFrames vmState of
   [] -> return $ Left $ RuntimeError "No frames to execute"
-  (frame:rest) -> do
+  (frame:_) -> do
     let pc = fPC frame
     let code = fCode frame
     let instrs = coInstrs code
@@ -61,6 +60,12 @@ runVM vmState = case vFrames vmState of
           Right (vmState', Nothing) -> runVM vmState'  -- Continue
           Right (_, Just val) -> return $ Right val    -- Return value
 
+-- Helper to update frame in vmState
+updateFrame :: VMState -> Frame -> VMState
+updateFrame vmState newFrame = case vFrames vmState of
+  (_:rest) -> vmState { vFrames = newFrame : rest }
+  [] -> vmState  -- Should not happen
+
 -- Execute a single instruction
 executeInstr :: VMState -> Frame -> Instr -> IO (Either VMError (VMState, Maybe Value))
 executeInstr vmState frame instr = case instr of
@@ -69,10 +74,10 @@ executeInstr vmState frame instr = case instr of
     if idx >= Vector.length consts
       then return $ Left $ RuntimeError "Constant index out of bounds"
       else do
-        let const = consts Vector.! idx
-        let val = constantToValue const
+        let constValue = consts Vector.! idx
+        let val = constantToValue constValue
         let frame' = frame { fStack = val : fStack frame, fPC = fPC frame + 1 }
-        return $ Right (vmState { vFrames = frame' : tail (vFrames vmState) }, Nothing)
+        return $ Right (updateFrame vmState frame', Nothing)
 
   ILoad slot -> do
     let locals = fLocals frame
@@ -82,7 +87,7 @@ executeInstr vmState frame instr = case instr of
         Nothing -> return $ Left $ RuntimeError "Uninitialized local variable"
         Just val -> do
           let frame' = frame { fStack = val : fStack frame, fPC = fPC frame + 1 }
-          return $ Right (vmState { vFrames = frame' : tail (vFrames vmState) }, Nothing)
+          return $ Right (updateFrame vmState frame', Nothing)
 
   IStore slot -> case fStack frame of
     [] -> return $ Left StackUnderflow
@@ -90,7 +95,7 @@ executeInstr vmState frame instr = case instr of
       let locals = fLocals frame
       let locals' = locals Vector.// [(slot, Just val)]
       let frame' = frame { fStack = stack', fLocals = locals', fPC = fPC frame + 1 }
-      return $ Right (vmState { vFrames = frame' : tail (vFrames vmState) }, Nothing)
+      return $ Right (updateFrame vmState frame', Nothing)
 
   IPrim op -> do
     result <- executePrim vmState frame op
@@ -106,34 +111,35 @@ executeInstr vmState frame instr = case instr of
 
   IReturn -> case fStack frame of
     [] -> return $ Left StackUnderflow
-    (val:_) -> case tail (vFrames vmState) of
-      [] -> return $ Right (vmState, Just val)  -- Top-level return
-      (callerFrame:rest) -> do
+    (val:_) -> case vFrames vmState of
+      [] -> return $ Left $ RuntimeError "No frames for return"
+      [_] -> return $ Right (vmState, Just val)  -- Top-level return
+      (_:callerFrame:rest) -> do
         let callerFrame' = callerFrame { fStack = val : fStack callerFrame, fPC = fPC callerFrame + 1 }
         return $ Right (vmState { vFrames = callerFrame' : rest }, Nothing)
 
   IJump target -> do
     let frame' = frame { fPC = target }
-    return $ Right (vmState { vFrames = frame' : tail (vFrames vmState) }, Nothing)
+    return $ Right (updateFrame vmState frame', Nothing)
 
   IJumpIfFalse target -> case fStack frame of
     [] -> return $ Left StackUnderflow
     (VBool False : stack') -> do
       let frame' = frame { fStack = stack', fPC = target }
-      return $ Right (vmState { vFrames = frame' : tail (vFrames vmState) }, Nothing)
+      return $ Right (updateFrame vmState frame', Nothing)
     (_:stack') -> do
       let frame' = frame { fStack = stack', fPC = fPC frame + 1 }
-      return $ Right (vmState { vFrames = frame' : tail (vFrames vmState) }, Nothing)
+      return $ Right (updateFrame vmState frame', Nothing)
 
   IPop -> case fStack frame of
     [] -> return $ Left StackUnderflow
     (_:stack') -> do
       let frame' = frame { fStack = stack', fPC = fPC frame + 1 }
-      return $ Right (vmState { vFrames = frame' : tail (vFrames vmState) }, Nothing)
+      return $ Right (updateFrame vmState frame', Nothing)
 
   INop -> do
     let frame' = frame { fPC = fPC frame + 1 }
-    return $ Right (vmState { vFrames = frame' : tail (vFrames vmState) }, Nothing)
+    return $ Right (updateFrame vmState frame', Nothing)
 
   _ -> return $ Left $ InvalidInstruction "Instruction not implemented"
 
@@ -148,7 +154,7 @@ executePrim vmState frame op =
         (arg2:arg1:stack') -> do
           result <- func [arg1, arg2]
           let frame' = frame { fStack = result : stack', fPC = fPC frame + 1 }
-          return $ Right (vmState { vFrames = frame' : tail (vFrames vmState) }, Nothing)
+          return $ Right (updateFrame vmState frame', Nothing)
         _ -> return $ Left StackUnderflow
     Just _ -> return $ Left $ TypeError "Not a builtin function"
 
@@ -165,7 +171,11 @@ executeCall vmState frame arity funcName isTail = do
         Just (VBuiltin _ func) -> do
           result <- func (reverse args)
           let frame' = frame { fStack = result : stack', fPC = fPC frame + 1 }
-          return $ Right (vmState { vFrames = frame' : tail (vFrames vmState) }, Nothing)
+          case vFrames vmState of
+            (_:rest) -> return $ Right (vmState { vFrames = frame' : rest }, Nothing)
+            [] -> return $ Left $ RuntimeError "No frames for builtin call"
+
+        Just _ -> return $ Left $ TypeError "Not a builtin function"
 
         Nothing -> case Map.lookup funcName (vCodeObjects vmState) of
           Just code -> do
@@ -181,10 +191,13 @@ executeCall vmState frame arity funcName isTail = do
                   }
             -- Update caller frame to remove arguments from stack
             let frame' = frame { fStack = stack' }
-            let vmState' = if isTail
-                  then vmState { vFrames = newFrame : tail (vFrames vmState) }
-                  else vmState { vFrames = newFrame : frame' : tail (vFrames vmState) }
-            return $ Right (vmState', Nothing)
+            case vFrames vmState of
+              (_:rest) ->
+                let vmState' = if isTail
+                      then vmState { vFrames = newFrame : rest }
+                      else vmState { vFrames = newFrame : frame' : rest }
+                in return $ Right (vmState', Nothing)
+              [] -> return $ Left $ RuntimeError "No frames for function call"
 
           Nothing -> return $ Left $ UndefinedFunction funcName
 

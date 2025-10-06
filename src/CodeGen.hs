@@ -11,7 +11,6 @@ import AST
 import Control.Monad.State
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
-import qualified Data.Set as Set
 
 data CodeGenState = CodeGenState
   { cgsCounter :: Int
@@ -202,13 +201,14 @@ patchJump instrIdx target = do
   -- Instructions are stored in reverse, so convert index
   let reverseIdx = len - instrIdx - 1
   if reverseIdx >= 0 && reverseIdx < len
-    then do
-      let (before, instr:after) = splitAt reverseIdx instrs
-      let patchedInstr = case instr of
-            IJumpIfFalse _ -> IJumpIfFalse target
-            IJump _ -> IJump target
-            other -> other
-      put s { cgsInstructions = before ++ (patchedInstr : after) }
+    then case splitAt reverseIdx instrs of
+      (before, instr:after) -> do
+        let patchedInstr = case instr of
+              IJumpIfFalse _ -> IJumpIfFalse target
+              IJump _ -> IJump target
+              other -> other
+        put s { cgsInstructions = before ++ (patchedInstr : after) }
+      _ -> return ()  -- Should not happen, but handle empty list case
     else return ()
 
 -- Compile a lambda as a separate code object

@@ -82,7 +82,7 @@ renameExpr env (EList exprs) = do
     getDefineName (EDefine name _) = name
     getDefineName _ = error "Not a define"
 
-    renameDefineWith oldEnv newEnv (EDefine name expr) = do
+    renameDefineWith _oldEnv newEnv (EDefine name expr) = do
       case Map.lookup name newEnv of
         Just newName -> do
           expr' <- renameExpr newEnv expr  -- Rename the value with new env (for letrec semantics)
@@ -103,7 +103,6 @@ renameExpr env (ELambda params body) = do
 
 renameExpr env (EDefine name expr) = do
   newName <- gensym name
-  let env' = Map.insert name newName env
   expr' <- renameExpr env expr  -- Don't use env' here, the binding is for subsequent exprs
   return $ EDefine newName expr'
 
@@ -131,37 +130,5 @@ renameExprWithEnv env expr = do
   expr' <- renameExpr env expr
   return (expr', env)
 
--- Get free variables in an expression
-freeVars :: Expr -> Set.Set Name
-freeVars = snd . runRename . collectFreeVars Map.empty
-
-collectFreeVars :: Env -> Expr -> RenameM ()
-collectFreeVars _ (EInt _) = return ()
-collectFreeVars _ (EBool _) = return ()
-collectFreeVars _ (EString _) = return ()
-
-collectFreeVars env (EVar name) =
-  case Map.lookup name env of
-    Nothing -> addFreeVar name
-    Just _ -> return ()
-
-collectFreeVars env (EList exprs) = mapM_ (collectFreeVars env) exprs
-
-collectFreeVars env (ELambda params body) = do
-  let env' = foldr (\p -> Map.insert p p) env params
-  collectFreeVars env' body
-
-collectFreeVars env (EDefine name expr) = do
-  let env' = Map.insert name name env
-  collectFreeVars env' expr
-
-collectFreeVars env (EIf cond thenE elseE) = do
-  collectFreeVars env cond
-  collectFreeVars env thenE
-  collectFreeVars env elseE
-
-collectFreeVars env (EApp func args) = do
-  collectFreeVars env func
-  mapM_ (collectFreeVars env) args
-
-collectFreeVars _ (EQuote _) = return ()
+-- Note: freeVars and collectFreeVars are not used in current implementation
+-- but kept for potential future use in closure conversion optimization

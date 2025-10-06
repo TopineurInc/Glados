@@ -6,9 +6,7 @@ module ClosureConversion
   ) where
 
 import AST
-import Control.Monad.State
 import qualified Data.Set as Set
-import qualified Data.Map as Map
 
 data ClosureInfo = ClosureInfo
   { ciFreeVars :: [Name]
@@ -34,7 +32,8 @@ convertExpr env (EList exprs) =
 convertExpr env (ELambda params body) =
   let env' = env `Set.union` Set.fromList params
       body' = convertExpr env' body
-      free = getFreeVars (Set.fromList params) body'
+      -- Note: free variables analysis done but not yet used in current implementation
+      _free = getFreeVars (Set.fromList params) body'
   in ELambda params body'
 
 convertExpr env (EDefine name expr) =

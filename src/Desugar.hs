@@ -29,19 +29,19 @@ sexprToExpr = \case
     Right $ EDefine name e
 
   -- Define with sugared syntax: (define (name args...) body)
-  SList [SAtom (ASymbol "define") _, SList (SAtom (ASymbol name) _ : args) _, body] loc -> do
+  SList [SAtom (ASymbol "define") _, SList (SAtom (ASymbol name) _ : args) _, body] _loc -> do
     params <- mapM extractParam args
     b <- sexprToExpr body
     Right $ EDefine name (ELambda params b)
 
   -- Lambda: (lambda (args...) body)
-  SList [SAtom (ASymbol "lambda") _, SList args _, body] loc -> do
+  SList [SAtom (ASymbol "lambda") _, SList args _, body] _loc -> do
     params <- mapM extractParam args
     b <- sexprToExpr body
     Right $ ELambda params b
 
   -- Let: (let ((x val) ...) body) => ((lambda (x ...) body) val ...)
-  SList [SAtom (ASymbol "let") _, SList bindings _, body] loc -> do
+  SList [SAtom (ASymbol "let") _, SList bindings _, body] _loc -> do
     (names, vals) <- desugarBindings bindings
     b <- sexprToExpr body
     vals' <- mapM sexprToExpr vals
@@ -49,7 +49,7 @@ sexprToExpr = \case
 
   -- Letrec: (letrec ((f lambda) ...) body)
   -- Desugar to nested defines in a begin block
-  SList [SAtom (ASymbol "letrec") _, SList bindings _, body] loc -> do
+  SList [SAtom (ASymbol "letrec") _, SList bindings _, body] _loc -> do
     (names, vals) <- desugarBindings bindings
     vals' <- mapM sexprToExpr vals
     b <- sexprToExpr body
