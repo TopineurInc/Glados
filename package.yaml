@@ -41,6 +41,15 @@ library:
   exposed-modules:
     - AST
     - SExprParser
+    - MacroExpander
+    - Desugar
+    - AlphaRename
+    - ClosureConversion
+    - CodeGen
+    - Builtins
+    - VM
+    - Compiler
+    - Disasm
     - Lib
 
 executables:
@@ -64,3 +73,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - glados
+    - HUnit

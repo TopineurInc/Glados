@@ -27,6 +27,15 @@ library
   exposed-modules:
       AST
       SExprParser
+      MacroExpander
+      Desugar
+      AlphaRename
+      ClosureConversion
+      CodeGen
+      Builtins
+      VM
+      Compiler
+      Disasm
       Lib
   other-modules:
       Paths_glados
@@ -70,7 +79,8 @@ test-suite glados-test
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      HUnit
+    , base >=4.7 && <5
     , containers
     , glados
     , mtl

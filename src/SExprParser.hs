@@ -54,7 +54,7 @@ anyChar :: Parser Char
 anyChar = Parser $ \s ->
   case psInput s of
     []     -> Left $ ParseError "unexpected end of input" (Just $ SourcePos (psLine s) (psCol s))
-    (c:cs) -> Right (c, s { psInput = cs } `seq` advancePos c s)
+    (c:cs) -> Right (c, advancePos c (s { psInput = cs }))
 
 -- | Parse specific character
 char :: Char -> Parser Char

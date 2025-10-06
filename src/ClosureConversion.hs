@@ -1,0 +1,78 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
+module ClosureConversion
+  ( closureConvert
+  , ClosureInfo(..)
+  ) where
+
+import AST
+import Control.Monad.State
+import qualified Data.Set as Set
+import qualified Data.Map as Map
+
+data ClosureInfo = ClosureInfo
+  { ciFreeVars :: [Name]
+  , ciCode :: Expr
+  } deriving (Eq, Show)
+
+type Env = Set.Set Name
+
+-- Analyze and annotate closures with free variable information
+closureConvert :: Expr -> Either CompileError Expr
+closureConvert expr = Right $ convertExpr Set.empty expr
+
+convertExpr :: Env -> Expr -> Expr
+convertExpr _ e@(EInt _) = e
+convertExpr _ e@(EBool _) = e
+convertExpr _ e@(EString _) = e
+convertExpr _ e@(EVar _) = e
+convertExpr _ e@(EQuote _) = e
+
+convertExpr env (EList exprs) =
+  EList (map (convertExpr env) exprs)
+
+convertExpr env (ELambda params body) =
+  let env' = env `Set.union` Set.fromList params
+      body' = convertExpr env' body
+      free = getFreeVars (Set.fromList params) body'
+  in ELambda params body'
+
+convertExpr env (EDefine name expr) =
+  let env' = Set.insert name env
+  in EDefine name (convertExpr env' expr)
+
+convertExpr env (EIf cond thenE elseE) =
+  EIf (convertExpr env cond) (convertExpr env thenE) (convertExpr env elseE)
+
+convertExpr env (EApp func args) =
+  EApp (convertExpr env func) (map (convertExpr env) args)
+
+-- Get free variables in an expression
+getFreeVars :: Set.Set Name -> Expr -> Set.Set Name
+getFreeVars bound (EVar name)
+  | Set.member name bound = Set.empty
+  | otherwise = Set.singleton name
+getFreeVars _ (EInt _) = Set.empty
+getFreeVars _ (EBool _) = Set.empty
+getFreeVars _ (EString _) = Set.empty
+getFreeVars _ (EQuote _) = Set.empty
+
+getFreeVars bound (EList exprs) =
+  Set.unions (map (getFreeVars bound) exprs)
+
+getFreeVars bound (ELambda params body) =
+  let bound' = bound `Set.union` Set.fromList params
+  in getFreeVars bound' body
+
+getFreeVars bound (EDefine name expr) =
+  let bound' = Set.insert name bound
+  in getFreeVars bound' expr
+
+getFreeVars bound (EIf cond thenE elseE) =
+  getFreeVars bound cond `Set.union`
+  getFreeVars bound thenE `Set.union`
+  getFreeVars bound elseE
+
+getFreeVars bound (EApp func args) =
+  getFreeVars bound func `Set.union`
+  Set.unions (map (getFreeVars bound) args)
