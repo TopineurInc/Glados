@@ -1,0 +1,15 @@
+name: Simple CI
+
+on:
+  push:
+    branches:
+      - '*'   # triggers on push to any branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # or your custom runner label
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run script
+        run: echo "✅ CI triggered on branch ${{ github.ref_name }}"
