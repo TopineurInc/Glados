@@ -5,8 +5,6 @@
 -- AlphaRename
 -}
 
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module AlphaRename
   ( alphaRename
   , RenameM
@@ -27,103 +25,118 @@ data RenameState = RenameState
   , rsFreeVars :: FreeVars
   } deriving (Show)
 
-newtype RenameM a = RenameM { unRenameM :: State RenameState a }
-  deriving (Functor, Applicative, Monad, MonadState RenameState)
+type RenameM = State RenameState
 
 runRename :: RenameM a -> (a, FreeVars)
 runRename m =
-  let (result, st) = runState (unRenameM m) (RenameState 0 Set.empty)
+  let (result, st) = runState m (RenameState 0 Set.empty)
   in (result, rsFreeVars st)
 
--- Generate a unique name
 gensym :: Name -> RenameM Name
-gensym base = do
-  st <- get
-  let counter = rsCounter st
-  put st { rsCounter = counter + 1 }
-  return $ base ++ "#" ++ show counter
+gensym base =
+  get >>= \st ->
+    let counter = rsCounter st
+        newName = base ++ "#" ++ show counter
+    in put st { rsCounter = counter + 1 } >> pure newName
 
--- Add a free variable to the set
 addFreeVar :: Name -> RenameM ()
-addFreeVar name = modify $ \st -> st { rsFreeVars = Set.insert name (rsFreeVars st) }
+addFreeVar name =
+  modify $ \st -> st { rsFreeVars = Set.insert name (rsFreeVars st) }
 
 alphaRename :: Expr -> Either CompileError Expr
 alphaRename expr = Right $ fst $ runRename (renameExpr Map.empty expr)
 
 renameExpr :: Env -> Expr -> RenameM Expr
-renameExpr _ (EInt n) = return $ EInt n
-renameExpr _ (EBool b) = return $ EBool b
-renameExpr _ (EString s) = return $ EString s
+renameExpr _ (EInt n) = pure $ EInt n
+renameExpr _ (EBool b) = pure $ EBool b
+renameExpr _ (EString s) = pure $ EString s
+renameExpr env (EVar name) = renameVar env name
+renameExpr env (EList exprs) = renameList env exprs
+renameExpr env (ELambda params body) = renameLambda env params body
+renameExpr env (EDefine name expr) = renameDefine env name expr
+renameExpr env (EIf cond thenE elseE) = renameIf env cond thenE elseE
+renameExpr env (EApp func args) = renameApp env func args
+renameExpr _ (EQuote sexpr) = pure $ EQuote sexpr
 
-renameExpr env (EVar name) =
-  case Map.lookup name env of
-    Just newName -> return $ EVar newName
-    Nothing -> do
-      addFreeVar name
-      return $ EVar name
+renameVar :: Env -> Name -> RenameM Expr
+renameVar env name =
+  maybe
+    (addFreeVar name >> pure (EVar name))
+    (pure . EVar)
+    (Map.lookup name env)
 
-renameExpr env (EList exprs) = do
+renameList :: Env -> [Expr] -> RenameM Expr
+renameList env exprs =
   let (defines, rest) = span isDefine exprs
-  if not (null defines)
-    then do
-      let defNames = map getDefineName defines
-      newNames <- mapM gensym defNames
-      let env' = Map.fromList (zip defNames newNames) `Map.union` env
-      defines' <- mapM (renameDefineWith env env') defines
-      (rest', _) <- foldM renameInSequence ([], env') rest
-      return $ EList (defines' ++ reverse rest')
-    else do
-      (exprs', _) <- foldM renameInSequence ([], env) exprs
-      return $ EList (reverse exprs')
+  in if null defines
+      then renameWithoutDefines env exprs
+      else renameWithDefines env defines rest
+
+isDefine :: Expr -> Bool
+isDefine (EDefine _ _) = True
+isDefine _ = False
+
+renameWithoutDefines :: Env -> [Expr] -> RenameM Expr
+renameWithoutDefines env exprs =
+  foldM renameSequence ([], env) exprs >>= \(renamed, _) ->
+    pure $ EList (reverse renamed)
+
+renameWithDefines :: Env -> [Expr] -> [Expr] -> RenameM Expr
+renameWithDefines env defExprs restExprs =
+  let defNames = map getDefineName defExprs
+  in mapM gensym defNames >>= \newNames ->
+       let env' = Map.fromList (zip defNames newNames) `Map.union` env
+       in mapM (renameDefineWith env env') defExprs >>= \renamedDefines ->
+            foldM renameSequence ([], env') restExprs >>= \(renamedRest, _) ->
+              pure $ EList (renamedDefines ++ reverse renamedRest)
+
+getDefineName :: Expr -> Name
+getDefineName (EDefine name _) = name
+getDefineName _ = error "Not a define"
+
+renameSequence :: ([Expr], Env) -> Expr -> RenameM ([Expr], Env)
+renameSequence (acc, currentEnv) expression =
+  renameExprWithEnv currentEnv expression >>= \(renamed, newEnv) ->
+    pure (renamed : acc, newEnv)
+
+renameLambda :: Env -> [Name] -> Expr -> RenameM Expr
+renameLambda env params body =
+  mapM gensym params >>= \newParams ->
+    let env' = Map.fromList (zip params newParams) `Map.union` env
+    in renameExpr env' body >>= \body' -> pure $ ELambda newParams body'
+
+renameDefine :: Env -> Name -> Expr -> RenameM Expr
+renameDefine env name expr =
+  gensym name >>= \newName ->
+    renameExpr env expr >>= \expr' -> pure $ EDefine newName expr'
+
+renameIf :: Env -> Expr -> Expr -> Expr -> RenameM Expr
+renameIf env cond thenE elseE =
+  renameExpr env cond >>= \cond' ->
+    renameExpr env thenE >>= \thenE' ->
+      renameExpr env elseE >>= \elseE' -> pure $ EIf cond' thenE' elseE'
+
+renameApp :: Env -> Expr -> [Expr] -> RenameM Expr
+renameApp env func args =
+  renameExpr env func >>= \func' ->
+    mapM (renameExpr env) args >>= \args' -> pure $ EApp func' args'
+
+renameDefineWith :: Env -> Env -> Expr -> RenameM Expr
+renameDefineWith _ newEnv (EDefine name expr) =
+  maybe
+    (error "Name not in new env")
+    renameWithNewName
+    (Map.lookup name newEnv)
   where
-    isDefine (EDefine _ _) = True
-    isDefine _ = False
-
-    getDefineName (EDefine name _) = name
-    getDefineName _ = error "Not a define"
-
-    renameDefineWith _oldEnv newEnv (EDefine name expr) = do
-      case Map.lookup name newEnv of
-        Just newName -> do
-          expr' <- renameExpr newEnv expr
-          return $ EDefine newName expr'
-        Nothing -> error "Name not in new env"
-    renameDefineWith _ _ _ = error "Not a define"
-
-    renameInSequence (acc, currentEnv) expr = do
-      (expr', newEnv) <- renameExprWithEnv currentEnv expr
-      return (expr' : acc, newEnv)
-
-renameExpr env (ELambda params body) = do
-  newParams <- mapM gensym params
-  let env' = Map.fromList (zip params newParams) `Map.union` env
-  body' <- renameExpr env' body
-  return $ ELambda newParams body'
-
-renameExpr env (EDefine name expr) = do
-  newName <- gensym name
-  expr' <- renameExpr env expr
-  return $ EDefine newName expr'
-
-renameExpr env (EIf cond thenE elseE) = do
-  cond' <- renameExpr env cond
-  thenE' <- renameExpr env thenE
-  elseE' <- renameExpr env elseE
-  return $ EIf cond' thenE' elseE'
-
-renameExpr env (EApp func args) = do
-  func' <- renameExpr env func
-  args' <- mapM (renameExpr env) args
-  return $ EApp func' args'
-
-renameExpr _ (EQuote sexpr) = return $ EQuote sexpr
+    renameWithNewName newName =
+      renameExpr newEnv expr >>= \expr' -> pure $ EDefine newName expr'
+renameDefineWith _ _ _ = error "Not a define"
 
 renameExprWithEnv :: Env -> Expr -> RenameM (Expr, Env)
-renameExprWithEnv env (EDefine name expr) = do
-  newName <- gensym name
-  let env' = Map.insert name newName env
-  expr' <- renameExpr env expr
-  return (EDefine newName expr', env')
-renameExprWithEnv env expr = do
-  expr' <- renameExpr env expr
-  return (expr', env)
+renameExprWithEnv env (EDefine name expr) =
+  gensym name >>= \newName ->
+    let env' = Map.insert name newName env
+    in renameExpr env expr >>= \expr' -> pure (EDefine newName expr', env')
+renameExprWithEnv env expr =
+  renameExpr env expr >>= \expr' ->
+    pure (expr', env)

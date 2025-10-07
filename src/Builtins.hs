@@ -36,139 +36,179 @@ import System.IO (hFlush, stdout)
 import Text.Read (readMaybe)
 
 builtins :: Map.Map Name Value
-builtins = Map.fromList
-  [ -- Common Lisp constants
-    ("t", VBool True)
+builtins = Map.fromList builtinEntries
+
+builtinEntries :: [(Name, Value)]
+builtinEntries =
+  concat
+    [ constantEntries
+    , arithmeticEntries
+    , comparisonEntries
+    , ioEntries
+    , stringEntries
+    , logicEntries
+    , formatEntries
+    ]
+
+constantEntries :: [(Name, Value)]
+constantEntries =
+  [ ("t", VBool True)
   , ("nil", VBool False)
-  -- Builtins
-  , ("+", VBuiltin "+" builtinAdd)
-  , ("-", VBuiltin "-" builtinSub)
-  , ("*", VBuiltin "*" builtinMul)
-  , ("div", VBuiltin "div" builtinDiv)
-  , ("mod", VBuiltin "mod" builtinMod)
-  , ("eq?", VBuiltin "eq?" builtinEq)
-  , ("<", VBuiltin "<" builtinLt)
-  , (">", VBuiltin ">" builtinGt)
-  , ("print", VBuiltin "print" builtinPrint)
-  , ("display", VBuiltin "display" builtinDisplay)
-  , ("input", VBuiltin "input" builtinInput)
-  , ("read-line", VBuiltin "read-line" builtinReadLine)
-  , ("string->number", VBuiltin "string->number" builtinStringToNumber)
-  , ("number->string", VBuiltin "number->string" builtinNumberToString)
-  , ("string-length", VBuiltin "string-length" builtinStringLength)
-  , ("string-append", VBuiltin "string-append" builtinStringAppend)
-  , ("substring", VBuiltin "substring" builtinSubstring)
-  , ("not", VBuiltin "not" builtinNot)
-  , ("and", VBuiltin "and" builtinAnd)
-  , ("or", VBuiltin "or" builtinOr)
-  , ("format", VBuiltin "format" builtinFormat)
   ]
 
--- Arithmetic operations
+arithmeticEntries :: [(Name, Value)]
+arithmeticEntries =
+  map builtinFunction
+    [ ("+", builtinAdd)
+    , ("-", builtinSub)
+    , ("*", builtinMul)
+    , ("div", builtinDiv)
+    , ("mod", builtinMod)
+    ]
+
+comparisonEntries :: [(Name, Value)]
+comparisonEntries =
+  map builtinFunction
+    [ ("eq?", builtinEq)
+    , ("<", builtinLt)
+    , (">", builtinGt)
+    ]
+
+ioEntries :: [(Name, Value)]
+ioEntries =
+  map builtinFunction
+    [ ("print", builtinPrint)
+    , ("display", builtinDisplay)
+    , ("input", builtinInput)
+    , ("read-line", builtinReadLine)
+    ]
+
+stringEntries :: [(Name, Value)]
+stringEntries =
+  map builtinFunction
+    [ ("string->number", builtinStringToNumber)
+    , ("number->string", builtinNumberToString)
+    , ("string-length", builtinStringLength)
+    , ("string-append", builtinStringAppend)
+    , ("substring", builtinSubstring)
+    ]
+
+logicEntries :: [(Name, Value)]
+logicEntries =
+  map builtinFunction
+    [ ("not", builtinNot)
+    , ("and", builtinAnd)
+    , ("or", builtinOr)
+    ]
+
+formatEntries :: [(Name, Value)]
+formatEntries =
+  map builtinFunction [("format", builtinFormat)]
+
+builtinFunction :: (Name, [Value] -> IO Value) -> (Name, Value)
+builtinFunction (name, fn) = (name, VBuiltin name fn)
+
 builtinAdd :: [Value] -> IO Value
-builtinAdd [VInt a, VInt b] = return $ VInt (a + b)
+builtinAdd [VInt a, VInt b] = pure $ VInt (a + b)
 builtinAdd _ = error "Type error: + expects two integers"
 
 builtinSub :: [Value] -> IO Value
-builtinSub [VInt a, VInt b] = return $ VInt (a - b)
+builtinSub [VInt a, VInt b] = pure $ VInt (a - b)
 builtinSub _ = error "Type error: - expects two integers"
 
 builtinMul :: [Value] -> IO Value
-builtinMul [VInt a, VInt b] = return $ VInt (a * b)
+builtinMul [VInt a, VInt b] = pure $ VInt (a * b)
 builtinMul _ = error "Type error: * expects two integers"
 
 builtinDiv :: [Value] -> IO Value
 builtinDiv [VInt a, VInt b]
   | b == 0 = error "Division by zero"
-  | otherwise = return $ VInt (a `div` b)
+  | otherwise = pure $ VInt (a `div` b)
 builtinDiv _ = error "Type error: div expects two integers"
 
 builtinMod :: [Value] -> IO Value
 builtinMod [VInt a, VInt b]
   | b == 0 = error "Division by zero"
-  | otherwise = return $ VInt (a `mod` b)
+  | otherwise = pure $ VInt (a `mod` b)
 builtinMod _ = error "Type error: mod expects two integers"
 
 -- Comparison operations
 builtinEq :: [Value] -> IO Value
-builtinEq [VInt a, VInt b] = return $ VBool (a == b)
-builtinEq [VBool a, VBool b] = return $ VBool (a == b)
-builtinEq [VString a, VString b] = return $ VBool (a == b)
-builtinEq _ = return $ VBool False
+builtinEq [VInt a, VInt b] = pure $ VBool (a == b)
+builtinEq [VBool a, VBool b] = pure $ VBool (a == b)
+builtinEq [VString a, VString b] = pure $ VBool (a == b)
+builtinEq _ = pure $ VBool False
 
 builtinLt :: [Value] -> IO Value
-builtinLt [VInt a, VInt b] = return $ VBool (a < b)
+builtinLt [VInt a, VInt b] = pure $ VBool (a < b)
 builtinLt _ = error "Type error: < expects two integers"
 
 builtinGt :: [Value] -> IO Value
-builtinGt [VInt a, VInt b] = return $ VBool (a > b)
+builtinGt [VInt a, VInt b] = pure $ VBool (a > b)
 builtinGt _ = error "Type error: > expects two integers"
 
 builtinPrint :: [Value] -> IO Value
-builtinPrint [val] = do
-  putStrLn $ showValue val
-  return val
+builtinPrint [val] = putStrLn (showValue val) >> pure val
 builtinPrint _ = error "Type error: print expects one argument"
 
 builtinDisplay :: [Value] -> IO Value
-builtinDisplay [val] = do
-  putStr $ showValue val
-  hFlush stdout
-  return val
+builtinDisplay [val] =
+  putStr (showValue val)
+    >> hFlush stdout
+    >> pure val
 builtinDisplay _ = error "Type error: display expects one argument"
 
 builtinInput :: [Value] -> IO Value
-builtinInput [VString prompt] = do
+builtinInput [VString prompt] =
   putStr prompt
-  hFlush stdout
-  line <- getLine
-  return $ VString line
-builtinInput [] = do
-  line <- getLine
-  return $ VString line
-builtinInput _ = error "Type error: input expects zero or one argument (prompt)"
+    >> hFlush stdout
+    >> fmap VString getLine
+builtinInput [] = VString <$> getLine
+builtinInput _ =
+  error "Type error: input expects zero or one argument (prompt)"
 
 builtinReadLine :: [Value] -> IO Value
-builtinReadLine [] = do
-  line <- getLine
-  return $ VString line
+builtinReadLine [] = VString <$> getLine
 builtinReadLine _ = error "Type error: read-line expects no arguments"
 
 builtinStringToNumber :: [Value] -> IO Value
 builtinStringToNumber [VString s] =
   case readMaybe s of
-    Just n -> return $ VInt n
-    Nothing -> error $ "Type error: cannot convert '" ++ s ++ "' to number"
+    Just n -> pure $ VInt n
+    Nothing ->
+      error $
+        "Type error: cannot convert '" ++ s ++ "' to number"
 builtinStringToNumber _ = error "Type error: string->number expects a string"
 
 builtinNumberToString :: [Value] -> IO Value
-builtinNumberToString [VInt n] = return $ VString (show n)
+builtinNumberToString [VInt n] = pure $ VString (show n)
 builtinNumberToString _ = error "Type error: number->string expects an integer"
 
 builtinStringLength :: [Value] -> IO Value
-builtinStringLength [VString s] = return $ VInt (toInteger $ length s)
+builtinStringLength [VString s] = pure $ VInt (toInteger $ length s)
 builtinStringLength _ = error "Type error: string-length expects a string"
 
 builtinStringAppend :: [Value] -> IO Value
-builtinStringAppend [VString a, VString b] = return $ VString (a ++ b)
+builtinStringAppend [VString a, VString b] = pure $ VString (a ++ b)
 builtinStringAppend _ = error "Type error: string-append expects two strings"
 
 builtinSubstring :: [Value] -> IO Value
 builtinSubstring [VString s, VInt start, VInt end] =
   let s' = take (fromInteger $ end - start) $ drop (fromInteger start) s
-  in return $ VString s'
-builtinSubstring _ = error "Type error: substring expects (string, start, end)"
+  in pure $ VString s'
+builtinSubstring _ =
+  error "Type error: substring expects (string, start, end)"
 
 builtinNot :: [Value] -> IO Value
-builtinNot [VBool b] = return $ VBool (not b)
+builtinNot [VBool b] = pure $ VBool (not b)
 builtinNot _ = error "Type error: not expects a boolean"
 
 builtinAnd :: [Value] -> IO Value
-builtinAnd [VBool a, VBool b] = return $ VBool (a && b)
+builtinAnd [VBool a, VBool b] = pure $ VBool (a && b)
 builtinAnd _ = error "Type error: and expects two booleans"
 
 builtinOr :: [Value] -> IO Value
-builtinOr [VBool a, VBool b] = return $ VBool (a || b)
+builtinOr [VBool a, VBool b] = pure $ VBool (a || b)
 builtinOr _ = error "Type error: or expects two booleans"
 
 -- Format function (Common Lisp style)
@@ -176,21 +216,26 @@ builtinFormat :: [Value] -> IO Value
 builtinFormat (dest:VString fmt:args) =
   let formatted = processFormatString fmt args
   in case dest of
-       VBool True -> do  -- t means stdout
+       VBool True ->
          putStr formatted
-         hFlush stdout
-         return $ VBool False  -- nil in Common Lisp
-       VBool False -> return $ VString formatted  -- nil means return string
+           >> hFlush stdout
+           >> pure (VBool False)
+       VBool False -> pure $ VString formatted
        _ -> error "Type error: format destination must be t or nil"
-builtinFormat _ = error "Type error: format expects (destination format-string ...)"
+builtinFormat _ =
+  error "Type error: format expects (destination format-string ...)"
 
 processFormatString :: String -> [Value] -> String
 processFormatString [] _ = []
 processFormatString ('~':'%':rest) args = '\n' : processFormatString rest args
-processFormatString ('~':'a':rest) (arg:args') = showValue arg ++ processFormatString rest args'
-processFormatString ('~':'s':rest) (arg:args') = showValue arg ++ processFormatString rest args'
-processFormatString ('~':'A':rest) (arg:args') = showValue arg ++ processFormatString rest args'
-processFormatString ('~':'S':rest) (arg:args') = showValue arg ++ processFormatString rest args'
+processFormatString ('~':'a':rest) (arg:args') =
+  showValue arg ++ processFormatString rest args'
+processFormatString ('~':'s':rest) (arg:args') =
+  showValue arg ++ processFormatString rest args'
+processFormatString ('~':'A':rest) (arg:args') =
+  showValue arg ++ processFormatString rest args'
+processFormatString ('~':'S':rest) (arg:args') =
+  showValue arg ++ processFormatString rest args'
 processFormatString (c:rest) args = c : processFormatString rest args
 
 showValue :: Value -> String

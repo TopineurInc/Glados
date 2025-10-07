@@ -5,8 +5,6 @@
 -- ClosureConversion
 -}
 
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module ClosureConversion
   ( closureConvert
   , ClosureInfo(..)

@@ -5,8 +5,6 @@
 -- Desugar
 -}
 
-{-# LANGUAGE LambdaCase #-}
-
 module Desugar
   ( desugar
   , sexprToExpr
@@ -14,83 +12,130 @@ module Desugar
 
 import AST
 
--- Convert S-expression to AST surface language (Expr)
 sexprToExpr :: SExpr -> Either CompileError Expr
-sexprToExpr = \case
-  SAtom (AInteger n) _ -> Right $ EInt n
-  SAtom (ABool b) _ -> Right $ EBool b
-  SAtom (AString s) _ -> Right $ EString s
-  SAtom (ASymbol s) _ -> Right $ EVar s
+sexprToExpr sexpr =
+  case sexpr of
+    SAtom atom _ -> atomToExpr atom
+    SList [] loc -> Left $ SyntaxError "Empty list not allowed" loc
+    SList (first : rest) loc ->
+      case first of
+        SAtom (ASymbol keyword) _ ->
+          interpretKeyword keyword rest loc
+        _ ->
+          buildApplication first rest
 
-  SList [SAtom (ASymbol "quote") _, arg] _ -> Right $ EQuote arg
+atomToExpr :: Atom -> Either CompileError Expr
+atomToExpr atom =
+  case atom of
+    AInteger n -> Right $ EInt n
+    ABool b -> Right $ EBool b
+    AString s -> Right $ EString s
+    ASymbol s -> Right $ EVar s
 
-  SList [SAtom (ASymbol "if") _, cond, thenE, elseE] _ -> do
-    c <- sexprToExpr cond
-    t <- sexprToExpr thenE
-    e <- sexprToExpr elseE
-    Right $ EIf c t e
+interpretKeyword :: String -> [SExpr] -> Loc -> Either CompileError Expr
+interpretKeyword keyword rest loc =
+  case keyword of
+    "quote" -> quoteForm rest loc
+    "if" -> ifForm rest loc
+    "define" -> defineForm rest loc
+    "lambda" -> lambdaForm rest loc
+    "let" -> letForm rest loc
+    "letrec" -> letRecForm rest loc
+    "begin" -> beginForm rest
+    _ -> buildSymbolApplication keyword rest loc
 
-  -- Define with lambda: (define name expr)
-  SList [SAtom (ASymbol "define") _, SAtom (ASymbol name) _, expr] _ -> do
-    e <- sexprToExpr expr
-    Right $ EDefine name e
+quoteForm :: [SExpr] -> Loc -> Either CompileError Expr
+quoteForm [arg] _ = Right $ EQuote arg
+quoteForm _ loc = Left $ SyntaxError "quote expects a single argument" loc
 
-  -- Define with sugared syntax: (define (name args...) body)
-  SList [SAtom (ASymbol "define") _, SList (SAtom (ASymbol name) _ : args) _, body] _loc -> do
-    params <- mapM extractParam args
-    b <- sexprToExpr body
-    Right $ EDefine name (ELambda params b)
+ifForm :: [SExpr] -> Loc -> Either CompileError Expr
+ifForm [cond, thenE, elseE] _ =
+  do
+    cond' <- sexprToExpr cond
+    then' <- sexprToExpr thenE
+    else' <- sexprToExpr elseE
+    Right $ EIf cond' then' else'
+ifForm _ loc = Left $ SyntaxError "if expects three arguments" loc
 
-  -- Lambda: (lambda (args...) body)
-  SList [SAtom (ASymbol "lambda") _, SList args _, body] _loc -> do
-    params <- mapM extractParam args
-    b <- sexprToExpr body
-    Right $ ELambda params b
+defineForm :: [SExpr] -> Loc -> Either CompileError Expr
+defineForm parts loc =
+  case parts of
+    [SAtom (ASymbol name) _, expr] ->
+      sexprToExpr expr >>= \expr' -> Right $ EDefine name expr'
+    SList (SAtom (ASymbol name) _ : args) _ : body : _ ->
+      do
+        params <- mapM extractParam args
+        body' <- sexprToExpr body
+        Right $ EDefine name (ELambda params body')
+    _ -> Left $ SyntaxError "Invalid define form" loc
 
-  -- Let: (let ((x val) ...) body) => ((lambda (x ...) body) val ...)
-  SList [SAtom (ASymbol "let") _, SList bindings _, body] _loc -> do
-    (names, vals) <- desugarBindings bindings
-    b <- sexprToExpr body
-    vals' <- mapM sexprToExpr vals
-    Right $ EApp (ELambda names b) vals'
+lambdaForm :: [SExpr] -> Loc -> Either CompileError Expr
+lambdaForm parts loc =
+  case parts of
+    [SList args _, body] ->
+      do
+        params <- mapM extractParam args
+        body' <- sexprToExpr body
+        Right $ ELambda params body'
+    _ -> Left $ SyntaxError "Invalid lambda form" loc
 
-  -- Letrec: (letrec ((f lambda) ...) body)
-  -- Desugar to nested defines in a begin block
-  SList [SAtom (ASymbol "letrec") _, SList bindings _, body] _loc -> do
-    (names, vals) <- desugarBindings bindings
-    vals' <- mapM sexprToExpr vals
-    b <- sexprToExpr body
-    -- Create a list of define expressions followed by the body
-    let defines = zipWith (\name val -> EDefine name val) names vals'
-    Right $ EList (defines ++ [b])
+letForm :: [SExpr] -> Loc -> Either CompileError Expr
+letForm parts loc =
+  case parts of
+    [SList bindings _, body] ->
+      do
+        (names, vals) <- desugarBindings bindings
+        body' <- sexprToExpr body
+        vals' <- mapM sexprToExpr vals
+        Right $ EApp (ELambda names body') vals'
+    _ -> Left $ SyntaxError "Invalid let form" loc
 
-  -- Begin: (begin expr1 expr2 ...) => evaluate all, return last
-  SList (SAtom (ASymbol "begin") _ : exprs) _ -> do
-    exprs' <- mapM sexprToExpr exprs
+letRecForm :: [SExpr] -> Loc -> Either CompileError Expr
+letRecForm parts loc =
+  case parts of
+    [SList bindings _, body] ->
+      do
+        (names, vals) <- desugarBindings bindings
+        vals' <- mapM sexprToExpr vals
+        body' <- sexprToExpr body
+        let defines = zipWith EDefine names vals'
+        Right $ EList (defines ++ [body'])
+    _ -> Left $ SyntaxError "Invalid letrec form" loc
+
+beginForm :: [SExpr] -> Either CompileError Expr
+beginForm exprs =
+  mapM sexprToExpr exprs >>= \exprs' ->
     Right $ EList exprs'
 
-  -- Application: (f args...)
-  SList (f : args) _ -> do
-    func <- sexprToExpr f
+buildSymbolApplication :: String -> [SExpr] -> Loc -> Either CompileError Expr
+buildSymbolApplication keyword rest loc =
+  buildApplication (SAtom (ASymbol keyword) loc) rest
+
+buildApplication :: SExpr -> [SExpr] -> Either CompileError Expr
+buildApplication func args =
+  do
+    func' <- sexprToExpr func
     args' <- mapM sexprToExpr args
-    Right $ EApp func args'
+    Right $ EApp func' args'
 
-  SList [] loc -> Left $ SyntaxError "Empty list not allowed" loc
-
--- Desugar an Expr (additional pass if needed)
 desugar :: Expr -> Either CompileError Expr
-desugar expr = Right expr  -- Most desugaring happens in sexprToExpr
+desugar expr = Right expr
 
 extractParam :: SExpr -> Either CompileError Name
 extractParam (SAtom (ASymbol name) _) = Right name
-extractParam other = Left $ SyntaxError "Parameter must be a symbol" (sexprLoc other)
+extractParam other =
+  Left $
+    SyntaxError "Parameter must be a symbol" (sexprLoc other)
 
 desugarBindings :: [SExpr] -> Either CompileError ([Name], [SExpr])
-desugarBindings bindings = do
-  pairs <- mapM extractBinding bindings
-  let (names, vals) = unzip pairs
-  Right (names, vals)
+desugarBindings bindings =
+  do
+    pairs <- mapM extractBinding bindings
+    let (names, vals) = unzip pairs
+    Right (names, vals)
 
 extractBinding :: SExpr -> Either CompileError (Name, SExpr)
 extractBinding (SList [SAtom (ASymbol name) _, val] _) = Right (name, val)
-extractBinding other = Left $ SyntaxError "Binding must be (name value)" (sexprLoc other)
+extractBinding other =
+  Left $
+    SyntaxError "Binding must be (name value)" (sexprLoc other)

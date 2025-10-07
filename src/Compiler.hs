@@ -36,124 +36,126 @@ defaultConfig = CompilerConfig
   , cfgMacroEnv = defaultMacroEnv
   }
 
--- Compile a single program from source text
 compile :: CompilerConfig -> String -> Either CompileError CodeObject
-compile config source = do
-  -- 1. Parse to S-expression
-  exprs <- parseFromString source
-  case exprs of
-    [] -> Left $ SyntaxError "Empty program" Nothing
-    sexprs -> do
-      -- Transform program to wrap in letrec for mutually recursive definitions
-      let transformed = transformProgram sexprs
+compile config source =
+  lowerProgram config source >>= fst . generateCodeWithDefs "main"
 
-      -- 2. Expand macros
-      expanded <- expandMacros (cfgMacroEnv config) transformed
-
-      -- 3. Desugar to AST
-      expr <- sexprToExpr expanded
-
-      -- 4. Alpha-rename
-      renamed <- alphaRename expr
-
-      -- 5. Closure conversion
-      converted <- closureConvert renamed
-
-      -- 6. Generate code
-      let (mainCodeE, _) = generateCodeWithDefs "main" converted
-      mainCodeE
-
--- Compile and return all code objects (main + nested definitions)
 compileWithDefs :: CompilerConfig -> String -> Either CompileError (CodeObject, Map Name CodeObject)
-compileWithDefs config source = do
-  -- 1. Parse to S-expression
-  exprs <- parseFromString source
-  case exprs of
-    [] -> Left $ SyntaxError "Empty program" Nothing
-    sexprs -> do
-      -- Transform program to wrap in letrec for mutually recursive definitions
-      let transformed = transformProgram sexprs
-
-      -- 2. Expand macros
-      expanded <- expandMacros (cfgMacroEnv config) transformed
-
-      -- 3. Desugar to AST
-      expr <- sexprToExpr expanded
-
-      -- 4. Alpha-rename
-      renamed <- alphaRename expr
-
-      -- 5. Closure conversion
-      converted <- closureConvert renamed
-
-      -- 6. Generate code with all nested definitions
-      let (mainCodeE, defs) = generateCodeWithDefs "main" converted
-      mainCode <- mainCodeE
-      return (mainCode, defs)
+compileWithDefs config source =
+  lowerProgram config source >>= \converted ->
+    let (mainCodeE, defs) = generateCodeWithDefs "main" converted
+    in mainCodeE >>= \mainCode -> pure (mainCode, defs)
 
 -- Transform a program with defines into a letrec
 transformProgram :: [SExpr] -> SExpr
 transformProgram sexprs =
-  let (defines, others) = span isDefine sexprs
-      bindings = map extractBinding defines
-      body = case others of
-               [] -> SAtom (AInteger 0) Nothing
-               [e] -> e
-               es -> SList (SAtom (ASymbol "begin") Nothing : es) Nothing
-  in if null bindings
-     then body
-     else SList [SAtom (ASymbol "letrec") Nothing,
-                 SList (map toBinding bindings) Nothing,
-                 body] Nothing
-  where
-    isDefine (SList (SAtom (ASymbol "define") _ : _) _) = True
-    isDefine _ = False
+  let (defineForms, rest) = span isDefineForm sexprs
+      bodyExpr = buildBody rest
+  in if null defineForms
+       then bodyExpr
+       else buildLetRec defineForms bodyExpr
 
-    extractBinding (SList (SAtom (ASymbol "define") _ : SAtom (ASymbol name) _ : [expr]) _) =
-      (name, expr)
-    extractBinding (SList (SAtom (ASymbol "define") _ : SList (SAtom (ASymbol name) _ : params) _ : body : _) loc) =
-      (name, SList [SAtom (ASymbol "lambda") Nothing, SList params Nothing, body] loc)
-    extractBinding _ = error "Invalid define"
+isDefineForm :: SExpr -> Bool
+isDefineForm (SList (SAtom (ASymbol "define") _ : _) _) = True
+isDefineForm _ = False
 
-    toBinding (name, expr) =
-      SList [SAtom (ASymbol name) Nothing, expr] Nothing
+buildBody :: [SExpr] -> SExpr
+buildBody [] = SAtom (AInteger 0) Nothing
+buildBody [expr] = expr
+buildBody exprs =
+  SList (SAtom (ASymbol "begin") Nothing : exprs) Nothing
 
--- Compile a complete program (multiple top-level definitions)
+buildLetRec :: [SExpr] -> SExpr -> SExpr
+buildLetRec defineForms body =
+  let bindings = map bindingFromDefine defineForms
+  in SList
+       [ SAtom (ASymbol "letrec") Nothing
+       , SList (map bindingToSExpr bindings) Nothing
+       , body
+       ]
+
+bindingFromDefine :: SExpr -> (Name, SExpr)
+bindingFromDefine form =
+  case form of
+    SList (defineKeyword : rest) loc ->
+      extractNamedBinding defineKeyword rest loc
+    _ -> error "Invalid define"
+
+extractNamedBinding :: SExpr -> [SExpr] -> Loc -> (Name, SExpr)
+extractNamedBinding keyword rest loc =
+  case keyword of
+    SAtom (ASymbol "define") _ -> interpretDefineParts rest loc
+    _ -> error "Invalid define"
+
+interpretDefineParts :: [SExpr] -> Loc -> (Name, SExpr)
+interpretDefineParts parts loc =
+  case parts of
+    [SAtom (ASymbol name) _, expr] -> (name, expr)
+    SList (SAtom (ASymbol name) _ : params) _ : body : _ ->
+      (name, lambdaFromParts params body loc)
+    _ -> error "Invalid define"
+
+lambdaFromParts :: [SExpr] -> SExpr -> Loc -> SExpr
+lambdaFromParts params body loc =
+  SList
+    [ SAtom (ASymbol "lambda") Nothing
+    , SList params Nothing
+    , body
+    ] loc
+
+bindingToSExpr :: (Name, SExpr) -> SExpr
+bindingToSExpr (name, expr) =
+  SList
+    [ SAtom (ASymbol name) Nothing
+    , expr
+    ] Nothing
+
 compileProgram :: CompilerConfig -> String -> Either CompileError (Map.Map Name CodeObject)
-compileProgram config source = do
-  -- Parse all S-expressions
-  sexprs <- parseMultipleSExprs source
+compileProgram config source =
+  parseMultipleSExprs source
+    >>= mapM (compileTopLevel config)
+    >>= pure . Map.fromList
 
-  -- Process each definition
-  codeObjects <- mapM (compileTopLevel config) sexprs
-
-  -- Build a map of function names to code objects
-  Right $ Map.fromList codeObjects
-
--- Compile a top-level definition
 compileTopLevel :: CompilerConfig -> SExpr -> Either CompileError (Name, CodeObject)
-compileTopLevel config sexpr = do
-  -- Expand macros
-  expanded <- expandMacros (cfgMacroEnv config) sexpr
+compileTopLevel config sexpr =
+  expandMacros (cfgMacroEnv config) sexpr
+    >>= sexprToExpr
+    >>= compileDefine
 
-  -- Desugar to AST
-  expr <- sexprToExpr expanded
+compileDefine :: Expr -> Either CompileError (Name, CodeObject)
+compileDefine (EDefine name body) =
+  compileDefineBody name body
+compileDefine _ =
+  Left $ SyntaxError "Top-level must be define" Nothing
 
-  -- Extract name from define
-  case expr of
-    EDefine name body -> do
-      -- Alpha-rename
-      renamed <- alphaRename body
+compileDefineBody :: Name -> Expr -> Either CompileError (Name, CodeObject)
+compileDefineBody name body =
+  alphaRename body
+    >>= closureConvert
+    >>= generateCode name
+    >>= attachName
+  where
+    attachName code = Right (name, code)
 
-      -- Closure conversion
-      converted <- closureConvert renamed
-
-      -- Generate code
-      code <- generateCode name converted
-      Right (name, code)
-
-    _ -> Left $ SyntaxError "Top-level must be define" Nothing
-
--- Parse multiple S-expressions from source
 parseMultipleSExprs :: String -> Either CompileError [SExpr]
 parseMultipleSExprs = parseFromString
+
+lowerProgram :: CompilerConfig -> String -> Either CompileError Expr
+lowerProgram config source =
+  parseFromString source
+    >>= ensureNonEmpty
+    >>= expandAndConvert config
+
+ensureNonEmpty :: [SExpr] -> Either CompileError [SExpr]
+ensureNonEmpty [] = Left $ SyntaxError "Empty program" Nothing
+ensureNonEmpty sexprs = Right sexprs
+
+expandAndConvert :: CompilerConfig -> [SExpr] -> Either CompileError Expr
+expandAndConvert config sexprs =
+  let transformed = transformProgram sexprs
+  in expandMacros (cfgMacroEnv config) transformed
+       >>= convertExpr
+
+convertExpr :: SExpr -> Either CompileError Expr
+convertExpr expr =
+  sexprToExpr expr >>= alphaRename >>= closureConvert

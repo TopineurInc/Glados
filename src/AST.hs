@@ -5,8 +5,6 @@
 -- src/AST.hs
 -}
 
-{-# LANGUAGE DeriveGeneric #-}
-
 module AST
   ( SourcePos(..)
   , Loc
@@ -26,33 +24,32 @@ module AST
   , Label
   ) where
 
-import GHC.Generics (Generic)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 
 data SourcePos = SourcePos
   { spLine :: Int
   , spCol  :: Int
-  } deriving (Eq, Show, Ord, Generic)
+  } deriving (Eq, Show, Ord)
 
 type Loc = Maybe SourcePos
 
 data SExpr
   = SAtom Atom Loc
   | SList [SExpr] Loc
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show)
 
 data Atom
   = AInteger Integer
   | ABool Bool
   | ASymbol String
   | AString String
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show)
 
 data CompileError
   = ParseError String Loc
   | SyntaxError String Loc
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show)
 
 sexprLoc :: SExpr -> Loc
 sexprLoc (SAtom _ loc) = loc
@@ -71,7 +68,7 @@ data Expr
   | EIf Expr Expr Expr
   | EApp Expr [Expr]
   | EQuote SExpr
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show)
 
 data ANF
   = AVar Name
@@ -80,14 +77,14 @@ data ANF
   | AIf ANF ANF ANF
   | ACall Name [Name]
   | ALambdaFlat [Name] [Instr]
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show)
 
 data Constant
   = CInt Integer
   | CBool Bool
   | CString String
   | CFuncRef Name
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show)
 
 type Label = String
 
@@ -106,7 +103,7 @@ data Instr
   | IMakeClosure Name [Int]
   | ILoadClosure Int
   | IStoreClosure Int
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show)
 
 data CodeObject = CodeObject
   { coName :: Name
@@ -115,7 +112,7 @@ data CodeObject = CodeObject
   , coConsts :: Vector.Vector Constant
   , coInstrs :: Vector.Vector Instr
   , coLabelMap :: Map.Map Label Int
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show)
 
 data Value
   = VInt Integer
@@ -144,7 +141,7 @@ data Frame = Frame
   , fStack :: [Value]
   , fCode :: CodeObject
   , fPC :: Int
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show)
 
 data VMState = VMState
   { vFrames :: [Frame]

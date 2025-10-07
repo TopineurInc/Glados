@@ -38,7 +38,11 @@ dumpInstructions :: Vector.Vector Instr -> String
 dumpInstructions instrs =
   unlines $ Vector.toList $ Vector.imap formatInstr instrs
   where
-    formatInstr pc instr = "    " ++ padLeft 4 (show pc) ++ ": " ++ disassembleInstr instr
+    formatInstr pc instr =
+      "    "
+        ++ padLeft 4 (show pc)
+        ++ ": "
+        ++ disassembleInstr instr
 
 -- Disassemble a single instruction
 disassembleInstr :: Instr -> String
@@ -46,16 +50,17 @@ disassembleInstr (IConst idx) = "CONST " ++ show idx
 disassembleInstr (ILoad slot) = "LOAD " ++ show slot
 disassembleInstr (IStore slot) = "STORE " ++ show slot
 disassembleInstr (IPrim op) = "PRIM " ++ op
-disassembleInstr (ICall arity name) = "CALL " ++ show arity ++ " " ++ name
-disassembleInstr (ITailCall arity name) = "TAILCALL " ++ show arity ++ " " ++ name
+disassembleInstr (ICall arity name) = formatCall "CALL" arity name
+disassembleInstr (ITailCall arity name) = formatCall "TAILCALL" arity name
 disassembleInstr IReturn = "RETURN"
-disassembleInstr (IJump target) = "JUMP " ++ show target
-disassembleInstr (IJumpIfFalse target) = "JUMP_IF_FALSE " ++ show target
+disassembleInstr (IJump target) = formatTarget "JUMP" target
+disassembleInstr (IJumpIfFalse target) = formatTarget "JUMP_IF_FALSE" target
 disassembleInstr IPop = "POP"
 disassembleInstr INop = "NOP"
-disassembleInstr (IMakeClosure name slots) = "MAKE_CLOSURE " ++ name ++ " " ++ show slots
-disassembleInstr (ILoadClosure idx) = "LOAD_CLOSURE " ++ show idx
-disassembleInstr (IStoreClosure idx) = "STORE_CLOSURE " ++ show idx
+disassembleInstr (IMakeClosure name slots) =
+  formatWithArgs "MAKE_CLOSURE" [name, show slots]
+disassembleInstr (ILoadClosure idx) = formatTarget "LOAD_CLOSURE" idx
+disassembleInstr (IStoreClosure idx) = formatTarget "STORE_CLOSURE" idx
 
 -- Show a constant value
 showConstant :: Constant -> String
@@ -73,3 +78,14 @@ padLeft :: Int -> String -> String
 padLeft n s
   | length s >= n = s
   | otherwise = replicate (n - length s) ' ' ++ s
+
+formatWithArgs :: String -> [String] -> String
+formatWithArgs opcode args = unwords (opcode : args)
+
+formatCall :: String -> Int -> Name -> String
+formatCall opcode arity name =
+  formatWithArgs opcode [show arity, name]
+
+formatTarget :: String -> Int -> String
+formatTarget opcode target =
+  formatWithArgs opcode [show target]

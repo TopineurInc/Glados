@@ -5,8 +5,6 @@
 -- CodeGen
 -}
 
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module CodeGen
   ( generateCode
   , generateCodeWithDefs
@@ -32,31 +30,32 @@ data CodeGenState = CodeGenState
 emptyCodeGenState :: CodeGenState
 emptyCodeGenState = CodeGenState 0 [] [] Map.empty Map.empty Map.empty 0
 
-newtype CodeGenM a = CodeGenM { unCodeGenM :: State CodeGenState a }
-  deriving (Functor, Applicative, Monad, MonadState CodeGenState)
+type CodeGenM = State CodeGenState
 
 runCodeGen :: CodeGenM a -> CodeGenState -> (a, CodeGenState)
-runCodeGen m s = runState (unCodeGenM m) s
+runCodeGen = runState
 
 generateCode :: Name -> Expr -> Either CompileError CodeObject
-generateCode name expr = do
-  let (mainCode, _) = generateCodeWithDefs name expr
-  mainCode
+generateCode name expr =
+  fst (generateCodeWithDefs name expr)
 
 generateCodeWithDefs :: Name -> Expr -> (Either CompileError CodeObject, Map.Map Name CodeObject)
 generateCodeWithDefs name expr =
-  let (_, finalState) = runCodeGen (compileExpr expr >> emit IReturn) emptyCodeGenState
-      instrs = Vector.fromList (reverse $ cgsInstructions finalState)
-      consts = Vector.fromList (reverse $ cgsConstants finalState)
-      mainCode = Right $ CodeObject
-        { coName = name
-        , coArity = getArity expr
-        , coMaxLocals = cgsMaxLocals finalState
-        , coConsts = consts
-        , coInstrs = instrs
-        , coLabelMap = cgsLabels finalState
-        }
-  in (mainCode, cgsCodeObjects finalState)
+  let buildAction = compileExpr expr >> emit IReturn
+      (_, finalState) = runCodeGen buildAction emptyCodeGenState
+      mainCode = buildMainCode name expr finalState
+  in (Right mainCode, cgsCodeObjects finalState)
+
+buildMainCode :: Name -> Expr -> CodeGenState -> CodeObject
+buildMainCode name expr state =
+  CodeObject
+    { coName = name
+    , coArity = getArity expr
+    , coMaxLocals = cgsMaxLocals state
+    , coConsts = Vector.fromList (reverse $ cgsConstants state)
+    , coInstrs = Vector.fromList (reverse $ cgsInstructions state)
+    , coLabelMap = cgsLabels state
+    }
 
 getArity :: Expr -> Int
 getArity (ELambda params _) = length params
@@ -66,163 +65,251 @@ emit :: Instr -> CodeGenM ()
 emit instr = modify $ \s -> s { cgsInstructions = instr : cgsInstructions s }
 
 addConst :: Constant -> CodeGenM Int
-addConst c = do
-  s <- get
-  let consts = cgsConstants s
-  let idx = length consts
-  put s { cgsConstants = c : consts }
-  return idx
+addConst c =
+  get >>= \s ->
+    let consts = cgsConstants s
+        idx = length consts
+    in put s { cgsConstants = c : consts } >> pure idx
+
+emitConst :: Constant -> CodeGenM ()
+emitConst = (>>= emit . IConst) . addConst
+
+recordPosition :: CodeGenM Int
+recordPosition = gets (length . cgsInstructions)
 
 allocLocal :: Name -> CodeGenM Int
-allocLocal name = do
-  s <- get
-  let localMap = cgsLocalMap s
-  let idx = Map.size localMap
-  put s { cgsLocalMap = Map.insert name idx localMap
-        , cgsMaxLocals = max (idx + 1) (cgsMaxLocals s)
-        }
-  return idx
+allocLocal name =
+  get >>= \s ->
+    let localMap = cgsLocalMap s
+        idx = Map.size localMap
+        maxLocals = max (idx + 1) (cgsMaxLocals s)
+    in put s
+        { cgsLocalMap = Map.insert name idx localMap
+        , cgsMaxLocals = maxLocals
+        } >> pure idx
 
 getLocal :: Name -> CodeGenM (Maybe Int)
-getLocal name = do
-  localMap <- gets cgsLocalMap
-  return $ Map.lookup name localMap
+getLocal name = Map.lookup name <$> gets cgsLocalMap
 
 compileExpr :: Expr -> CodeGenM ()
-compileExpr (EInt n) = do
-  idx <- addConst (CInt n)
-  emit (IConst idx)
-
-compileExpr (EBool b) = do
-  idx <- addConst (CBool b)
-  emit (IConst idx)
-
-compileExpr (EString s) = do
-  idx <- addConst (CString s)
-  emit (IConst idx)
-
-compileExpr (EVar name) = do
-  mSlot <- getLocal name
-  case mSlot of
-    Just slot -> emit (ILoad slot)
-    Nothing -> do
-      idx <- addConst (CFuncRef name)
-      emit (IConst idx)
-
-compileExpr (EIf cond thenE elseE) = do
-  compileExpr cond
-  emit (IJumpIfFalse 0)
-  elseLabelIdx <- gets (length . cgsInstructions)
-
-  compileExpr thenE
-  emit (IJump 0)
-  endLabelIdx <- gets (length . cgsInstructions)
-
-  patchJump (elseLabelIdx - 1) endLabelIdx
-
-  compileExpr elseE
-
-  finalIdx <- gets (length . cgsInstructions)
-  patchJump (endLabelIdx - 1) finalIdx
-
-compileExpr (ELambda _ _) = return ()
-
-compileExpr (EApp (EVar funcName) args) = do
-  mapM_ compileExpr args
-  case funcName of
-    "+" -> emit (IPrim "+")
-    "-" -> emit (IPrim "-")
-    "*" -> emit (IPrim "*")
-    "div" -> emit (IPrim "div")
-    "mod" -> emit (IPrim "mod")
-    "eq?" -> emit (IPrim "eq?")
-    "<" -> emit (IPrim "<")
-    ">" -> emit (IPrim ">")
-    "print" -> emit (IPrim "print")
-    "display" -> emit (IPrim "display")
-    "input" -> emit (IPrim "input")
-    "read-line" -> emit (IPrim "read-line")
-    "string->number" -> emit (IPrim "string->number")
-    "number->string" -> emit (IPrim "number->string")
-    "string-length" -> emit (IPrim "string-length")
-    "string-append" -> emit (IPrim "string-append")
-    "substring" -> emit (IPrim "substring")
-    "not" -> emit (IPrim "not")
-    "and" -> emit (IPrim "and")
-    "or" -> emit (IPrim "or")
-    _ -> emit (ICall (length args) funcName)
-
-compileExpr (EApp func args) = do
-  compileExpr func
-  mapM_ compileExpr args
-  emit (ICall (length args) "<lambda>")
-
-compileExpr (EDefine name expr) = do
+compileExpr expr =
   case expr of
-    ELambda params body -> do
-      codeObj <- compileLambda name params body
-      modify $ \s -> s { cgsCodeObjects = Map.insert name codeObj (cgsCodeObjects s) }
-      idx <- addConst (CFuncRef name)
-      emit (IConst idx)
-      slot <- allocLocal name
-      emit (IStore slot)
-      dummyIdx <- addConst (CInt 0)
-      emit (IConst dummyIdx)
-    _ -> do
-      compileExpr expr
-      slot <- allocLocal name
-      emit (IStore slot)
-      dummyIdx <- addConst (CInt 0)
-      emit (IConst dummyIdx)
+    EInt _ -> compileLiteral expr
+    EBool _ -> compileLiteral expr
+    EString _ -> compileLiteral expr
+    EVar name -> compileVar name
+    EDefine name value -> compileDefinition name value
+    EList exprs -> compileList exprs
+    _ -> compileComplex expr
 
-compileExpr (EList exprs) = case exprs of
-  [] -> return ()
-  [e] -> compileExpr e
-  (e:es) -> do
-    compileExpr e
-    emit (IPop)
-    compileExpr (EList es)
+compileComplex :: Expr -> CodeGenM ()
+compileComplex expr =
+  case expr of
+    EIf cond thenE elseE -> compileIf cond thenE elseE
+    ELambda params body -> compileLambdaLiteral params body
+    EApp func args -> compileApplication func args
+    EQuote _ -> pure ()
+    _ -> pure ()
 
-compileExpr (EQuote _) = return ()
+compileLiteral :: Expr -> CodeGenM ()
+compileLiteral (EInt n) = emitConst (CInt n)
+compileLiteral (EBool b) = emitConst (CBool b)
+compileLiteral (EString s) = emitConst (CString s)
+compileLiteral _ = pure ()
+
+compileVar :: Name -> CodeGenM ()
+compileVar name =
+  getLocal name >>= maybe (emitConst (CFuncRef name)) (emit . ILoad)
+
+compileIf :: Expr -> Expr -> Expr -> CodeGenM ()
+compileIf cond thenE elseE =
+  compileExpr cond
+    >> emit (IJumpIfFalse 0)
+    >> recordPosition >>= compileThenBranch thenE elseE
+
+compileLambdaLiteral :: [Name] -> Expr -> CodeGenM ()
+compileLambdaLiteral _ _ = pure ()
+
+compileApplication :: Expr -> [Expr] -> CodeGenM ()
+compileApplication (EVar name) args = compileNamedApp name args
+compileApplication func args = compileGeneralApp func args
+
+compileNamedApp :: Name -> [Expr] -> CodeGenM ()
+compileNamedApp name args =
+  mapM_ compileExpr args >> emitCall
+  where
+    arity = length args
+    emitCall =
+      case Map.lookup name primitiveInstrs of
+        Just instr -> emit instr
+        Nothing -> emit (ICall arity name)
+
+compileGeneralApp :: Expr -> [Expr] -> CodeGenM ()
+compileGeneralApp func args =
+  compileExpr func
+    >> mapM_ compileExpr args
+    >> emit (ICall (length args) "<lambda>")
+
+compileDefinition :: Name -> Expr -> CodeGenM ()
+compileDefinition name value =
+  case value of
+    ELambda params body -> compileLambdaDefinition name params body
+    _ -> compileValueDefinition name value
+
+compileThenBranch :: Expr -> Expr -> Int -> CodeGenM ()
+compileThenBranch thenE elseE elseIdx =
+  compileExpr thenE
+    >> emit (IJump 0)
+    >> recordPosition >>= \endIdx ->
+         finalizeThen endIdx
+  where
+    finalizeThen endIdx =
+      patchJump (elseIdx - 1) endIdx >> compileElseBranch elseE endIdx
+
+compileElseBranch :: Expr -> Int -> CodeGenM ()
+compileElseBranch elseE endIdx =
+  compileExpr elseE
+    >> recordPosition >>= finalize
+  where
+    finalize finalIdx =
+      patchJump (endIdx - 1) finalIdx
+
+compileLambdaDefinition :: Name -> [Name] -> Expr -> CodeGenM ()
+compileLambdaDefinition name params body =
+  compileLambda name params body >>= storeLambdaDefinition name
+
+storeLambdaDefinition :: Name -> CodeObject -> CodeGenM ()
+storeLambdaDefinition name codeObj =
+  registerCodeObject name codeObj
+    >> emitConst (CFuncRef name)
+    >> storeWithDummy name
+
+compileValueDefinition :: Name -> Expr -> CodeGenM ()
+compileValueDefinition name value =
+  compileExpr value >> storeWithDummy name
+
+compileList :: [Expr] -> CodeGenM ()
+compileList [] = pure ()
+compileList [e] = compileExpr e
+compileList (e:rest) =
+  compileExpr e >> emit IPop >> compileList rest
+
+storeWithDummy :: Name -> CodeGenM ()
+storeWithDummy name =
+  allocLocal name >>= storeSlotWithDummy
+
+storeSlotWithDummy :: Int -> CodeGenM ()
+storeSlotWithDummy slot =
+  emit (IStore slot) >> emitConst (CInt 0)
+
+primitiveInstrs :: Map.Map Name Instr
+primitiveInstrs = Map.fromList primitiveInstrEntries
+
+primitiveInstrEntries :: [(Name, Instr)]
+primitiveInstrEntries = map toEntry primitiveSpecs
+
+toEntry :: (Name, String) -> (Name, Instr)
+toEntry (name, opcode) = (name, IPrim opcode)
+
+primitiveSpecs :: [(Name, String)]
+primitiveSpecs = map (\op -> (op, op)) allPrimitiveNames
+
+allPrimitiveNames :: [String]
+allPrimitiveNames =
+  arithmeticPrimNames
+    ++ comparisonPrimNames
+    ++ ioPrimNames
+    ++ stringPrimNames
+    ++ logicPrimNames
+
+arithmeticPrimNames :: [String]
+arithmeticPrimNames = ["+", "-", "*", "div", "mod"]
+
+comparisonPrimNames :: [String]
+comparisonPrimNames = ["eq?", "<", ">"]
+
+ioPrimNames :: [String]
+ioPrimNames = ["print", "display", "input", "read-line"]
+
+stringPrimNames :: [String]
+stringPrimNames =
+  [ "string->number"
+  , "number->string"
+  , "string-length"
+  , "string-append"
+  , "substring"
+  ]
+
+logicPrimNames :: [String]
+logicPrimNames = ["not", "and", "or"]
 
 patchJump :: Int -> Int -> CodeGenM ()
-patchJump instrIdx target = do
-  s <- get
-  let instrs = cgsInstructions s
-  let len = length instrs
-  let reverseIdx = len - instrIdx - 1
-  if reverseIdx >= 0 && reverseIdx < len
-    then case splitAt reverseIdx instrs of
-      (before, instr:after) -> do
-        let patchedInstr = case instr of
-              IJumpIfFalse _ -> IJumpIfFalse target
-              IJump _ -> IJump target
-              other -> other
-        put s { cgsInstructions = before ++ (patchedInstr : after) }
-      _ -> return ()
-    else return ()
+patchJump instrIdx target =
+  get >>= \state ->
+    let reverseIdx = length (cgsInstructions state) - instrIdx - 1
+        maybeParts = splitInstruction reverseIdx (cgsInstructions state)
+    in case maybeParts of
+         Nothing -> pure ()
+         Just parts -> applyPatch state target parts
 
 compileLambda :: Name -> [Name] -> Expr -> CodeGenM CodeObject
-compileLambda name params body = do
-  currentState <- get
-  let freshState = emptyCodeGenState
-  let (_, lambdaState) = runCodeGen (compileLambdaBody params body) freshState
-  put currentState
-  let instrs = Vector.fromList (reverse $ cgsInstructions lambdaState)
-  let consts = Vector.fromList (reverse $ cgsConstants lambdaState)
-  let codeObj = CodeObject
-        { coName = name
-        , coArity = length params
-        , coMaxLocals = cgsMaxLocals lambdaState
-        , coConsts = consts
-        , coInstrs = instrs
-        , coLabelMap = cgsLabels lambdaState
-        }
-  modify $ \s -> s { cgsCodeObjects = Map.union (cgsCodeObjects s) (cgsCodeObjects lambdaState) }
-  return codeObj
+compileLambda name params body =
+  let lambdaState = runLambda params body
+      codeObj = buildLambdaCode name params lambdaState
+  in registerNestedObjects lambdaState >> pure codeObj
+
+registerCodeObject :: Name -> CodeObject -> CodeGenM ()
+registerCodeObject name codeObj =
+  modify $ \s ->
+    s { cgsCodeObjects = Map.insert name codeObj (cgsCodeObjects s) }
 
 compileLambdaBody :: [Name] -> Expr -> CodeGenM ()
-compileLambdaBody params body = do
-  mapM_ allocLocal params
-  compileExpr body
-  emit IReturn
+compileLambdaBody params body =
+  mapM_ allocLocal params >> compileExpr body >> emit IReturn
+
+splitInstruction :: Int -> [Instr] -> Maybe ([Instr], Instr, [Instr])
+splitInstruction idx instrs
+  | idx < 0 || idx >= length instrs = Nothing
+  | otherwise =
+      let (before, rest) = splitAt idx instrs
+      in case rest of
+           instr:after -> Just (before, instr, after)
+           _ -> Nothing
+
+applyPatch :: CodeGenState -> Int -> ([Instr], Instr, [Instr]) -> CodeGenM ()
+applyPatch state target (before, instr, after) =
+  let patched = patchInstruction instr target
+      rebuilt = before ++ patched : after
+  in put state { cgsInstructions = rebuilt }
+
+patchInstruction :: Instr -> Int -> Instr
+patchInstruction (IJumpIfFalse _) target = IJumpIfFalse target
+patchInstruction (IJump _) target = IJump target
+patchInstruction other _ = other
+
+runLambda :: [Name] -> Expr -> CodeGenState
+runLambda params body =
+  snd (runCodeGen (compileLambdaBody params body) emptyCodeGenState)
+
+buildLambdaCode :: Name -> [Name] -> CodeGenState -> CodeObject
+buildLambdaCode name params state =
+  CodeObject
+    { coName = name
+    , coArity = length params
+    , coMaxLocals = cgsMaxLocals state
+    , coConsts = vectorFromReverse (cgsConstants state)
+    , coInstrs = vectorFromReverse (cgsInstructions state)
+    , coLabelMap = cgsLabels state
+    }
+
+registerNestedObjects :: CodeGenState -> CodeGenM ()
+registerNestedObjects lambdaState =
+  modify $ \state ->
+    let merged =
+          Map.union
+            (cgsCodeObjects state)
+            (cgsCodeObjects lambdaState)
+    in state { cgsCodeObjects = merged }
+
+vectorFromReverse :: [a] -> Vector.Vector a
+vectorFromReverse = Vector.fromList . reverse
