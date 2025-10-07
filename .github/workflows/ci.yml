@@ -15,11 +15,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Install build dependencies and Haskell Stack
         run: |
           echo "Installing required build tools..."
           sudo apt-get update
-          sudo apt-get install -y build-essential make
+          sudo apt-get install -y build-essential make curl
+          
+          echo "Installing Haskell Stack..."
+          if ! command -v stack &> /dev/null; then
+            curl -sSL https://get.haskellstack.org/ | sh
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> $HOME/.bashrc
+            export PATH="$HOME/.local/bin:$PATH"
+          else
+            echo "Stack already installed"
+          fi
+          
+          echo "Verifying Stack installation..."
+          stack --version
 
       - name: Cache Stack dependencies
         uses: actions/cache@v4
@@ -33,16 +45,19 @@ jobs:
 
       - name: Build project
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           make re
           echo "✅ Build completed successfully on branch ${{ github.ref_name }}"
 
       - name: Run tests
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           make tests_run
-          echo "All tests passed"
+          echo "✅ All tests passed"
 
       - name: Build final binary (verification)
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           make re
-          echo "Final binary created successfully"
+          echo "✅ Final binary created successfully"
           ls -la glados
