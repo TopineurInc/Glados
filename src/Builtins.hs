@@ -27,6 +27,7 @@ module Builtins
   , builtinNot
   , builtinAnd
   , builtinOr
+  , builtinFormat
   ) where
 
 import AST
@@ -36,7 +37,11 @@ import Text.Read (readMaybe)
 
 builtins :: Map.Map Name Value
 builtins = Map.fromList
-  [ ("+", VBuiltin "+" builtinAdd)
+  [ -- Common Lisp constants
+    ("t", VBool True)
+  , ("nil", VBool False)
+  -- Builtins
+  , ("+", VBuiltin "+" builtinAdd)
   , ("-", VBuiltin "-" builtinSub)
   , ("*", VBuiltin "*" builtinMul)
   , ("div", VBuiltin "div" builtinDiv)
@@ -56,6 +61,7 @@ builtins = Map.fromList
   , ("not", VBuiltin "not" builtinNot)
   , ("and", VBuiltin "and" builtinAnd)
   , ("or", VBuiltin "or" builtinOr)
+  , ("format", VBuiltin "format" builtinFormat)
   ]
 
 -- Arithmetic operations
@@ -164,6 +170,28 @@ builtinAnd _ = error "Type error: and expects two booleans"
 builtinOr :: [Value] -> IO Value
 builtinOr [VBool a, VBool b] = return $ VBool (a || b)
 builtinOr _ = error "Type error: or expects two booleans"
+
+-- Format function (Common Lisp style)
+builtinFormat :: [Value] -> IO Value
+builtinFormat (dest:VString fmt:args) =
+  let formatted = processFormatString fmt args
+  in case dest of
+       VBool True -> do  -- t means stdout
+         putStr formatted
+         hFlush stdout
+         return $ VBool False  -- nil in Common Lisp
+       VBool False -> return $ VString formatted  -- nil means return string
+       _ -> error "Type error: format destination must be t or nil"
+builtinFormat _ = error "Type error: format expects (destination format-string ...)"
+
+processFormatString :: String -> [Value] -> String
+processFormatString [] _ = []
+processFormatString ('~':'%':rest) args = '\n' : processFormatString rest args
+processFormatString ('~':'a':rest) (arg:args') = showValue arg ++ processFormatString rest args'
+processFormatString ('~':'s':rest) (arg:args') = showValue arg ++ processFormatString rest args'
+processFormatString ('~':'A':rest) (arg:args') = showValue arg ++ processFormatString rest args'
+processFormatString ('~':'S':rest) (arg:args') = showValue arg ++ processFormatString rest args'
+processFormatString (c:rest) args = c : processFormatString rest args
 
 showValue :: Value -> String
 showValue (VInt n) = show n

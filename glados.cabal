@@ -36,9 +36,9 @@ library
       VM
       Compiler
       Disasm
-      SExprConstruct
       Lib
   other-modules:
+      SExprConstruct
       Paths_glados
   autogen-modules:
       Paths_glados
@@ -67,6 +67,7 @@ executable glados-exe
     , containers
     , glados
     , mtl
+    , parsec
     , vector
   default-language: Haskell2010
 
@@ -91,5 +92,6 @@ test-suite glados-test
     , containers
     , glados
     , mtl
+    , parsec
     , vector
   default-language: Haskell2010

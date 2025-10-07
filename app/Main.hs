@@ -64,9 +64,7 @@ runFile file = do
         Left err -> do
           hPutStrLn stderr $ "Runtime error: " ++ show err
           exitFailure
-        Right val -> do
-          putStrLn $ "Result: " ++ show val
-          exitSuccess
+        Right _ -> exitSuccess
 
 -- Disassemble a file
 disasmFile :: FilePath -> IO ()

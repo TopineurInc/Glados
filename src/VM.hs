@@ -76,7 +76,12 @@ executeInstr vmState frame instr = case instr of
       then return $ Left $ RuntimeError "Constant index out of bounds"
       else do
         let constValue = consts Vector.! idx
-        let val = constantToValue constValue
+        -- For CFuncRef, look up in vBuiltins to support constants like 't' and 'nil'
+        val <- case constValue of
+          CFuncRef name -> case Map.lookup name (vBuiltins vmState) of
+            Just v -> return v
+            Nothing -> return $ constantToValue constValue
+          _ -> return $ constantToValue constValue
         let frame' = frame { fStack = val : fStack frame, fPC = fPC frame + 1 }
         return $ Right (updateFrame vmState frame', Nothing)
 
