@@ -129,10 +129,12 @@ def adapt_code_for_interpreter(code: str, interpreter: str) -> str:
     return code
 
 class TestCase:
-    def __init__(self, name: str, code: str, expected: Optional[str] = None):
+    def __init__(self, name: str, code: str, expected: Optional[str] = None, expect_exit_nonzero: bool = False, expect_stderr_contains: Optional[str] = None):
         self.name = name
         self.code = code
         self.expected = expected
+        self.expect_exit_nonzero = expect_exit_nonzero
+        self.expect_stderr_contains = expect_stderr_contains
 
 def create_test_suite() -> list:
     """Create comprehensive test suite"""
@@ -311,6 +313,47 @@ def create_test_suite() -> list:
         TestCase("Nested Function Call", """(define (double x) (* x 2))
 (define (quadruple x) (double (double x)))
 (quadruple 3)""", "12"),
+        TestCase("Macro when true", "(when #t 42)", "42"),
+        TestCase("Macro when false (no output)", "(when #f 42)", ""),
+        TestCase("Macro unless true (no output)", "(unless #t 7)", ""),
+        TestCase("Macro unless false", "(unless #f 7)", "7"),
+        TestCase("Macro cond with else", """(cond ((eq? 1 2) 10)
+  ((< 3 2) 20)
+  (else 30))""", "30"),
+
+        TestCase("String length", "(string-length \"hello\")", "5"),
+        TestCase("String append", "(format t \"~a\" (string-append \"he\" \"llo\"))", "hello"),
+        TestCase("Substring middle", "(format t \"~a\" (substring \"hello\" 1 4))", "ell"),
+        TestCase("Substring empty", "(format t \"~a\" (substring \"abc\" 1 1))", ""),
+        TestCase("String->number", "(string->number \"123\")", "123"),
+        TestCase("Number->string", "(format t \"~a\" (number->string 456))", "456"),
+
+        TestCase("Logic not true", "(format t \"~a\" (not #t))", "#f"),
+        TestCase("Logic not false", "(format t \"~a\" (not #f))", "#t"),
+        TestCase("Logic and", "(format t \"~a\" (and #t #f))", "#f"),
+        TestCase("Logic or", "(format t \"~a\" (or #t #f))", "#t"),
+
+        TestCase("Format print to stdout", "(format t \"OK~%\")", "OK"),
+        TestCase("Format return string", "(format t \"Hi\")", "Hi"),
+
+        TestCase("Sequence keeps last value", """(define x 1)
+ (define y 2)
+ (+ x y)""", "3"),
+
+        TestCase("Factorial 7", """(define (fact n)
+  (if (eq? n 0)
+      1
+      (* n (fact (- n 1)))))
+ (fact 7)""", "5040"),
+        TestCase("Fibonacci 7", """(define (fib n)
+  (if (eq? n 0)
+      0
+      (if (eq? n 1)
+          1
+          (+ (fib (- n 1)) (fib (- n 2))))))
+ (fib 7)""", "13"),
+        TestCase("Parse error", "(", expect_exit_nonzero=True, expect_stderr_contains="Compilation error"),
+        TestCase("Arity too few for +", "(+ 1)", expect_exit_nonzero=True, expect_stderr_contains="Runtime error"),
     ]
 
 def run_tests(verbose: bool = False):
@@ -332,6 +375,19 @@ def run_tests(verbose: bool = False):
         if glados_err and "TIMEOUT" in glados_err:
             print(f"{Colors.YELLOW}TIMEOUT{Colors.RESET}")
             errors += 1
+            continue
+
+        if test.expected is None and (test.expect_exit_nonzero or test.expect_stderr_contains):
+            is_nonzero_ok = (glados_code != 0) if test.expect_exit_nonzero else True
+            has_msg = (test.expect_stderr_contains in (glados_err or "")) if test.expect_stderr_contains else True
+            if is_nonzero_ok and has_msg:
+                print(f"{Colors.GREEN}✓ PASS{Colors.RESET}")
+                passed += 1
+            else:
+                print(f"{Colors.RED}✗ FAIL{Colors.RESET}")
+                if verbose:
+                    print(f"  Exit: {glados_code}, Stderr: {glados_err}")
+                failed += 1
             continue
 
         if glados_code != 0 and glados_err:
