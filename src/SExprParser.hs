@@ -155,3 +155,4 @@ parseFromString input = do
         then Right exprs
         else Left $ ParseError "unexpected characters at end of input"
                                (Just $ SourcePos (psLine finalState) (psCol finalState))
+
