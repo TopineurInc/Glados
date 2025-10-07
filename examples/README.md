@@ -88,6 +88,15 @@ Ultimate stress test combining:
 
 **Expected output:** `1264`
 
+### `palindrome_research.lisp`
+Full-featured benchmark analysing palindromic numbers in a range. Exercises:
+- String manipulation (`string-length`, `substring`, `string-append`)
+- Boolean logic (`and`, `or`, `not`)
+- Tail-recursive accumulation across large search spaces
+- Conditional reporting with `cond`, `if`, `when`
+
+**Expected output:** `52351` (plus a detailed textual report)
+
 ## Running Examples
 
 ```bash

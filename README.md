@@ -52,6 +52,7 @@ More examples in `examples/` directory.
 
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Compiler architecture and design
 - **[docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md)** - VM instruction set reference
+- **[docs/CAHIER_DES_CHARGES.md](docs/CAHIER_DES_CHARGES.md)** - Cahier des charges du sous-ensemble Lisp supporté
 - **[examples/README.md](examples/README.md)** - Example programs guide
 - **[tests/README.md](tests/README.md)** - Testing documentation
 

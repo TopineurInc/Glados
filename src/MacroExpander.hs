@@ -17,6 +17,8 @@ defaultMacroEnv = Map.fromList
   [ ("when", expandWhen)
   , ("unless", expandUnless)
   , ("cond", expandCond)
+  , ("and", expandAnd)
+  , ("or", expandOr)
   ]
 
 -- Expand all macros recursively in an S-expression
@@ -83,3 +85,35 @@ expandCondClauses (SList [test, body] _ : rest) loc = do
     , elseClause
     ] loc
 expandCondClauses (clause : _) _ = Left $ SyntaxError "cond clause must be (test body)" (sexprLoc clause)
+
+-- Macro: (and expr...) => nested ifs with short-circuit (#t for empty)
+expandAnd :: SExpr -> Either CompileError SExpr
+expandAnd (SList (_ : args) loc) = expand args
+  where
+    expand [] = Right $ SAtom (ABool True) loc
+    expand [expr] = Right expr
+    expand (expr:rest) = do
+      restExpr <- expand rest
+      Right $ SList
+        [ SAtom (ASymbol "if") Nothing
+        , expr
+        , restExpr
+        , SAtom (ABool False) Nothing
+        ] loc
+expandAnd other = Left $ SyntaxError "and expects at least 0 arguments" (sexprLoc other)
+
+-- Macro: (or expr...) => nested ifs with short-circuit (#f for empty)
+expandOr :: SExpr -> Either CompileError SExpr
+expandOr (SList (_ : args) loc) = expand args
+  where
+    expand [] = Right $ SAtom (ABool False) loc
+    expand [expr] = Right expr
+    expand (expr:rest) = do
+      restExpr <- expand rest
+      Right $ SList
+        [ SAtom (ASymbol "if") Nothing
+        , expr
+        , SAtom (ABool True) Nothing
+        , restExpr
+        ] loc
+expandOr other = Left $ SyntaxError "or expects at least 0 arguments" (sexprLoc other)

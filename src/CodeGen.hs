@@ -141,8 +141,6 @@ compileExpr (EApp (EVar funcName) args) = do
     "string-append" -> emit (IPrim "string-append")
     "substring" -> emit (IPrim "substring")
     "not" -> emit (IPrim "not")
-    "and" -> emit (IPrim "and")
-    "or" -> emit (IPrim "or")
     _ -> emit (ICall (length args) funcName)
 
 compileExpr (EApp func args) = do

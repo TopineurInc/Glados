@@ -18,8 +18,6 @@ module Builtins
   , builtinStringAppend
   , builtinSubstring
   , builtinNot
-  , builtinAnd
-  , builtinOr
   ) where
 
 import AST
@@ -47,8 +45,6 @@ builtins = Map.fromList
   , ("string-append", VBuiltin "string-append" builtinStringAppend)
   , ("substring", VBuiltin "substring" builtinSubstring)
   , ("not", VBuiltin "not" builtinNot)
-  , ("and", VBuiltin "and" builtinAnd)
-  , ("or", VBuiltin "or" builtinOr)
   ]
 
 -- Arithmetic operations
@@ -149,14 +145,6 @@ builtinSubstring _ = error "Type error: substring expects (string, start, end)"
 builtinNot :: [Value] -> IO Value
 builtinNot [VBool b] = return $ VBool (not b)
 builtinNot _ = error "Type error: not expects a boolean"
-
-builtinAnd :: [Value] -> IO Value
-builtinAnd [VBool a, VBool b] = return $ VBool (a && b)
-builtinAnd _ = error "Type error: and expects two booleans"
-
-builtinOr :: [Value] -> IO Value
-builtinOr [VBool a, VBool b] = return $ VBool (a || b)
-builtinOr _ = error "Type error: or expects two booleans"
 
 showValue :: Value -> String
 showValue (VInt n) = show n
