@@ -61,6 +61,9 @@ runFile file = do
     Left (ParseError msg _) -> do
       hPutStrLn stderr $ "Compilation error: ParseError " ++ show msg ++ " Nothing"
       exitWith (ExitFailure 84)
+    Left (SyntaxError msg _) -> do
+      hPutStrLn stderr $ "Compilation error: SyntaxError " ++ show msg ++ " Nothing"
+      exitWith (ExitFailure 84)
     Left err -> do
       hPutStrLn stderr $ "Compilation error: " ++ show err
       exitFailure
@@ -86,6 +89,9 @@ disasmFile file = do
   case compileWithDefs defaultConfig source of
     Left (ParseError msg _) -> do
       hPutStrLn stderr $ "Compilation error: ParseError " ++ show msg ++ " Nothing"
+      exitWith (ExitFailure 84)
+    Left (SyntaxError msg _) -> do
+      hPutStrLn stderr $ "Compilation error: SyntaxError " ++ show msg ++ " Nothing"
       exitWith (ExitFailure 84)
     Left err -> do
       hPutStrLn stderr $ "Compilation error: " ++ show err
@@ -129,6 +135,9 @@ showCompiled file = do
   case compileWithDefs defaultConfig source of
     Left (ParseError msg _) -> do
       hPutStrLn stderr $ "Compilation error: ParseError " ++ show msg ++ " Nothing"
+      exitWith (ExitFailure 84)
+    Left (SyntaxError msg _) -> do
+      hPutStrLn stderr $ "Compilation error: SyntaxError " ++ show msg ++ " Nothing"
       exitWith (ExitFailure 84)
     Left err -> do
       hPutStrLn stderr $ "Compilation error: " ++ show err

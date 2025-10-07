@@ -45,7 +45,7 @@ compile config source = do
     [] -> Left $ SyntaxError "Empty program" Nothing
     sexprs -> do
       -- Transform program to wrap in letrec for mutually recursive definitions
-      let transformed = transformProgram sexprs
+      transformed <- transformProgram sexprs
 
       -- 2. Expand macros
       expanded <- expandMacros (cfgMacroEnv config) transformed
@@ -72,7 +72,7 @@ compileWithDefs config source = do
     [] -> Left $ SyntaxError "Empty program" Nothing
     sexprs -> do
       -- Transform program to wrap in letrec for mutually recursive definitions
-      let transformed = transformProgram sexprs
+      transformed <- transformProgram sexprs
 
       -- 2. Expand macros
       expanded <- expandMacros (cfgMacroEnv config) transformed
@@ -92,28 +92,34 @@ compileWithDefs config source = do
       return (mainCode, defs)
 
 -- Transform a program with defines into a letrec
-transformProgram :: [SExpr] -> SExpr
+transformProgram :: [SExpr] -> Either CompileError SExpr
 transformProgram sexprs =
   let (defines, others) = span isDefine sexprs
-      bindings = map extractBinding defines
       body = case others of
                [] -> SAtom (AInteger 0) Nothing
                [e] -> e
                es -> SList (SAtom (ASymbol "begin") Nothing : es) Nothing
-  in if null bindings
-     then body
-     else SList [SAtom (ASymbol "letrec") Nothing,
-                 SList (map toBinding bindings) Nothing,
-                 body] Nothing
+  in do
+    bindings <- mapM extractBinding defines
+    if null bindings
+      then return body
+      else return $ SList [SAtom (ASymbol "letrec") Nothing,
+                          SList (map toBinding bindings) Nothing,
+                          body] Nothing
   where
     isDefine (SList (SAtom (ASymbol "define") _ : _) _) = True
     isDefine _ = False
 
     extractBinding (SList (SAtom (ASymbol "define") _ : SAtom (ASymbol name) _ : [expr]) _) =
-      (name, expr)
+      Right (name, expr)
     extractBinding (SList (SAtom (ASymbol "define") _ : SList (SAtom (ASymbol name) _ : params) _ : body : _) loc) =
-      (name, SList [SAtom (ASymbol "lambda") Nothing, SList params Nothing, body] loc)
-    extractBinding _ = error "Invalid define"
+      Right (name, SList [SAtom (ASymbol "lambda") Nothing, SList params Nothing, body] loc)
+    extractBinding (SList (SAtom (ASymbol "define") _ : []) _) =
+      Left $ SyntaxError "define requires a name and value" Nothing
+    extractBinding (SList (SAtom (ASymbol "define") _ : [SAtom (ASymbol name) _]) _) =
+      Left $ SyntaxError "define requires a value" Nothing
+    extractBinding other =
+      Left $ SyntaxError "Invalid define syntax" (sexprLoc other)
 
     toBinding (name, expr) =
       SList [SAtom (ASymbol name) Nothing, expr] Nothing
