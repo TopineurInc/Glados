@@ -34,7 +34,7 @@ main = do
     _ -> do
       hPutStrLn stderr "Invalid arguments. Use --help for usage."
       exitFailure
-:
+
 printHelp :: IO ()
 printHelp = do
   putStrLn "GLaDOS - A LISP compiler and VM"
