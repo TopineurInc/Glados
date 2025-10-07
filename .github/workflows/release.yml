@@ -1,0 +1,134 @@
+name: Auto Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for the release (optional - will auto-generate if empty)'
+        required: false
+
+jobs:
+  create-release:
+    runs-on: self-hosted
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      release_id: ${{ steps.create_release.outputs.id }}
+      tag_name: ${{ steps.generate_tag.outputs.tag_name }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Generate automatic tag
+        id: generate_tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            echo "tag_name=${{ github.event.inputs.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            # Generate automatic version based on date and commit
+            DATE=$(date +%Y.%m.%d)
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            COMMIT_COUNT=$(git rev-list --count HEAD)
+            TAG_NAME="v${DATE}-${COMMIT_COUNT}-${SHORT_SHA}"
+            echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+            echo "Generated automatic tag: ${TAG_NAME}"
+          fi
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.generate_tag.outputs.tag_name }}
+          release_name: GLaDOS Release ${{ steps.generate_tag.outputs.tag_name }}
+          body: |
+            ## GLaDOS Lisp Interpreter - Automatic Release
+            
+            **Commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            **Build Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+            
+            ### What's New
+            This is an automatic release generated from the latest commit on the main branch.
+            
+            ### Changes in this release
+            - Latest updates from commit: ${{ github.event.head_commit.message }}
+            
+            ### Download
+            - `glados-linux-x86_64`: Linux binary (x86_64)
+            
+            ### Installation
+            1. Download the binary
+            2. Make it executable: `chmod +x glados-linux-x86_64`
+            3. Run: `./glados-linux-x86_64 your_file.lisp`
+            
+            ### Usage
+            ```bash
+            # Run a Lisp file
+            ./glados-linux-x86_64 examples/factorial_10.lisp
+            
+            # Interactive mode
+            ./glados-linux-x86_64
+            ```
+          draft: false
+          prerelease: false
+
+  build-and-upload:
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - asset_name: glados-linux-x86_64
+            target: x86_64-unknown-linux-gnu
+    
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Haskell Stack
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.8.4'
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-${{ matrix.target }}-stack-${{ hashFiles('**/*.yaml') }}-${{ hashFiles('**/*.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-stack-
+
+      - name: Build binary
+        run: |
+          make re
+          
+      - name: Strip binary (Linux/macOS)
+        run: |
+          if command -v strip >/dev/null 2>&1; then
+            strip glados || echo "Strip failed or not available"
+          fi
+          
+      - name: Verify binary
+        run: |
+          ls -la glados
+          file glados
+          
+      - name: Upload binary to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./glados
+          asset_name: ${{ matrix.asset_name }}
+          asset_content_type: application/octet-stream

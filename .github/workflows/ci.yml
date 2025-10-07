@@ -3,7 +3,10 @@ name: CI
 on:
   push:
     branches:
-      - '*'
+      - "*"
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -11,5 +14,36 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Run script
-        run: echo "✅ CI triggered on branch ${{ github.ref_name }}"
+      
+      - name: Setup Haskell Stack
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.8.4'
+          enable-stack: true
+          stack-version: 'latest'
+
+      - name: Cache Stack dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-stack-${{ hashFiles('**/*.yaml') }}-${{ hashFiles('**/*.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-
+
+      - name: Build project
+        run: |
+          stack build --test --no-run-tests
+          echo "Build completed successfully on branch ${{ github.ref_name }}"
+
+      - name: Run tests
+        run: |
+          stack test
+          echo "All tests passed"
+
+      - name: Build final binary (verification)
+        run: |
+          make re
+          echo "Final binary created successfully"
+          ls -la glados
