@@ -91,12 +91,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Haskell Stack
-        uses: haskell-actions/setup@v2
-        with:
-          ghc-version: '9.8.4'
-          enable-stack: true
-          stack-version: 'latest'
+      - name: Verify Haskell environment
+        run: |
+          echo "Checking Haskell Stack installation..."
+          stack --version
+          echo "Checking GHC availability..."
+          stack exec -- ghc --version || echo "GHC will be installed by Stack when needed"
 
       - name: Cache Stack dependencies
         uses: actions/cache@v4
