@@ -47,17 +47,10 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           make re
-          echo "✅ Build completed successfully on branch ${{ github.ref_name }}"
+          echo "Build completed successfully on branch ${{ github.ref_name }}"
 
       - name: Run tests
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           make tests_run
-          echo "✅ All tests passed"
-
-      - name: Build final binary (verification)
-        run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          make re
-          echo "✅ Final binary created successfully"
-          ls -la glados
+          echo "All tests passed"
