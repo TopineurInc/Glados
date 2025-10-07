@@ -9,7 +9,8 @@ module Main (main) where
 
 import System.Environment (getArgs)
 import System.Exit (exitFailure, exitSuccess)
-import System.IO (hPutStrLn, stderr)
+import System.IO (hPutStrLn, hFlush, stderr, stdout, isEOF, stdin, hIsTerminalDevice)
+import Control.Monad (when)
 import qualified Data.Map as Map
 
 import AST
@@ -143,20 +144,27 @@ dumpCodeInfo co = do
 repl :: IO ()
 repl = do
   putStrLn "GLaDOS REPL - Enter expressions (Ctrl+D to exit)"
-  replLoop
+  interactive <- hIsTerminalDevice stdin
+  replLoop interactive
 
-replLoop :: IO ()
-replLoop = do
-  putStr "> "
-  input <- getLine
-  case compile defaultConfig input of
-    Left err -> do
-      putStrLn $ "Error: " ++ show err
-      replLoop
-    Right code -> do
-      let vmState = initVMState { vCodeObjects = Map.singleton "main" code }
-      result <- execVM vmState code
-      case result of
-        Left err -> putStrLn $ "Runtime error: " ++ show err
-        Right val -> putStrLn $ show val
-      replLoop
+replLoop :: Bool -> IO ()
+replLoop interactive = do
+  when interactive $ do
+    putStr "> "
+    hFlush stdout
+  eof <- isEOF
+  if eof
+    then when interactive (putStrLn "")
+    else do
+      input <- getLine
+      case compile defaultConfig input of
+        Left err -> do
+          putStrLn $ "Error: " ++ show err
+          replLoop interactive
+        Right code -> do
+          let vmState = initVMState { vCodeObjects = Map.singleton "main" code }
+          result <- execVM vmState code
+          case result of
+            Left err -> putStrLn $ "Runtime error: " ++ show err
+            Right val -> putStrLn $ show val
+          replLoop interactive
