@@ -1,3 +1,10 @@
+{-
+-- EPITECH PROJECT, 2025
+-- glados
+-- File description:
+-- Builtins
+-}
+
 module Builtins
   ( builtins
   , builtinAdd

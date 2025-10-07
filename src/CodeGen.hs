@@ -1,3 +1,10 @@
+{-
+-- EPITECH PROJECT, 2025
+-- glados
+-- File description:
+-- CodeGen
+-}
+
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module CodeGen

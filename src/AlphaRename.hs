@@ -1,3 +1,10 @@
+{-
+-- EPITECH PROJECT, 2025
+-- glados
+-- File description:
+-- AlphaRename
+-}
+
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module AlphaRename

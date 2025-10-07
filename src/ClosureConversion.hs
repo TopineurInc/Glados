@@ -1,3 +1,10 @@
+{-
+-- EPITECH PROJECT, 2025
+-- glados
+-- File description:
+-- ClosureConversion
+-}
+
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module ClosureConversion
