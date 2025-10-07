@@ -1,22 +1,20 @@
 {-
 -- EPITECH PROJECT, 2025
--- glados
+-- G-FUN-500-LYN-5-1-glados-1
 -- File description:
--- Lib
+-- src/Lib.hs
 -}
 
 module Lib
     ( someFunc
     ) where
 
-import AST
+import SExprParser (parseFromString)
+import SExprConstruct (sourceFromSExprs)
 
 someFunc :: IO ()
 someFunc = do
-  let pos = SourcePos 1 1
-      sexpr = SList [SAtom (ASymbol "factorial") (Just pos), SAtom (AInteger 42) (Just pos)] (Just pos)
-      ast = EDefine "fact" (ELambda ["x"] (EIf (EApp (EVar "eq?") [EVar "x", EInt 1]) (EInt 1) (EApp (EVar "*") [EVar "x", EApp (EVar "fact") [EApp (EVar "-") [EVar "x", EInt 1]]])))
-  putStrLn "SExpr:"
-  print sexpr
-  putStrLn "\nAST:"
-  print ast
+  contents <- readFile "ok.lsp"
+  case parseFromString contents of
+    Left err -> print err
+    Right exprs -> putStr $ sourceFromSExprs exprs

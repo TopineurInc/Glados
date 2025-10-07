@@ -1,8 +1,8 @@
 {-
 -- EPITECH PROJECT, 2025
--- glados
+-- G-FUN-500-LYN-5-1-glados-1
 -- File description:
--- AST
+-- src/AST.hs
 -}
 
 {-# LANGUAGE DeriveGeneric #-}
