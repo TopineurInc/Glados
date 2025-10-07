@@ -11,6 +11,8 @@ BIN_PATH = $(shell stack path --local-install-root)
 
 SRC = $(shell find src app -type f -name "*.hs")
 
+TEST_COVERAGE = test/coverage
+
 all: $(EXEC)
 
 $(EXEC): $(SRC)
@@ -27,5 +29,8 @@ fclean: clean
 
 re: fclean all
 
-tests_run:
-	stack test
+tests_run: re
+	@rm -rf ${TEST_COVERAGE}
+	@mkdir -p ${TEST_COVERAGE}
+	@stack test --coverage
+	@mv $$(find . -iname "*.tix") ${TEST_COVERAGE}

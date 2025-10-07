@@ -1,3 +1,10 @@
+{-
+-- EPITECH PROJECT, 2025
+-- glados
+-- File description:
+-- AST
+-}
+
 {-# LANGUAGE DeriveGeneric #-}
 
 module AST
@@ -94,6 +101,7 @@ data Instr
   | IReturn
   | IJump Int
   | IJumpIfFalse Int
+  | IPop
   | INop
   | IMakeClosure Name [Int]
   | ILoadClosure Int

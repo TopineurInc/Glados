@@ -27,6 +27,15 @@ library
   exposed-modules:
       AST
       SExprParser
+      MacroExpander
+      Desugar
+      AlphaRename
+      ClosureConversion
+      CodeGen
+      Builtins
+      VM
+      Compiler
+      Disasm
       Lib
   other-modules:
       Paths_glados
@@ -63,14 +72,20 @@ test-suite glados-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_glados
-  autogen-modules:
-      Paths_glados
+      Test.AlphaRenameSpec
+      Test.BuiltinsSpec
+      Test.ClosureConversionSpec
+      Test.CodeGenSpec
+      Test.CompilerSpec
+      Test.DesugarSpec
+      Test.SExprParserSpec
+      Test.VMSpec
   hs-source-dirs:
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      HUnit
+    , base >=4.7 && <5
     , containers
     , glados
     , mtl

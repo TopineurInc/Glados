@@ -41,6 +41,15 @@ library:
   exposed-modules:
     - AST
     - SExprParser
+    - MacroExpander
+    - Desugar
+    - AlphaRename
+    - ClosureConversion
+    - CodeGen
+    - Builtins
+    - VM
+    - Compiler
+    - Disasm
     - Lib
 
 executables:
@@ -58,9 +67,19 @@ tests:
   glados-test:
     main:                Spec.hs
     source-dirs:         test
+    other-modules:
+    - Test.AlphaRenameSpec
+    - Test.BuiltinsSpec
+    - Test.ClosureConversionSpec
+    - Test.CodeGenSpec
+    - Test.CompilerSpec
+    - Test.DesugarSpec
+    - Test.SExprParserSpec
+    - Test.VMSpec
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - glados
+    - HUnit
