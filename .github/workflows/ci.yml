@@ -14,13 +14,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Verify Haskell environment
-        run: |
-          echo "Checking Haskell Stack installation..."
-          stack --version
-          echo "Checking GHC availability..."
-          stack exec -- ghc --version || echo "GHC will be installed by Stack when needed"
 
       - name: Cache Stack dependencies
         uses: actions/cache@v4
@@ -34,12 +27,12 @@ jobs:
 
       - name: Build project
         run: |
-          stack build --test --no-run-tests
-          echo "✅ Build completed successfully on branch ${{ github.ref_name }}"
+          make  re
+          echo "Build completed successfully on branch ${{ github.ref_name }}"
 
       - name: Run tests
         run: |
-          stack test
+          make tests_run
           echo "All tests passed"
 
       - name: Build final binary (verification)
