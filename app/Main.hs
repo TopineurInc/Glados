@@ -64,7 +64,12 @@ runFile file = do
         Left err -> do
           hPutStrLn stderr $ "Runtime error: " ++ show err
           exitFailure
-        Right _ -> exitSuccess
+        Right val -> do
+          -- Only print result if it's not nil (False from format)
+          case val of
+            VBool False -> return ()
+            _ -> putStrLn $ show val
+          exitSuccess
 
 -- Disassemble a file
 disasmFile :: FilePath -> IO ()
