@@ -8,7 +8,7 @@
 module Main (main) where
 
 import System.Environment (getArgs)
-import System.Exit (exitFailure, exitSuccess)
+import System.Exit (exitFailure, exitSuccess, exitWith, ExitCode(ExitFailure))
 import System.IO (hPutStrLn, hFlush, stderr, stdout, isEOF, stdin, hIsTerminalDevice)
 import Control.Monad (when)
 import qualified Data.Map as Map
@@ -58,6 +58,9 @@ runFile :: FilePath -> IO ()
 runFile file = do
   source <- readFile file
   case compileWithDefs defaultConfig source of
+    Left (ParseError msg _) -> do
+      hPutStrLn stderr $ "Compilation error: ParseError " ++ show msg ++ " Nothing"
+      exitWith (ExitFailure 84)
     Left err -> do
       hPutStrLn stderr $ "Compilation error: " ++ show err
       exitFailure
@@ -81,6 +84,9 @@ disasmFile :: FilePath -> IO ()
 disasmFile file = do
   source <- readFile file
   case compileWithDefs defaultConfig source of
+    Left (ParseError msg _) -> do
+      hPutStrLn stderr $ "Compilation error: ParseError " ++ show msg ++ " Nothing"
+      exitWith (ExitFailure 84)
     Left err -> do
       hPutStrLn stderr $ "Compilation error: " ++ show err
       exitFailure
@@ -98,6 +104,9 @@ showAst :: FilePath -> IO ()
 showAst file = do
   source <- readFile file
   case parseFromString source of
+    Left (ParseError msg _) -> do
+      hPutStrLn stderr $ "Parse error: ParseError " ++ show msg ++ " Nothing"
+      exitWith (ExitFailure 84)
     Left err -> do
       hPutStrLn stderr $ "Parse error: " ++ show err
       exitFailure
@@ -118,6 +127,9 @@ showCompiled :: FilePath -> IO ()
 showCompiled file = do
   source <- readFile file
   case compileWithDefs defaultConfig source of
+    Left (ParseError msg _) -> do
+      hPutStrLn stderr $ "Compilation error: ParseError " ++ show msg ++ " Nothing"
+      exitWith (ExitFailure 84)
     Left err -> do
       hPutStrLn stderr $ "Compilation error: " ++ show err
       exitFailure
