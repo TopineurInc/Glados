@@ -1,1 +1,1 @@
-(format t "\"yo\"~%")
+(format t "\"yo"~%")
