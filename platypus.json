@@ -16,7 +16,7 @@
                         "output": "*",
                         "return": 0
                     }
-                ]
+                ],
                 "Parsing": [
                     {
                         "name": "Simple call S-Expressions",
@@ -33,28 +33,32 @@
                     {
                         "name": "Missing closing parenthesis",
                         "command": "./glados examples/missing_closing_parenthesis.lisp",
+                        "std": "stderr",
                         "grep": "ParseError",
                         "return": 84
                     },
                     {
                         "name": "Missing closing quote",
                         "command": "./glados examples/missing_closing_quote.lisp",
+                        "std": "stderr",
                         "grep": "ParseError",
                         "return": 84
                     },
                     {
                         "name": "Missing opening parenthesis",
                         "command": "./glados examples/missing_closing_quote.lisp",
+                        "std": "stderr",
                         "grep": "ParseError",
                         "return": 84
                     },
                     {
                         "name": "String escaping",
                         "command": "./glados examples/string_escape.lisp",
+                        "std": "stderr",
                         "grep": "ParseError",
                         "return": 84
                     }
-                ]
+                ],
                 "Error-Handling": [
                     {
                         "name": "Bad argument server",
@@ -77,28 +81,32 @@
                     {
                         "name": "Missing if branch",
                         "command": "./glados examples/missing_if_branch.lisp",
+                        "std": "stderr",
                         "grep": "Compilation error",
                         "return": 84
                     },
                     {
                         "name": "Empty define",
                         "command": "./glados examples/empty_define.lisp",
+                        "std": "stderr",
                         "grep": "Compilation error",
                         "return": 84
                     },
                     {
                         "name": "Empty definition",
                         "command": "./glados examples/empty_definition.lisp",
+                        "std": "stderr",
                         "grep": "Compilation error",
                         "return": 84
                     },
                     {
                         "name": "Invalid eq",
                         "command": "./glados examples/invalid_eq.lisp",
+                        "std": "stderr",
                         "grep": "Compilation error",
                         "return": 84
                     }
-                ]
+                ],
                 "Functional-Tests": [
                     {
                         "name": "Hello world",
@@ -163,7 +171,7 @@
                     {
                         "name": "Lambda 1",
                         "command": "./glados < examples/lambda1.lisp",
-                        "output": "#\<procedure\>\n",
+                        "output": "#\\<procedure\\>\n",
                         "return": 0
                     },
                     {
