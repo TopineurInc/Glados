@@ -31,6 +31,7 @@ main = do
     ["--disasm", file] -> disasmFile file
     ["--ast", file] -> showAst file
     ["--compiled", file] -> showCompiled file
+    ["--bytecode", file] -> showBytecode file
     [file] -> runFile file
     _ -> do
       exitWithError "Invalid arguments. Use --help for usage."
@@ -61,6 +62,7 @@ printHelp = do
   putStrLn "  glados-exe --disasm [file]    Disassemble a LISP file"
   putStrLn "  glados-exe --ast [file]       Show AST of a LISP file"
   putStrLn "  glados-exe --compiled [file]  Show compiled code of a LISP file"
+  putStrLn "  glados-exe --bytecode [file]  Show bytecode instructions of a LISP file"
   putStrLn "  glados-exe                    Start REPL (interactive mode)"
   putStrLn "  glados-exe --help             Show this help message"
   putStrLn ""
@@ -145,6 +147,24 @@ showCompiled file = do
         dumpCodeInfo obj) (Map.toList defs)
       exitSuccess
 
+-- Show raw bytecode instructions of a file
+showBytecode :: FilePath -> IO ()
+showBytecode file = do
+  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
+  source <- case sourceOrErr of
+    Left _ -> exitWithError $ "Cannot open file: " ++ file
+    Right src -> return src
+  case compileWithDefs defaultConfig source of
+    Left err -> exitWithError (formatCompileError err)
+    Right (code, defs) -> do
+      putStrLn "=== Main Bytecode ==="
+      dumpBytecode code
+      putStrLn "\n=== Nested Definitions ==="
+      mapM_ (\(name, obj) -> do
+        putStrLn $ "\n--- " ++ name ++ " ---"
+        dumpBytecode obj) (Map.toList defs)
+      exitSuccess
+
 dumpCodeInfo :: CodeObject -> IO ()
 dumpCodeInfo co = do
   putStrLn $ "Name: " ++ coName co
@@ -153,6 +173,11 @@ dumpCodeInfo co = do
   putStrLn "\nConstants:"
   Vector.imapM_ (\i c -> putStrLn $ "  " ++ show i ++ ": " ++ show c) (coConsts co)
   putStrLn "\nInstructions:"
+  Vector.imapM_ (\i instr -> putStrLn $ "  " ++ show i ++ ": " ++ show instr) (coInstrs co)
+
+dumpBytecode :: CodeObject -> IO ()
+dumpBytecode co = do
+  putStrLn "Instructions:"
   Vector.imapM_ (\i instr -> putStrLn $ "  " ++ show i ++ ": " ++ show instr) (coInstrs co)
 
 -- Simple REPL
