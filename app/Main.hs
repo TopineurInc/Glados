@@ -47,6 +47,7 @@ formatCompileError (SyntaxError err _) = "Compilation error: " ++ err
 
 renderValue :: Value -> String
 renderValue (VInt i) = show i
+renderValue (VFloat f) = show f
 renderValue (VBool True) = "#t"
 renderValue (VBool False) = "#f"
 renderValue (VString s) = s

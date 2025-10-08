@@ -28,6 +28,7 @@ closureConvert expr = Right $ convertExpr Set.empty expr
 
 convertExpr :: Env -> Expr -> Expr
 convertExpr _ e@(EInt _) = e
+convertExpr _ e@(EFloat _) = e
 convertExpr _ e@(EBool _) = e
 convertExpr _ e@(EString _) = e
 convertExpr _ e@(EVar _) = e
@@ -59,6 +60,7 @@ getFreeVars bound (EVar name)
   | Set.member name bound = Set.empty
   | otherwise = Set.singleton name
 getFreeVars _ (EInt _) = Set.empty
+getFreeVars _ (EFloat _) = Set.empty
 getFreeVars _ (EBool _) = Set.empty
 getFreeVars _ (EString _) = Set.empty
 getFreeVars _ (EQuote _) = Set.empty

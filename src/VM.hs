@@ -253,6 +253,7 @@ callClosure vmState frame args stackAfterArgs isTail =
         _ -> return $ Left $ TypeError "Attempted to call non-closure value"
 constantToValue :: Constant -> Value
 constantToValue (CInt n) = VInt n
+constantToValue (CFloat n) = VFloat n
 constantToValue (CBool b) = VBool b
 constantToValue (CString s) = VString s
 constantToValue (CFuncRef name) = VClosure name []

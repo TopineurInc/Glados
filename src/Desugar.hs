@@ -18,6 +18,7 @@ import AST
 sexprToExpr :: SExpr -> Either CompileError Expr
 sexprToExpr = \case
   SAtom (AInteger n) _ -> Right $ EInt n
+  SAtom (AFloat n) _ -> Right $ EFloat n
   SAtom (ABool b) _ -> Right $ EBool b
   SAtom (AString s) _ -> Right $ EString s
   SAtom (ASymbol s) _ -> Right $ EVar s

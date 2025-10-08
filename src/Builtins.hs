@@ -67,15 +67,24 @@ builtins = Map.fromList
 -- Arithmetic operations
 builtinAdd :: [Value] -> IO Value
 builtinAdd [VInt a, VInt b] = return $ VInt (a + b)
-builtinAdd _ = error "Type error: + expects two integers"
+builtinAdd [VFloat a, VFloat b] = return $ VFloat (a + b)
+builtinAdd [VInt a, VFloat b] = return $ VFloat (fromInteger a + b)
+builtinAdd [VFloat a, VInt b] = return $ VFloat (a + fromInteger b)
+builtinAdd _ = error "Type error: + expects two numbers"
 
 builtinSub :: [Value] -> IO Value
 builtinSub [VInt a, VInt b] = return $ VInt (a - b)
-builtinSub _ = error "Type error: - expects two integers"
+builtinSub [VFloat a, VFloat b] = return $ VFloat (a - b)
+builtinSub [VInt a, VFloat b] = return $ VFloat (fromInteger a - b)
+builtinSub [VFloat a, VInt b] = return $ VFloat (a - fromInteger b)
+builtinSub _ = error "Type error: - expects two numbers"
 
 builtinMul :: [Value] -> IO Value
 builtinMul [VInt a, VInt b] = return $ VInt (a * b)
-builtinMul _ = error "Type error: * expects two integers"
+builtinMul [VFloat a, VFloat b] = return $ VFloat (a * b)
+builtinMul [VInt a, VFloat b] = return $ VFloat (fromInteger a * b)
+builtinMul [VFloat a, VInt b] = return $ VFloat (a * fromInteger b)
+builtinMul _ = error "Type error: * expects two numbers"
 
 builtinDiv :: [Value] -> IO Value
 builtinDiv [VInt a, VInt b]
@@ -92,17 +101,26 @@ builtinMod _ = error "Type error: mod expects two integers"
 -- Comparison operations
 builtinEq :: [Value] -> IO Value
 builtinEq [VInt a, VInt b] = return $ VBool (a == b)
+builtinEq [VFloat a, VFloat b] = return $ VBool (a == b)
+builtinEq [VInt a, VFloat b] = return $ VBool (fromInteger a == b)
+builtinEq [VFloat a, VInt b] = return $ VBool (a == fromInteger b)
 builtinEq [VBool a, VBool b] = return $ VBool (a == b)
 builtinEq [VString a, VString b] = return $ VBool (a == b)
 builtinEq _ = return $ VBool False
 
 builtinLt :: [Value] -> IO Value
 builtinLt [VInt a, VInt b] = return $ VBool (a < b)
-builtinLt _ = error "Type error: < expects two integers"
+builtinLt [VFloat a, VFloat b] = return $ VBool (a < b)
+builtinLt [VInt a, VFloat b] = return $ VBool (fromInteger a < b)
+builtinLt [VFloat a, VInt b] = return $ VBool (a < fromInteger b)
+builtinLt _ = error "Type error: < expects two numbers"
 
 builtinGt :: [Value] -> IO Value
 builtinGt [VInt a, VInt b] = return $ VBool (a > b)
-builtinGt _ = error "Type error: > expects two integers"
+builtinGt [VFloat a, VFloat b] = return $ VBool (a > b)
+builtinGt [VInt a, VFloat b] = return $ VBool (fromInteger a > b)
+builtinGt [VFloat a, VInt b] = return $ VBool (a > fromInteger b)
+builtinGt _ = error "Type error: > expects two numbers"
 
 builtinPrint :: [Value] -> IO Value
 builtinPrint [val] =
@@ -135,12 +153,15 @@ builtinStringToNumber :: [Value] -> IO Value
 builtinStringToNumber [VString s] =
   case readMaybe s of
     Just n -> return $ VInt n
-    Nothing -> error $ "Type error: cannot convert '" ++ s ++ "' to number"
+    Nothing -> case (readMaybe s :: Maybe Double) of
+      Just f -> return $ VFloat f
+      Nothing -> error $ "Type error: cannot convert '" ++ s ++ "' to number"
 builtinStringToNumber _ = error "Type error: string->number expects a string"
 
 builtinNumberToString :: [Value] -> IO Value
 builtinNumberToString [VInt n] = return $ VString (show n)
-builtinNumberToString _ = error "Type error: number->string expects an integer"
+builtinNumberToString [VFloat n] = return $ VString (show n)
+builtinNumberToString _ = error "Type error: number->string expects a number"
 
 builtinStringLength :: [Value] -> IO Value
 builtinStringLength [VString s] = return $ VInt (toInteger $ length s)
@@ -193,6 +214,7 @@ processFormatString (c:rest) args = c : processFormatString rest args
 
 showValue :: Value -> String
 showValue (VInt n) = show n
+showValue (VFloat n) = show n
 showValue (VBool True) = "#t"
 showValue (VBool False) = "#f"
 showValue (VString s) = s

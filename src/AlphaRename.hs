@@ -52,6 +52,7 @@ alphaRename expr = Right $ fst $ runRename (renameExpr Map.empty expr)
 
 renameExpr :: Env -> Expr -> RenameM Expr
 renameExpr _ (EInt n) = return $ EInt n
+renameExpr _ (EFloat n) = return $ EFloat n
 renameExpr _ (EBool b) = return $ EBool b
 renameExpr _ (EString s) = return $ EString s
 

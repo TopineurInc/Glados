@@ -13,6 +13,7 @@ import AST
 
 sourceFromAtom :: Atom -> String
 sourceFromAtom (AInteger n) = show n
+sourceFromAtom (AFloat n) = show n
 sourceFromAtom (ABool True) = "#t"
 sourceFromAtom (ABool False) = "#f"
 sourceFromAtom (AString s) = show s

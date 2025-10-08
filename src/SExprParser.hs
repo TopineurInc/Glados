@@ -13,6 +13,7 @@ module SExprParser
   , parseSymbol
   , parseAtom
   , parseInteger
+  , parseFloat
   , parseString
   , Parser
   ) where
@@ -56,6 +57,17 @@ parseInteger = try $ do
     Nothing -> num
     Just _  -> -num
 
+parseFloat :: Parser Double
+parseFloat = try $ do
+  sign <- optionMaybe (char '-')
+  intPart <- many1 digit
+  _ <- char '.'
+  fracPart <- many1 digit
+  let number = read (intPart ++ "." ++ fracPart)
+  return $ case sign of
+    Nothing -> number
+    Just _  -> -number
+
 parseBool :: Parser Bool
 parseBool =
   (try (string "#t") >> return True) <|>
@@ -69,6 +81,7 @@ parseSymbol = do
 
 parseAtom :: Parser Atom
 parseAtom =
+  (AFloat <$> parseFloat) <|>
   (AInteger <$> parseInteger) <|>
   (ABool <$> parseBool) <|>
   (AString <$> parseString) <|>

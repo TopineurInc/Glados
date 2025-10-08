@@ -99,6 +99,10 @@ compileExpr (EInt n) = do
   idx <- addConst (CInt n)
   emit (IConst idx)
 
+compileExpr (EFloat n) = do
+  idx <- addConst (CFloat n)
+  emit (IConst idx)
+
 compileExpr (EBool b) = do
   idx <- addConst (CBool b)
   emit (IConst idx)

@@ -44,6 +44,7 @@ data SExpr
 
 data Atom
   = AInteger Integer
+  | AFloat Double
   | ABool Bool
   | ASymbol String
   | AString String
@@ -62,6 +63,7 @@ type Name = String
 
 data Expr
   = EInt Integer
+  | EFloat Double
   | EBool Bool
   | EString String
   | EVar Name
@@ -84,6 +86,7 @@ data ANF
 
 data Constant
   = CInt Integer
+  | CFloat Double
   | CBool Bool
   | CString String
   | CFuncRef Name
@@ -119,6 +122,7 @@ data CodeObject = CodeObject
 
 data Value
   = VInt Integer
+  | VFloat Double
   | VBool Bool
   | VString String
   | VClosure Name [Value]
@@ -127,6 +131,7 @@ data Value
 
 instance Eq Value where
   (VInt a) == (VInt b) = a == b
+  (VFloat a) == (VFloat b) = a == b
   (VBool a) == (VBool b) = a == b
   (VString a) == (VString b) = a == b
   (VClosure n1 env1) == (VClosure n2 env2) = n1 == n2 && env1 == env2
@@ -136,6 +141,7 @@ instance Eq Value where
 
 instance Show Value where
   show (VInt i) = show i
+  show (VFloat f) = show f
   show (VBool b) = show b
   show (VString s) = show s
   show (VClosure name env) = "VClosure " ++ name ++ " " ++ show env

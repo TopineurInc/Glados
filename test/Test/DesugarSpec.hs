@@ -21,6 +21,7 @@ tests = TestList
 testDesugarBasic :: Test
 testDesugarBasic = TestList
   [ "desugar integer" ~: sexprToExpr (SAtom (AInteger 42) Nothing) ~?= Right (EInt 42)
+  , "desugar float" ~: sexprToExpr (SAtom (AFloat 3.14) Nothing) ~?= Right (EFloat 3.14)
   , "desugar boolean true" ~: sexprToExpr (SAtom (ABool True) Nothing) ~?= Right (EBool True)
   , "desugar boolean false" ~: sexprToExpr (SAtom (ABool False) Nothing) ~?= Right (EBool False)
   , "desugar string" ~: sexprToExpr (SAtom (AString "hello") Nothing) ~?= Right (EString "hello")

@@ -60,6 +60,7 @@ disassembleInstr (IStoreClosure idx) = "STORE_CLOSURE " ++ show idx
 -- Show a constant value
 showConstant :: Constant -> String
 showConstant (CInt n) = "INT " ++ show n
+showConstant (CFloat n) = "FLOAT " ++ show n
 showConstant (CBool b) = "BOOL " ++ show b
 showConstant (CString s) = "STRING " ++ show s
 showConstant (CFuncRef name) = "FUNCREF " ++ name

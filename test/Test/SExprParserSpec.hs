@@ -8,6 +8,7 @@ import SExprParser
 tests :: Test
 tests = TestList
   [ TestLabel "Parse Integer" testParseInteger
+  , TestLabel "Parse Float" testParseFloat
   , TestLabel "Parse Bool" testParseBool
   , TestLabel "Parse String" testParseString
   , TestLabel "Parse Symbol" testParseSymbol
@@ -24,6 +25,17 @@ testParseInteger = TestList
   , "parse large integer" ~: parseFromString "999999" ~?= Right [SAtom (AInteger 999999) (Just (SourcePos 1 1))]
   , "parse negative zero" ~: parseFromString "-0" ~?= Right [SAtom (AInteger 0) (Just (SourcePos 1 1))]
   , "parse multiple digits" ~: parseFromString "123456789" ~?= Right [SAtom (AInteger 123456789) (Just (SourcePos 1 1))]
+  ]
+
+testParseFloat :: Test
+testParseFloat = TestList
+  [ "parse positive float" ~: parseFromString "1.23" ~?= Right [SAtom (AFloat 1.23) (Just (SourcePos 1 1))]
+  , "parse negative float" ~: parseFromString "-4.56" ~?= Right [SAtom (AFloat (-4.56)) (Just (SourcePos 1 1))]
+  , "parse float with leading zeros" ~: parseFromString "000.125" ~?= Right [SAtom (AFloat 0.125) (Just (SourcePos 1 1))]
+  , "parse float inside list" ~: case parseFromString "(list 1.0 2.5)" of
+      Right [SList [SAtom (ASymbol "list") _, SAtom (AFloat 1.0) _, SAtom (AFloat 2.5) _] _] -> True
+      _ -> False
+      ~? "Should parse floats inside list"
   ]
 
 testParseBool :: Test
