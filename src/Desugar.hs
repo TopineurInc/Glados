@@ -41,6 +41,10 @@ sexprToExpr = \case
     b <- sexprToExpr body
     Right $ EDefine name (ELambda params b)
 
+  -- Malformed define forms should be rejected explicitly
+  SList (SAtom (ASymbol "define") _ : _) loc ->
+    Left $ SyntaxError "Invalid define form" loc
+
   -- Lambda: (lambda (args...) body)
   SList [SAtom (ASymbol "lambda") _, SList args _, body] _loc -> do
     params <- mapM extractParam args
