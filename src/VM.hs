@@ -165,6 +165,17 @@ builtinArity op = case op of
   "not" -> 1
   "and" -> 2
   "or" -> 2
+  "sfml-create-window" -> 3
+  "sfml-draw-square" -> 7
+  "sfml-close-window" -> 1
+  "sfml-create-rectangle" -> 2
+  "sfml-create-circle" -> 1
+  "sfml-shape-set-position" -> 3
+  "sfml-shape-set-fill-color" -> 4
+  "sfml-window-clear" -> 4
+  "sfml-window-draw" -> 2
+  "sfml-window-display" -> 1
+  "sfml-window-is-open" -> 1
   _ -> 2
 
 executePrim :: VMState -> Frame -> String -> IO (Either VMError (VMState, Maybe Value))

@@ -25,6 +25,7 @@ dependencies:
 - vector
 - mtl
 - parsec
+- SFML
 
 ghc-options:
 - -Wall

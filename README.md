@@ -26,6 +26,49 @@ python3 tests/tester.py
 - ✅ Stack-based bytecode VM
 - ✅ Comprehensive test suite (36/36 tests passing)
 
+## SFML Builtins (Preview)
+
+Experimental SFML bindings are available with the following builtins:
+
+- **Windows**
+  - `sfml-create-window` `(width height title)`
+  - `sfml-window-clear` `(window r g b)`
+  - `sfml-window-draw` `(window shape)`
+  - `sfml-window-display` `(window)`
+  - `sfml-window-is-open` `(window)`
+  - `sfml-close-window` `(window)`
+- **Shapes**
+  - `sfml-create-rectangle` `(width height)`
+  - `sfml-create-circle` `(radius)`
+  - `sfml-shape-set-position` `(shape x y)`
+  - `sfml-shape-set-fill-color` `(shape r g b)`
+- **Helpers**
+  - `sfml-draw-square` `(window size x y r g b)` — one-shot demo loop
+
+Simple render loop:
+
+```lisp
+(define (render-loop window shape)
+  (if (sfml-window-is-open window)
+      (begin
+        (sfml-window-clear window 25 25 35)
+        (sfml-window-draw window shape)
+        (sfml-window-display window)
+        (render-loop window shape))
+      (sfml-close-window window)))
+
+(define (main)
+  (let ((window (sfml-create-window 800 600 "SFML demo"))
+        (rect (sfml-create-rectangle 180 120)))
+    (begin
+      (sfml-shape-set-position rect 310 240)
+      (sfml-shape-set-fill-color rect 255 120 0)
+      (render-loop window rect))))
+```
+
+> **Note**
+> Building or running the SFML builtins requires the native CSFML libraries (`csfml-system`, `csfml-window`, `csfml-graphics`, `csfml-audio`, `csfml-network`) to be installed on your machine.
+
 ## Examples
 
 ```lisp

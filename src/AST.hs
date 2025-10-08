@@ -123,6 +123,9 @@ data Value
   | VString String
   | VClosure Name [Value]
   | VBuiltin Name ([Value] -> IO Value)
+  | VSFMLWindow Int
+  | VSFMLRectangle Int
+  | VSFMLCircle Int
 
 instance Eq Value where
   (VInt a) == (VInt b) = a == b
@@ -130,6 +133,9 @@ instance Eq Value where
   (VString a) == (VString b) = a == b
   (VClosure n1 env1) == (VClosure n2 env2) = n1 == n2 && env1 == env2
   (VBuiltin n1 _) == (VBuiltin n2 _) = n1 == n2
+  (VSFMLWindow id1) == (VSFMLWindow id2) = id1 == id2
+  (VSFMLRectangle id1) == (VSFMLRectangle id2) = id1 == id2
+  (VSFMLCircle id1) == (VSFMLCircle id2) = id1 == id2
   _ == _ = False
 
 instance Show Value where
@@ -138,6 +144,9 @@ instance Show Value where
   show (VString s) = show s
   show (VClosure name env) = "VClosure " ++ name ++ " " ++ show env
   show (VBuiltin name _) = "VBuiltin " ++ name
+  show (VSFMLWindow ident) = "VSFMLWindow " ++ show ident
+  show (VSFMLRectangle ident) = "VSFMLRectangle " ++ show ident
+  show (VSFMLCircle ident) = "VSFMLCircle " ++ show ident
 
 data Frame = Frame
   { fLocals :: Vector.Vector (Maybe Value)
