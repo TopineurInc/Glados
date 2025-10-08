@@ -93,11 +93,12 @@ runFile file = do
 -- Disassemble a file
 disasmFile :: FilePath -> IO ()
 disasmFile file = do
-  source <- readFile file
+  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
+  source <- case sourceOrErr of
+    Left _ -> exitWithError $ "Cannot open file: " ++ file
+    Right src -> return src
   case compileWithDefs defaultConfig source of
-    Left err -> do
-      hPutStrLn stderr $ "Compilation error: " ++ show err
-      exitFailure
+    Left err -> exitWithError (formatCompileError err)
     Right (code, defs) -> do
       putStrLn "=== Main Code ==="
       dumpCodeObject code
