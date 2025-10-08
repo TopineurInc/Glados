@@ -1,4 +1,4 @@
-name: CI
+name: Testing
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,7 +21,7 @@ jobs:
           echo "Installing required build tools..."
           sudo apt-get update
           sudo apt-get install -y build-essential make curl
-          
+
           echo "Installing Haskell Stack..."
           if ! command -v stack &> /dev/null; then
             curl -sSL https://get.haskellstack.org/ | sh
@@ -29,7 +30,7 @@ jobs:
           else
             echo "Stack already installed"
           fi
-          
+
           echo "Verifying Stack installation..."
           stack --version
 
@@ -42,12 +43,6 @@ jobs:
           key: ${{ runner.os }}-stack-${{ hashFiles('**/*.yaml') }}-${{ hashFiles('**/*.cabal') }}
           restore-keys: |
             ${{ runner.os }}-stack-
-
-      - name: Build project
-        run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          make re
-          echo "Build completed successfully on branch ${{ github.ref_name }}"
 
       - name: Run tests
         run: |

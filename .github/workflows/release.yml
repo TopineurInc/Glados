@@ -42,7 +42,7 @@ jobs:
         run: |
           echo "Installing required build tools..."
           sudo apt-get update
-          sudo apt-get install -y build-essential make curl dpkg rpm
+          sudo apt-get install -y build-essential make curl dpkg rpm file
 
           echo "Installing Haskell Stack..."
           if ! command -v stack &> /dev/null; then
