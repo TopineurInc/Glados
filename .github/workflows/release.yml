@@ -42,7 +42,7 @@ jobs:
         run: |
           echo "Installing required build tools..."
           sudo apt-get update
-          sudo apt-get install -y build-essential make curl dpkg
+          sudo apt-get install -y build-essential make curl dpkg rpm
 
           echo "Installing Haskell Stack..."
           if ! command -v stack &> /dev/null; then
@@ -117,6 +117,123 @@ jobs:
           echo "Created package: ${DIST_DIR}/${PKG_NAME}_${VERSION}_${ARCH}.deb"
           ls -la "${DIST_DIR}"
 
+      - name: Package .rpm
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          TAG="${{ steps.generate_tag.outputs.tag_name }}"
+          VERSION="${TAG#v}"
+
+          RPM_VERSION=$(echo "${VERSION}" | tr '-' '_')
+
+          PKG_NAME="glados"
+          ARCH="x86_64"
+          ROOT_DIR="$(pwd)"
+          BUILD_ROOT="${ROOT_DIR}/rpmroot"
+          DIST_DIR="${ROOT_DIR}/dist"
+
+          echo "Packaging ${PKG_NAME} version ${RPM_VERSION} for ${ARCH}"
+
+          rm -rf "${BUILD_ROOT}" "${ROOT_DIR}/rpmbuild"
+          mkdir -p "${BUILD_ROOT}/usr/local/bin" "${DIST_DIR}"
+
+          cp glados "${BUILD_ROOT}/usr/local/bin/glados"
+          chmod 0755 "${BUILD_ROOT}/usr/local/bin/glados"
+
+          SPEC_FILE="${ROOT_DIR}/${PKG_NAME}.spec"
+          cat > "${SPEC_FILE}" <<EOF
+          Name:           ${PKG_NAME}
+          Version:        ${RPM_VERSION}
+          Release:        1
+          Summary:        GLaDOS Lisp Interpreter
+          License:        MIT
+          Group:          Applications/System
+          BuildArch:      ${ARCH}
+          Prefix:         /usr/local
+          AutoReqProv:    no
+
+          %description
+          A small Lisp interpreter compiled from this repository.
+
+          %install
+          mkdir -p %{buildroot}/usr/local/bin
+          cp -a ${BUILD_ROOT}/usr/local/bin/glados %{buildroot}/usr/local/bin/
+
+          %files
+          /usr/local/bin/glados
+
+          %changelog
+          * $(date +"%a %b %d %Y") GLaDOS Maintainers <glados@epitech.eu> - ${RPM_VERSION}-1
+          - Initial RPM release
+          EOF
+
+          # Build RPM
+          rpmbuild \
+            --define "_topdir ${ROOT_DIR}/rpmbuild" \
+            --define "_buildrootdir ${ROOT_DIR}/rpmbuild/BUILDROOT" \
+            -bb "${SPEC_FILE}"
+
+          # Move resulting .rpm to ./dist
+          find "${ROOT_DIR}/rpmbuild" -name "*.rpm" -exec mv {} "${DIST_DIR}/" \;
+
+          echo "Created RPM package:"
+          ls -la "${DIST_DIR}"/*.rpm
+
+      - name: Package .AppImage
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          TAG="${{ steps.generate_tag.outputs.tag_name }}"
+          VERSION="${TAG#v}"
+          PKG_NAME="glados"
+          ARCH="x86_64"
+          DIST_DIR="./dist"
+          APPDIR="${PKG_NAME}.AppDir"
+
+          echo "Packaging ${PKG_NAME} version ${VERSION} as AppImage"
+
+          rm -rf "${APPDIR}"
+          mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/share/icons/hicolor/256x256/apps" "${DIST_DIR}"
+
+          cp glados "${APPDIR}/usr/bin/glados"
+          chmod +x "${APPDIR}/usr/bin/glados"
+
+          cat > "${APPDIR}/${PKG_NAME}.desktop" <<EOF
+          [Desktop Entry]
+          Name=GLaDOS
+          Exec=glados
+          Icon=glados
+          Type=Application
+          Categories=Utility;
+          Comment=GLaDOS Lisp Interpreter
+          EOF
+
+          sudo apt-get update -qq
+          sudo apt-get install -y imagemagick -qq
+          convert -size 256x256 xc:lightgray -gravity center -pointsize 72 -annotate 0 "G" "${APPDIR}/glados.png"
+
+          mkdir -p "${APPDIR}/usr/share/icons/hicolor/256x256/apps"
+          cp "${APPDIR}/glados.png" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/glados.png"
+
+          cat > "${APPDIR}/AppRun" <<'EOF'
+          #!/bin/bash
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          export PATH="${HERE}/usr/bin:${PATH}"
+          exec "${HERE}/usr/bin/glados" "$@"
+          EOF
+          chmod +x "${APPDIR}/AppRun"
+
+          APPIMAGETOOL_URL="https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+          echo "Downloading appimagetool from: $APPIMAGETOOL_URL"
+          curl -L "$APPIMAGETOOL_URL" -o appimagetool
+          chmod +x appimagetool
+
+          ./appimagetool --appimage-extract-and-run "${APPDIR}" "${DIST_DIR}/${PKG_NAME}-${VERSION}-${ARCH}.AppImage"
+
+          chmod +x "${DIST_DIR}/${PKG_NAME}-${VERSION}-${ARCH}.AppImage"
+
+          ls -lh "${DIST_DIR}"/*.AppImage
+
       - name: Verify binary
         run: |
           export PATH="$HOME/.local/bin:$PATH"
@@ -132,6 +249,8 @@ jobs:
           files: |
             ./glados
             ./dist/*.deb
+            ./dist/*.rpm
+            ./dist/*.AppImage
           body: |
             ## GLaDOS Lisp Interpreter
 
@@ -152,4 +271,3 @@ jobs:
             ${{ github.event.head_commit.message }}
           draft: false
           prerelease: false
-          overwrite: true
