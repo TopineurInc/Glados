@@ -35,21 +35,29 @@ sexprToExpr = \case
     e <- sexprToExpr expr
     Right $ EDefine name e
 
-  -- Define with sugared syntax: (define (name args...) body)
-  SList [SAtom (ASymbol "define") _, SList (SAtom (ASymbol name) _ : args) _, body] _loc -> do
+  -- Define with sugared syntax: (define (name args...) body ...)
+  SList (SAtom (ASymbol "define") _ : SList (SAtom (ASymbol name) _ : args) _ : bodies) _loc -> do
     params <- mapM extractParam args
-    b <- sexprToExpr body
-    Right $ EDefine name (ELambda params b)
+    bodies' <- mapM sexprToExpr bodies
+    let bodyExpr = case bodies' of
+          [] -> EList []
+          [e] -> e
+          es -> EList es
+    Right $ EDefine name (ELambda params bodyExpr)
 
   -- Malformed define forms should be rejected explicitly
   SList (SAtom (ASymbol "define") _ : _) loc ->
     Left $ SyntaxError "Invalid define form" loc
 
-  -- Lambda: (lambda (args...) body)
-  SList [SAtom (ASymbol "lambda") _, SList args _, body] _loc -> do
+  -- Lambda with one or more body expressions: (lambda (args...) body ...)
+  SList (SAtom (ASymbol "lambda") _ : SList args _ : bodies) _loc -> do
     params <- mapM extractParam args
-    b <- sexprToExpr body
-    Right $ ELambda params b
+    bodies' <- mapM sexprToExpr bodies
+    let bodyExpr = case bodies' of
+          [] -> EList []
+          [e] -> e
+          es -> EList es
+    Right $ ELambda params bodyExpr
 
   -- Let: (let ((x val) ...) body) => ((lambda (x ...) body) val ...)
   SList [SAtom (ASymbol "let") _, SList bindings _, body] _loc -> do
