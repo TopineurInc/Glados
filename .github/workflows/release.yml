@@ -1,6 +1,10 @@
 name: Binary Release
 
 on:
+  workflow_run:
+    workflows: ["Testing"]
+    types:
+      - completed
   push:
     branches:
       - main
