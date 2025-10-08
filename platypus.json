@@ -161,7 +161,7 @@
                     {
                         "name": "Lambda 1",
                         "command": "./glados < examples/lambda1.lisp",
-                        "output": "#\\<procedure\\>\n",
+                        "output": "#<procedure>\n",
                         "return": 0
                     },
                     {
