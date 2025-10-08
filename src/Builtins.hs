@@ -105,16 +105,13 @@ builtinGt [VInt a, VInt b] = return $ VBool (a > b)
 builtinGt _ = error "Type error: > expects two integers"
 
 builtinPrint :: [Value] -> IO Value
-builtinPrint [val] = do
-  putStrLn $ showValue val
-  return val
+builtinPrint [val] =
+  putStrLn (showValue val) >> return val
 builtinPrint _ = error "Type error: print expects one argument"
 
 builtinDisplay :: [Value] -> IO Value
-builtinDisplay [val] = do
-  putStr $ showValue val
-  hFlush stdout
-  return val
+builtinDisplay [val] =
+  putStr (showValue val) >> hFlush stdout >> return val
 builtinDisplay _ = error "Type error: display expects one argument"
 
 builtinInput :: [Value] -> IO Value
@@ -176,21 +173,22 @@ builtinFormat :: [Value] -> IO Value
 builtinFormat (dest:VString fmt:args) =
   let formatted = processFormatString fmt args
   in case dest of
-       VBool True -> do  -- t means stdout
-         putStr formatted
-         hFlush stdout
-         return $ VBool False  -- nil in Common Lisp
-       VBool False -> return $ VString formatted  -- nil means return string
+       VBool True -> putStr formatted >> hFlush stdout >> return (VBool False)  -- t means stdout
+       VBool False -> return (VString formatted)  -- nil means return string
        _ -> error "Type error: format destination must be t or nil"
 builtinFormat _ = error "Type error: format expects (destination format-string ...)"
 
 processFormatString :: String -> [Value] -> String
 processFormatString [] _ = []
 processFormatString ('~':'%':rest) args = '\n' : processFormatString rest args
-processFormatString ('~':'a':rest) (arg:args') = showValue arg ++ processFormatString rest args'
-processFormatString ('~':'s':rest) (arg:args') = showValue arg ++ processFormatString rest args'
-processFormatString ('~':'A':rest) (arg:args') = showValue arg ++ processFormatString rest args'
-processFormatString ('~':'S':rest) (arg:args') = showValue arg ++ processFormatString rest args'
+processFormatString ('~':'a':rest) (arg:args') =
+  showValue arg ++ processFormatString rest args'
+processFormatString ('~':'s':rest) (arg:args') =
+  showValue arg ++ processFormatString rest args'
+processFormatString ('~':'A':rest) (arg:args') =
+  showValue arg ++ processFormatString rest args'
+processFormatString ('~':'S':rest) (arg:args') =
+  showValue arg ++ processFormatString rest args'
 processFormatString (c:rest) args = c : processFormatString rest args
 
 showValue :: Value -> String
