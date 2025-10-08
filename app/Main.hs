@@ -8,12 +8,13 @@
 module Main (main) where
 
 import Control.Exception (IOException, SomeException, try)
-import Control.Monad (when)
+import Control.Monad (unless, when)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 import System.Environment (getArgs)
 import System.Exit (ExitCode (ExitFailure), exitSuccess, exitWith)
 import System.IO (hFlush, hIsTerminalDevice, hPutStrLn, isEOF, stderr, stdin, stdout)
+import Data.Char (isSpace)
 
 import AST
 import Compiler
@@ -53,6 +54,19 @@ renderValue (VString s) = s
 renderValue (VClosure _ _) = "#<procedure>"
 renderValue (VBuiltin name _) = "#<builtin:" ++ name ++ ">"
 
+runProgram :: String -> IO (Either String Value)
+runProgram source =
+  case compileWithDefs defaultConfig source of
+    Left err -> return $ Left (formatCompileError err)
+    Right (code, defs) -> do
+      let allCodeObjects = Map.insert "main" code defs
+          vmState = initVMState { vCodeObjects = allCodeObjects }
+      execResult <- try (execVM vmState code) :: IO (Either SomeException (Either VMError Value))
+      case execResult of
+        Left ex -> return $ Left $ "Runtime error: " ++ show ex
+        Right (Left err) -> return $ Left $ "Runtime error: " ++ show err
+        Right (Right val) -> return $ Right val
+
 printHelp :: IO ()
 printHelp =
   mapM_
@@ -82,18 +96,12 @@ runFile file = do
   source <- case sourceOrErr of
     Left _ -> exitWithError $ "Cannot open file: " ++ file
     Right src -> return src
-  case compileWithDefs defaultConfig source of
-    Left err -> exitWithError (formatCompileError err)
-    Right (code, defs) -> do
-      let allCodeObjects = Map.insert "main" code defs
-      let vmState = initVMState { vCodeObjects = allCodeObjects }
-      execResult <- try (execVM vmState code) :: IO (Either SomeException (Either VMError Value))
-      case execResult of
-        Left ex -> exitWithError $ "Runtime error: " ++ show ex
-        Right (Left err) -> exitWithError $ "Runtime error: " ++ show err
-        Right (Right val) ->
-          putStrLn (renderValue val)
-            >> exitSuccess
+  result <- runProgram source
+  case result of
+    Left err -> exitWithError err
+    Right val ->
+      putStrLn (renderValue val)
+        >> exitSuccess
 
 -- Disassemble a file
 disasmFile :: FilePath -> IO ()
@@ -197,28 +205,42 @@ dumpBytecode co =
 repl :: IO ()
 repl = do
   interactive <- hIsTerminalDevice stdin
-  when interactive $
-    putStrLn "GLaDOS REPL - Enter expressions (Ctrl+D to exit)"
-  replLoop interactive
+  if interactive
+    then replInteractive
+    else replNonInteractive
 
-replLoop :: Bool -> IO ()
-replLoop interactive = do
-  when interactive $
-    putStr "> " >> hFlush stdout
+replLoop :: IO ()
+replLoop = do
+  putStr "> " >> hFlush stdout
   eof <- isEOF
   if eof
-    then when interactive (putStrLn "")
+    then putStrLn ""
     else do
       input <- getLine
-      case compile defaultConfig input of
-        Left err ->
-          putStrLn ("*** ERROR : " ++ formatCompileError err)
-            >> replLoop interactive
-        Right code -> do
-          let vmState = initVMState { vCodeObjects = Map.singleton "main" code }
-          execResult <- try (execVM vmState code) :: IO (Either SomeException (Either VMError Value))
-          case execResult of
-            Left ex -> putStrLn $ "*** ERROR : Runtime error: " ++ show ex
-            Right (Left err) -> putStrLn $ "*** ERROR : Runtime error: " ++ show err
-            Right (Right val) -> putStrLn $ renderValue val
-          replLoop interactive
+      if all isSpace input
+        then replLoop
+        else do
+          result <- runProgram input
+          case result of
+            Left err -> putStrLn ("*** ERROR : " ++ err)
+            Right val -> putStrLn (renderValue val)
+          replLoop
+
+replInteractive :: IO ()
+replInteractive =
+  putStrLn "GLaDOS REPL - Enter expressions (Ctrl+D to exit)"
+    >> replLoop
+
+replNonInteractive :: IO ()
+replNonInteractive = do
+  contents <- getContents
+  if all isSpace contents
+    then exitSuccess
+    else runNonInteractive contents
+
+runNonInteractive :: String -> IO ()
+runNonInteractive contents = do
+  result <- runProgram contents
+  case result of
+    Left err -> exitWithError err
+    Right val -> putStrLn (renderValue val) >> exitSuccess
