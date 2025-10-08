@@ -7,19 +7,20 @@
 
 module Main (main) where
 
-import System.Environment (getArgs)
-import System.Exit (exitFailure, exitSuccess)
-import System.IO (hPutStrLn, hFlush, stderr, stdout, isEOF, stdin, hIsTerminalDevice)
+import Control.Exception (IOException, SomeException, try)
 import Control.Monad (when)
 import qualified Data.Map as Map
+import qualified Data.Vector as Vector
+import System.Environment (getArgs)
+import System.Exit (ExitCode (ExitFailure), exitSuccess, exitWith)
+import System.IO (hFlush, hIsTerminalDevice, hPutStrLn, isEOF, stderr, stdin, stdout)
 
 import AST
 import Compiler
-import VM
+import Desugar
 import Disasm
 import SExprParser
-import Desugar
-import qualified Data.Vector as Vector
+import VM
 
 main :: IO ()
 main = do
@@ -32,8 +33,24 @@ main = do
     ["--compiled", file] -> showCompiled file
     [file] -> runFile file
     _ -> do
-      hPutStrLn stderr "Invalid arguments. Use --help for usage."
-      exitFailure
+      exitWithError "Invalid arguments. Use --help for usage."
+
+exitWithError :: String -> IO a
+exitWithError msg = do
+  hPutStrLn stderr $ "*** ERROR : " ++ msg
+  exitWith (ExitFailure 84)
+
+formatCompileError :: CompileError -> String
+formatCompileError (ParseError err _) = "ParseError " ++ err
+formatCompileError (SyntaxError err _) = "Compilation error: " ++ err
+
+renderValue :: Value -> String
+renderValue (VInt i) = show i
+renderValue (VBool True) = "#t"
+renderValue (VBool False) = "#f"
+renderValue (VString s) = s
+renderValue (VClosure _ _) = "#<procedure>"
+renderValue (VBuiltin name _) = "#<builtin:" ++ name ++ ">"
 
 printHelp :: IO ()
 printHelp = do
@@ -56,34 +73,32 @@ printHelp = do
 -- Run a file
 runFile :: FilePath -> IO ()
 runFile file = do
-  source <- readFile file
+  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
+  source <- case sourceOrErr of
+    Left _ -> exitWithError $ "Cannot open file: " ++ file
+    Right src -> return src
   case compileWithDefs defaultConfig source of
-    Left err -> do
-      hPutStrLn stderr $ "Compilation error: " ++ show err
-      exitFailure
+    Left err -> exitWithError (formatCompileError err)
     Right (code, defs) -> do
       let allCodeObjects = Map.insert "main" code defs
       let vmState = initVMState { vCodeObjects = allCodeObjects }
-      result <- execVM vmState code
-      case result of
-        Left err -> do
-          hPutStrLn stderr $ "Runtime error: " ++ show err
-          exitFailure
-        Right val -> do
-          -- Only print result if it's not nil (False from format)
-          case val of
-            VBool False -> return ()
-            _ -> putStrLn $ show val
+      execResult <- try (execVM vmState code) :: IO (Either SomeException (Either VMError Value))
+      case execResult of
+        Left ex -> exitWithError $ "Runtime error: " ++ show ex
+        Right (Left err) -> exitWithError $ "Runtime error: " ++ show err
+        Right (Right val) -> do
+          putStrLn $ renderValue val
           exitSuccess
 
 -- Disassemble a file
 disasmFile :: FilePath -> IO ()
 disasmFile file = do
-  source <- readFile file
+  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
+  source <- case sourceOrErr of
+    Left _ -> exitWithError $ "Cannot open file: " ++ file
+    Right src -> return src
   case compileWithDefs defaultConfig source of
-    Left err -> do
-      hPutStrLn stderr $ "Compilation error: " ++ show err
-      exitFailure
+    Left err -> exitWithError (formatCompileError err)
     Right (code, defs) -> do
       putStrLn "=== Main Code ==="
       dumpCodeObject code
@@ -96,19 +111,18 @@ disasmFile file = do
 -- Show AST of a file
 showAst :: FilePath -> IO ()
 showAst file = do
-  source <- readFile file
+  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
+  source <- case sourceOrErr of
+    Left _ -> exitWithError $ "Cannot open file: " ++ file
+    Right src -> return src
   case parseFromString source of
-    Left err -> do
-      hPutStrLn stderr $ "Parse error: " ++ show err
-      exitFailure
+    Left err -> exitWithError (formatCompileError err)
     Right sexprs -> do
       putStrLn "=== S-Expression ==="
       mapM_ (putStrLn . show) sexprs
       putStrLn "\n=== AST ==="
       case mapM sexprToExpr sexprs of
-        Left err -> do
-          hPutStrLn stderr $ "Desugar error: " ++ show err
-          exitFailure
+        Left err -> exitWithError ("Desugar error: " ++ show err)
         Right exprs -> do
           mapM_ (putStrLn . show) exprs
           exitSuccess
@@ -116,11 +130,12 @@ showAst file = do
 -- Show compiled code of a file
 showCompiled :: FilePath -> IO ()
 showCompiled file = do
-  source <- readFile file
+  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
+  source <- case sourceOrErr of
+    Left _ -> exitWithError $ "Cannot open file: " ++ file
+    Right src -> return src
   case compileWithDefs defaultConfig source of
-    Left err -> do
-      hPutStrLn stderr $ "Compilation error: " ++ show err
-      exitFailure
+    Left err -> exitWithError (formatCompileError err)
     Right (code, defs) -> do
       putStrLn "=== Main Code ==="
       dumpCodeInfo code
@@ -143,8 +158,9 @@ dumpCodeInfo co = do
 -- Simple REPL
 repl :: IO ()
 repl = do
-  putStrLn "GLaDOS REPL - Enter expressions (Ctrl+D to exit)"
   interactive <- hIsTerminalDevice stdin
+  when interactive $
+    putStrLn "GLaDOS REPL - Enter expressions (Ctrl+D to exit)"
   replLoop interactive
 
 replLoop :: Bool -> IO ()
@@ -159,12 +175,13 @@ replLoop interactive = do
       input <- getLine
       case compile defaultConfig input of
         Left err -> do
-          putStrLn $ "Error: " ++ show err
+          putStrLn $ "*** ERROR : " ++ formatCompileError err
           replLoop interactive
         Right code -> do
           let vmState = initVMState { vCodeObjects = Map.singleton "main" code }
-          result <- execVM vmState code
-          case result of
-            Left err -> putStrLn $ "Runtime error: " ++ show err
-            Right val -> putStrLn $ show val
+          execResult <- try (execVM vmState code) :: IO (Either SomeException (Either VMError Value))
+          case execResult of
+            Left ex -> putStrLn $ "*** ERROR : Runtime error: " ++ show ex
+            Right (Left err) -> putStrLn $ "*** ERROR : Runtime error: " ++ show err
+            Right (Right val) -> putStrLn $ renderValue val
           replLoop interactive

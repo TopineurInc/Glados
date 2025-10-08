@@ -11,10 +11,12 @@ import qualified Test.CompilerSpec as CompilerSpec
 import qualified Test.DesugarSpec as DesugarSpec
 import qualified Test.SExprParserSpec as SExprParserSpec
 import qualified Test.VMSpec as VMSpec
+import qualified Test.MacroExpanderSpec as MacroExpanderSpec
 
 allTests :: Test
 allTests = TestList
   [ TestLabel "SExpr Parser" SExprParserSpec.tests
+  , TestLabel "Macro Expander" MacroExpanderSpec.tests
   , TestLabel "Desugar" DesugarSpec.tests
   , TestLabel "Alpha Rename" AlphaRenameSpec.tests
   , TestLabel "Closure Conversion" ClosureConversionSpec.tests

@@ -31,6 +31,14 @@ tests = TestList
   , TestLabel "VM Mutual Recursion" testVMMutualRecursion
   , TestLabel "VM Nested Calls" testVMNestedCalls
   , TestLabel "VM Complex Expression" testVMComplexExpression
+  , TestLabel "VM Return Underflow" testVMReturnUnderflow
+  , TestLabel "VM Const OOB" testVMConstOOB
+  , TestLabel "VM Store OOB" testVMStoreOOB
+  , TestLabel "VM Uninitialized Local" testVMUninitializedLocal
+  , TestLabel "VM Undefined Function" testVMUndefinedFunction
+  , TestLabel "VM Unknown Prim" testVMUnknownPrim
+  , TestLabel "VM Invalid Instruction" testVMInvalidInstruction
+  , TestLabel "VM JumpIfFalse NonBool" testVMJumpIfFalseNonBool
   ]
 
 testVMBasic :: Test
@@ -364,3 +372,123 @@ testVMComplexExpression = "VM complex expression" ~: TestCase $ do
       case result of
         Right (VInt 30) -> return ()
         _ -> assertFailure $ "Expected VInt 30, got: " ++ show result
+
+testVMReturnUnderflow :: Test
+testVMReturnUnderflow = "VM return underflow" ~: TestCase $ do
+  let code = CodeObject
+        { coName = "test"
+        , coArity = 0
+        , coMaxLocals = 0
+        , coConsts = Vector.empty
+        , coInstrs = Vector.fromList [IReturn]
+        , coLabelMap = Map.empty
+        }
+  result <- execVM initVMState code
+  case result of
+    Left StackUnderflow -> return ()
+    _ -> assertFailure $ "Expected StackUnderflow, got: " ++ show result
+
+testVMConstOOB :: Test
+testVMConstOOB = "VM const out of bounds" ~: TestCase $ do
+  let code = CodeObject
+        { coName = "test"
+        , coArity = 0
+        , coMaxLocals = 0
+        , coConsts = Vector.empty
+        , coInstrs = Vector.fromList [IConst 0]
+        , coLabelMap = Map.empty
+        }
+  result <- execVM initVMState code
+  case result of
+    Left (RuntimeError _) -> return ()
+    _ -> assertFailure $ "Expected RuntimeError, got: " ++ show result
+
+testVMStoreOOB :: Test
+testVMStoreOOB = "VM store local out of bounds" ~: TestCase $ do
+  let code = CodeObject
+        { coName = "test"
+        , coArity = 0
+        , coMaxLocals = 0
+        , coConsts = Vector.fromList [CInt 1]
+        , coInstrs = Vector.fromList [IConst 0, IStore 0]
+        , coLabelMap = Map.empty
+        }
+  result <- execVM initVMState code
+  case result of
+    Left (RuntimeError _) -> return ()
+    _ -> assertFailure $ "Expected RuntimeError for store OOB, got: " ++ show result
+
+testVMUninitializedLocal :: Test
+testVMUninitializedLocal = "VM uninitialized local load" ~: TestCase $ do
+  let code = CodeObject
+        { coName = "test"
+        , coArity = 0
+        , coMaxLocals = 1
+        , coConsts = Vector.empty
+        , coInstrs = Vector.fromList [ILoad 0]
+        , coLabelMap = Map.empty
+        }
+  result <- execVM initVMState code
+  case result of
+    Left (RuntimeError _) -> return ()
+    _ -> assertFailure $ "Expected RuntimeError for uninitialized local, got: " ++ show result
+
+testVMUndefinedFunction :: Test
+testVMUndefinedFunction = "VM undefined function call" ~: TestCase $ do
+  let code = CodeObject
+        { coName = "test"
+        , coArity = 0
+        , coMaxLocals = 0
+        , coConsts = Vector.empty
+        , coInstrs = Vector.fromList [ICall 0 "does-not-exist"]
+        , coLabelMap = Map.empty
+        }
+  result <- execVM initVMState code
+  case result of
+    Left (UndefinedFunction _) -> return ()
+    _ -> assertFailure $ "Expected UndefinedFunction, got: " ++ show result
+
+testVMUnknownPrim :: Test
+testVMUnknownPrim = "VM unknown prim op" ~: TestCase $ do
+  let code = CodeObject
+        { coName = "test"
+        , coArity = 0
+        , coMaxLocals = 0
+        , coConsts = Vector.empty
+        , coInstrs = Vector.fromList [IPrim "unknown-op"]
+        , coLabelMap = Map.empty
+        }
+  result <- execVM initVMState code
+  case result of
+    Left (UndefinedFunction _) -> return ()
+    _ -> assertFailure $ "Expected UndefinedFunction for prim, got: " ++ show result
+
+testVMInvalidInstruction :: Test
+testVMInvalidInstruction = "VM invalid instruction path" ~: TestCase $ do
+  let code = CodeObject
+        { coName = "test"
+        , coArity = 0
+        , coMaxLocals = 0
+        , coConsts = Vector.empty
+        , coInstrs = Vector.fromList [IMakeClosure "f" []]
+        , coLabelMap = Map.empty
+        }
+  result <- execVM initVMState code
+  case result of
+    Left (InvalidInstruction _) -> return ()
+    _ -> assertFailure $ "Expected InvalidInstruction, got: " ++ show result
+
+testVMJumpIfFalseNonBool :: Test
+testVMJumpIfFalseNonBool = "VM JumpIfFalse with non-bool is truthy" ~: TestCase $ do
+  let code = CodeObject
+        { coName = "test"
+        , coArity = 0
+        , coMaxLocals = 0
+        , coConsts = Vector.fromList [CInt 1, CInt 2]
+        , coInstrs = Vector.fromList [IConst 0, IJumpIfFalse 3, IConst 1, IReturn]
+        , coLabelMap = Map.empty
+        }
+  result <- execVM initVMState code
+  case result of
+    Right (VInt 2) -> return ()
+    _ -> assertFailure $ "Expected VInt 2, got: " ++ show result
