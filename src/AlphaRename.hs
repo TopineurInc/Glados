@@ -58,35 +58,31 @@ renameExpr _ (EString s) = return $ EString s
 renameExpr env (EVar name) =
   case Map.lookup name env of
     Just newName -> return $ EVar newName
-    Nothing -> do
-      addFreeVar name
-      return $ EVar name
+    Nothing -> addFreeVar name >> return (EVar name)
 
-renameExpr env (EList exprs) = do
-  let (defines, rest) = span isDefine exprs
-  if not (null defines)
-    then do
+renameExpr env (EList exprs)
+  | null defines = do
+      (exprs', _) <- foldM renameInSequence ([], env) exprs
+      return $ EList (reverse exprs')
+  | otherwise = do
       let defNames = map getDefineName defines
       newNames <- mapM gensym defNames
       let env' = Map.fromList (zip defNames newNames) `Map.union` env
       defines' <- mapM (renameDefineWith env env') defines
       (rest', _) <- foldM renameInSequence ([], env') rest
       return $ EList (defines' ++ reverse rest')
-    else do
-      (exprs', _) <- foldM renameInSequence ([], env) exprs
-      return $ EList (reverse exprs')
   where
+    (defines, rest) = span isDefine exprs
+
     isDefine (EDefine _ _) = True
     isDefine _ = False
 
     getDefineName (EDefine name _) = name
     getDefineName _ = error "Not a define"
 
-    renameDefineWith _oldEnv newEnv (EDefine name expr) = do
+    renameDefineWith _oldEnv newEnv (EDefine name expr) =
       case Map.lookup name newEnv of
-        Just newName -> do
-          expr' <- renameExpr newEnv expr
-          return $ EDefine newName expr'
+        Just newName -> renameExpr newEnv expr >>= return . EDefine newName
         Nothing -> error "Name not in new env"
     renameDefineWith _ _ _ = error "Not a define"
 
