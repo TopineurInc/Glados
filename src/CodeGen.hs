@@ -35,6 +35,12 @@ emptyCodeGenState = CodeGenState 0 [] [] Map.empty Map.empty Map.empty 0
 newtype CodeGenM a = CodeGenM { unCodeGenM :: State CodeGenState a }
   deriving (Functor, Applicative, Monad, MonadState CodeGenState)
 
+freshName :: String -> CodeGenM Name
+freshName prefix = do
+  n <- gets cgsCounter
+  modify $ \s -> s { cgsCounter = n + 1 }
+  return (prefix ++ show n)
+
 runCodeGen :: CodeGenM a -> CodeGenState -> (a, CodeGenState)
 runCodeGen m s = runState (unCodeGenM m) s
 
@@ -125,7 +131,12 @@ compileExpr (EIf cond thenE elseE) = do
   finalIdx <- gets (length . cgsInstructions)
   patchJump (endLabelIdx - 1) finalIdx
 
-compileExpr (ELambda _ _) = return ()
+compileExpr (ELambda params body) = do
+  lambdaName <- freshName "lambda#"
+  codeObj <- compileLambda lambdaName params body
+  modify $ \s -> s { cgsCodeObjects = Map.insert lambdaName codeObj (cgsCodeObjects s) }
+  idx <- addConst (CFuncRef lambdaName)
+  emit (IConst idx)
 
 compileExpr (EApp (EVar funcName) args) =
   mapM_ compileExpr args >> emitCall
@@ -206,9 +217,9 @@ patchJump instrIdx target = do
 compileLambda :: Name -> [Name] -> Expr -> CodeGenM CodeObject
 compileLambda name params body = do
   currentState <- get
-  let freshState = emptyCodeGenState
+  let freshState = emptyCodeGenState { cgsCounter = cgsCounter currentState }
   let (_, lambdaState) = runCodeGen (compileLambdaBody params body) freshState
-  put currentState
+  put currentState { cgsCounter = cgsCounter lambdaState }
   let instrs = Vector.fromList (reverse $ cgsInstructions lambdaState)
   let consts = Vector.fromList (reverse $ cgsConstants lambdaState)
   let codeObj = CodeObject

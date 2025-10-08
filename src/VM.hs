@@ -180,42 +180,76 @@ executePrim vmState frame op =
     Just _ -> return $ Left $ TypeError "Not a builtin function"
 executeCall :: VMState -> Frame -> Int -> Name -> Bool -> IO (Either VMError (VMState, Maybe Value))
 executeCall vmState frame arity funcName isTail =
-  let (args, stack') = splitAt arity (fStack frame)
+  let (args, stackAfterArgs) = splitAt arity (fStack frame)
   in if length args < arity
     then return $ Left StackUnderflow
-    else case Map.lookup funcName (vBuiltins vmState) of
-      Just (VBuiltin _ func) -> do
-        result <- func (reverse args)
-        let frame' = frame { fStack = result : stack', fPC = fPC frame + 1 }
-        case vFrames vmState of
-          (_:rest) -> return $ Right (vmState { vFrames = frame' : rest }, Nothing)
-          [] -> return $ Left $ RuntimeError "No frames for builtin call"
+    else case funcName of
+      "<lambda>" ->
+        callClosure vmState frame args stackAfterArgs isTail
+      _ ->
+        case Map.lookup funcName (vBuiltins vmState) of
+          Just (VBuiltin _ func) -> do
+            result <- func (reverse args)
+            let frame' = frame { fStack = result : stackAfterArgs, fPC = fPC frame + 1 }
+            case vFrames vmState of
+              (_:rest) -> return $ Right (vmState { vFrames = frame' : rest }, Nothing)
+              [] -> return $ Left $ RuntimeError "No frames for builtin call"
+          Just _ -> return $ Left $ TypeError "Not a builtin function"
+          Nothing ->
+            case Map.lookup funcName (vCodeObjects vmState) of
+              Just code ->
+                let newLocals = Vector.replicate (coMaxLocals code) Nothing
+                    argsVector = Vector.fromList (map Just (reverse args))
+                    newLocals' = newLocals Vector.// zip [0..] (Vector.toList argsVector)
+                    newFrame = Frame
+                      { fLocals = newLocals'
+                      , fStack = []
+                      , fCode = code
+                      , fPC = 0
+                      }
+                    frame' = frame { fStack = stackAfterArgs }
+                in case vFrames vmState of
+                  (_:rest) ->
+                    let vmState' = if isTail
+                          then vmState { vFrames = newFrame : rest }
+                          else vmState { vFrames = newFrame : frame' : rest }
+                    in return $ Right (vmState', Nothing)
+                  [] -> return $ Left $ RuntimeError "No frames for function call"
+              Nothing -> return $ Left $ UndefinedFunction funcName
 
-      Just _ -> return $ Left $ TypeError "Not a builtin function"
-
-      Nothing -> case Map.lookup funcName (vCodeObjects vmState) of
-        Just code ->
-          let newLocals = Vector.replicate (coMaxLocals code) Nothing
-              argsVector = Vector.fromList (map Just (reverse args))
-              newLocals' = newLocals Vector.// zip [0..] (Vector.toList argsVector)
-              newFrame = Frame
-                { fLocals = newLocals'
-                , fStack = []
-                , fCode = code
-                , fPC = 0
-                }
-              frame' = frame { fStack = stack' }
-          in case vFrames vmState of
-            (_:rest) ->
-              let vmState' = if isTail
-                    then vmState { vFrames = newFrame : rest }
-                    else vmState { vFrames = newFrame : frame' : rest }
-              in return $ Right (vmState', Nothing)
-            [] -> return $ Left $ RuntimeError "No frames for function call"
-
-        Nothing -> return $ Left $ UndefinedFunction funcName
+callClosure :: VMState -> Frame -> [Value] -> [Value] -> Bool -> IO (Either VMError (VMState, Maybe Value))
+callClosure vmState frame args stackAfterArgs isTail =
+  case stackAfterArgs of
+    [] -> return $ Left StackUnderflow
+    (closureVal:stackRest) ->
+      case closureVal of
+        VClosure name env ->
+          case Map.lookup name (vCodeObjects vmState) of
+            Nothing -> return $ Left $ UndefinedFunction name
+            Just code ->
+              let baseLocals = Vector.replicate (coMaxLocals code) Nothing
+                  argValues = map Just (reverse args)
+                  localsWithArgs = baseLocals Vector.// zip [0..] argValues
+                  envValues = map Just env
+                  envStart = length argValues
+                  localsFinal = localsWithArgs Vector.// zip [envStart..] envValues
+                  newFrame = Frame
+                    { fLocals = localsFinal
+                    , fStack = []
+                    , fCode = code
+                    , fPC = 0
+                    }
+                  frame' = frame { fStack = stackRest }
+              in case vFrames vmState of
+                (_:rest) ->
+                  let vmState' = if isTail
+                        then vmState { vFrames = newFrame : rest }
+                        else vmState { vFrames = newFrame : frame' : rest }
+                  in return $ Right (vmState', Nothing)
+                [] -> return $ Left $ RuntimeError "No frames for function call"
+        _ -> return $ Left $ TypeError "Attempted to call non-closure value"
 constantToValue :: Constant -> Value
 constantToValue (CInt n) = VInt n
 constantToValue (CBool b) = VBool b
 constantToValue (CString s) = VString s
-constantToValue (CFuncRef name) = VBuiltin name undefined
+constantToValue (CFuncRef name) = VClosure name []
