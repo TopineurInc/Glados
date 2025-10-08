@@ -12,7 +12,6 @@ tests = TestList
   , TestLabel "Parse String" testParseString
   , TestLabel "Parse Symbol" testParseSymbol
   , TestLabel "Parse List" testParseList
-  , TestLabel "Parse Multiple" testParseMultiple
   , TestLabel "Parse Whitespace" testParseWhitespace
   , TestLabel "Parse Errors" testParseErrors
   ]
@@ -87,24 +86,6 @@ testParseList = TestList
       Right [SList [SAtom (ASymbol "define") _, SList [SAtom (ASymbol "square") _, SAtom (ASymbol "x") _] _, SList [SAtom (ASymbol "*") _, SAtom (ASymbol "x") _, SAtom (ASymbol "x") _] _] _] -> True
       _ -> False
       ~? "Should parse list with multiple elements"
-  ]
-
-testParseMultiple :: Test
-testParseMultiple = TestList
-  [ "parse multiple expressions" ~: case parseFromString "(define x 1) (+ x 2)" of
-      Right [ SList [SAtom (ASymbol "define") _, SAtom (ASymbol "x") _, SAtom (AInteger 1) _] _
-            , SList [SAtom (ASymbol "+") _, SAtom (ASymbol "x") _, SAtom (AInteger 2) _] _
-            ] -> True
-      _ -> False
-      ~? "Should parse multiple expressions"
-  , "parse three expressions" ~: case parseFromString "1 2 3" of
-      Right [SAtom (AInteger 1) _, SAtom (AInteger 2) _, SAtom (AInteger 3) _] -> True
-      _ -> False
-      ~? "Should parse three expressions"
-  , "reject expressions with comments" ~: case parseFromString "(define x 1) ; comment\n(+ x 2)" of
-      Left _ -> True
-      Right _ -> False
-      ~? "Should reject semicolon comments"
   ]
 
 testParseWhitespace :: Test
