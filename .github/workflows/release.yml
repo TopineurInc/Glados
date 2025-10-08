@@ -3,7 +3,7 @@ name: Release Pipeline (ordre du chef)
 on:
   push:
     branches:
-      - "*"
+      - "main"
   workflow_dispatch:
     inputs:
       tag_name:

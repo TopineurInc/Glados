@@ -63,8 +63,8 @@ parseBool =
 
 parseSymbol :: Parser String
 parseSymbol = do
-  first <- satisfy (\c -> isAlpha c || c `elem` "+-*/<>=!?")
-  rest <- many (satisfy (\c -> isAlphaNum c || c `elem` "+-*/<>=!?-"))
+  first <- satisfy (\c -> isAlpha c || c `elem` "+-*/<>=!?_")
+  rest <- many (satisfy (\c -> isAlphaNum c || c `elem` "+-*/<>=!?-_"))
   return (first : rest)
 
 parseAtom :: Parser Atom

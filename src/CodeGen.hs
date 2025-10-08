@@ -39,9 +39,9 @@ runCodeGen :: CodeGenM a -> CodeGenState -> (a, CodeGenState)
 runCodeGen m s = runState (unCodeGenM m) s
 
 generateCode :: Name -> Expr -> Either CompileError CodeObject
-generateCode name expr = do
+generateCode name expr =
   let (mainCode, _) = generateCodeWithDefs name expr
-  mainCode
+  in mainCode
 
 generateCodeWithDefs :: Name -> Expr -> (Either CompileError CodeObject, Map.Map Name CodeObject)
 generateCodeWithDefs name expr =
@@ -127,37 +127,38 @@ compileExpr (EIf cond thenE elseE) = do
 
 compileExpr (ELambda _ _) = return ()
 
-compileExpr (EApp (EVar funcName) args) = do
-  mapM_ compileExpr args
-  case funcName of
-    "+" -> emit (IPrim "+")
-    "-" -> emit (IPrim "-")
-    "*" -> emit (IPrim "*")
-    "div" -> emit (IPrim "div")
-    "mod" -> emit (IPrim "mod")
-    "eq?" -> emit (IPrim "eq?")
-    "<" -> emit (IPrim "<")
-    ">" -> emit (IPrim ">")
-    "print" -> emit (IPrim "print")
-    "display" -> emit (IPrim "display")
-    "input" -> emit (IPrim "input")
-    "read-line" -> emit (IPrim "read-line")
-    "string->number" -> emit (IPrim "string->number")
-    "number->string" -> emit (IPrim "number->string")
-    "string-length" -> emit (IPrim "string-length")
-    "string-append" -> emit (IPrim "string-append")
-    "substring" -> emit (IPrim "substring")
-    "not" -> emit (IPrim "not")
-    "and" -> emit (IPrim "and")
-    "or" -> emit (IPrim "or")
-    _ -> emit (ICall (length args) funcName)
+compileExpr (EApp (EVar funcName) args) =
+  mapM_ compileExpr args >> emitCall
+  where
+    emitCall = case funcName of
+      "+" -> emit (IPrim "+")
+      "-" -> emit (IPrim "-")
+      "*" -> emit (IPrim "*")
+      "div" -> emit (IPrim "div")
+      "mod" -> emit (IPrim "mod")
+      "eq?" -> emit (IPrim "eq?")
+      "<" -> emit (IPrim "<")
+      ">" -> emit (IPrim ">")
+      "print" -> emit (IPrim "print")
+      "display" -> emit (IPrim "display")
+      "input" -> emit (IPrim "input")
+      "read-line" -> emit (IPrim "read-line")
+      "string->number" -> emit (IPrim "string->number")
+      "number->string" -> emit (IPrim "number->string")
+      "string-length" -> emit (IPrim "string-length")
+      "string-append" -> emit (IPrim "string-append")
+      "substring" -> emit (IPrim "substring")
+      "not" -> emit (IPrim "not")
+      "and" -> emit (IPrim "and")
+      "or" -> emit (IPrim "or")
+      _ -> emit (ICall (length args) funcName)
 
-compileExpr (EApp func args) = do
+compileExpr (EApp func args) =
   compileExpr func
-  mapM_ compileExpr args
-  emit (ICall (length args) "<lambda>")
+    >> mapM_ compileExpr args
+    >> emit (ICall (length args) "<lambda>")
 
-compileExpr (EDefine name expr) = do
+compileExpr (EDefine name expr) =
   case expr of
     ELambda params body -> do
       codeObj <- compileLambda name params body
@@ -178,10 +179,10 @@ compileExpr (EDefine name expr) = do
 compileExpr (EList exprs) = case exprs of
   [] -> return ()
   [e] -> compileExpr e
-  (e:es) -> do
+  (e:es) ->
     compileExpr e
-    emit (IPop)
-    compileExpr (EList es)
+      >> emit IPop
+      >> compileExpr (EList es)
 
 compileExpr (EQuote _) = return ()
 
@@ -193,12 +194,12 @@ patchJump instrIdx target = do
   let reverseIdx = len - instrIdx - 1
   if reverseIdx >= 0 && reverseIdx < len
     then case splitAt reverseIdx instrs of
-      (before, instr:after) -> do
+      (before, instr:after) ->
         let patchedInstr = case instr of
               IJumpIfFalse _ -> IJumpIfFalse target
               IJump _ -> IJump target
               other -> other
-        put s { cgsInstructions = before ++ (patchedInstr : after) }
+        in put s { cgsInstructions = before ++ (patchedInstr : after) }
       _ -> return ()
     else return ()
 
@@ -222,7 +223,7 @@ compileLambda name params body = do
   return codeObj
 
 compileLambdaBody :: [Name] -> Expr -> CodeGenM ()
-compileLambdaBody params body = do
+compileLambdaBody params body =
   mapM_ allocLocal params
-  compileExpr body
-  emit IReturn
+    >> compileExpr body
+    >> emit IReturn
