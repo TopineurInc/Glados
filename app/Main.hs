@@ -87,7 +87,9 @@ runFile file = do
         Left ex -> exitWithError $ "Runtime error: " ++ show ex
         Right (Left err) -> exitWithError $ "Runtime error: " ++ show err
         Right (Right val) -> do
-          putStrLn $ renderValue val
+          case val of
+            VBool False -> return ()
+            _ -> putStrLn $ renderValue val
           exitSuccess
 
 -- Disassemble a file
