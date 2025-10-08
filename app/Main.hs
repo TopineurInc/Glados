@@ -8,7 +8,6 @@
 module Main (main) where
 
 import Control.Exception (IOException, SomeException, try)
-import Control.Monad (unless, when)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 import System.Environment (getArgs)
