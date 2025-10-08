@@ -64,9 +64,6 @@ runFile file = do
     Left (SyntaxError msg _) -> do
       hPutStrLn stderr $ "Compilation error: SyntaxError " ++ show msg ++ " Nothing"
       exitWith (ExitFailure 84)
-    Left err -> do
-      hPutStrLn stderr $ "Compilation error: " ++ show err
-      exitFailure
     Right (code, defs) -> do
       let allCodeObjects = Map.insert "main" code defs
       let vmState = initVMState { vCodeObjects = allCodeObjects }
@@ -93,9 +90,6 @@ disasmFile file = do
     Left (SyntaxError msg _) -> do
       hPutStrLn stderr $ "Compilation error: SyntaxError " ++ show msg ++ " Nothing"
       exitWith (ExitFailure 84)
-    Left err -> do
-      hPutStrLn stderr $ "Compilation error: " ++ show err
-      exitFailure
     Right (code, defs) -> do
       putStrLn "=== Main Code ==="
       dumpCodeObject code
@@ -113,9 +107,9 @@ showAst file = do
     Left (ParseError msg _) -> do
       hPutStrLn stderr $ "Parse error: ParseError " ++ show msg ++ " Nothing"
       exitWith (ExitFailure 84)
-    Left err -> do
-      hPutStrLn stderr $ "Parse error: " ++ show err
-      exitFailure
+    Left (SyntaxError msg _) -> do
+      hPutStrLn stderr $ "Parse error: SyntaxError " ++ show msg ++ " Nothing"
+      exitWith (ExitFailure 84)
     Right sexprs -> do
       putStrLn "=== S-Expression ==="
       mapM_ (putStrLn . show) sexprs
@@ -139,9 +133,6 @@ showCompiled file = do
     Left (SyntaxError msg _) -> do
       hPutStrLn stderr $ "Compilation error: SyntaxError " ++ show msg ++ " Nothing"
       exitWith (ExitFailure 84)
-    Left err -> do
-      hPutStrLn stderr $ "Compilation error: " ++ show err
-      exitFailure
     Right (code, defs) -> do
       putStrLn "=== Main Code ==="
       dumpCodeInfo code

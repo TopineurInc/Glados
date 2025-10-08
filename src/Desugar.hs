@@ -14,81 +14,67 @@ module Desugar
 
 import AST
 
--- Built-in function names that are always available
-builtinNames :: [Name]
-builtinNames = ["+", "-", "*", "div", "mod", "eq?", "<", ">", "print", "display", "input", "read-line", 
-                "string->number", "number->string", "string-length", "string-append", "substring", 
-                "not", "and", "or", "if", "define", "lambda", "let", "letrec", "begin", "quote"]
-
 -- Convert S-expression to AST surface language (Expr)
 sexprToExpr :: SExpr -> Either CompileError Expr
-sexprToExpr = sexprToExprWithContext []
-
--- Convert S-expression to AST with variable context
-sexprToExprWithContext :: [Name] -> SExpr -> Either CompileError Expr
-sexprToExprWithContext boundVars = \case
+sexprToExpr = \case
   SAtom (AInteger n) _ -> Right $ EInt n
   SAtom (ABool b) _ -> Right $ EBool b
   SAtom (AString s) _ -> Right $ EString s
-  SAtom (ASymbol s) loc -> 
-    if s `elem` builtinNames || s `elem` boundVars
-      then Right $ EVar s
-      else Left $ SyntaxError ("*** ERROR : variable " ++ s ++ " is not bound. ") loc
+  SAtom (ASymbol s) _ -> Right $ EVar s
 
   SList [SAtom (ASymbol "quote") _, arg] _ -> Right $ EQuote arg
 
-  SList [SAtom (ASymbol "if") _, cond, thenE, elseE] _ -> do
-    c <- sexprToExprWithContext boundVars cond
-    t <- sexprToExprWithContext boundVars thenE
-    e <- sexprToExprWithContext boundVars elseE
+  SList [SAtom (ASymbol "if") _, _cond, _thenE, _elseE] _ -> do
+    c <- sexprToExpr _cond
+    t <- sexprToExpr _thenE
+    e <- sexprToExpr _elseE
     Right $ EIf c t e
-  SList [SAtom (ASymbol "if") _, cond, thenE] loc -> 
+  SList [SAtom (ASymbol "if") _, _cond, _thenE] loc -> 
     Left $ SyntaxError "if requires both then and else branches" loc
 
   -- Define with lambda: (define name expr)
   SList [SAtom (ASymbol "define") _, SAtom (ASymbol name) _, expr] _ -> do
-    e <- sexprToExprWithContext (name : boundVars) expr
+    e <- sexprToExpr expr
     Right $ EDefine name e
 
   -- Define with sugared syntax: (define (name args...) body)
   SList [SAtom (ASymbol "define") _, SList (SAtom (ASymbol name) _ : args) _, body] _loc -> do
     params <- mapM extractParam args
-    b <- sexprToExprWithContext (name : params ++ boundVars) body
+    b <- sexprToExpr body
     Right $ EDefine name (ELambda params b)
 
   -- Lambda: (lambda (args...) body)
   SList [SAtom (ASymbol "lambda") _, SList args _, body] _loc -> do
     params <- mapM extractParam args
-    b <- sexprToExprWithContext (params ++ boundVars) body
+    b <- sexprToExpr body
     Right $ ELambda params b
 
   -- Let: (let ((x val) ...) body) => ((lambda (x ...) body) val ...)
   SList [SAtom (ASymbol "let") _, SList bindings _, body] _loc -> do
     (names, vals) <- desugarBindings bindings
-    b <- sexprToExprWithContext (names ++ boundVars) body
-    vals' <- mapM (sexprToExprWithContext boundVars) vals
+    b <- sexprToExpr body
+    vals' <- mapM sexprToExpr vals
     Right $ EApp (ELambda names b) vals'
 
   -- Letrec: (letrec ((f lambda) ...) body)
   -- Desugar to nested defines in a begin block
   SList [SAtom (ASymbol "letrec") _, SList bindings _, body] _loc -> do
     (names, vals) <- desugarBindings bindings
-    let newBoundVars = names ++ boundVars
-    vals' <- mapM (sexprToExprWithContext newBoundVars) vals
-    b <- sexprToExprWithContext newBoundVars body
+    vals' <- mapM sexprToExpr vals
+    b <- sexprToExpr body
     -- Create a list of define expressions followed by the body
     let defines = zipWith (\name val -> EDefine name val) names vals'
     Right $ EList (defines ++ [b])
 
   -- Begin: (begin expr1 expr2 ...) => evaluate all, return last
   SList (SAtom (ASymbol "begin") _ : exprs) _ -> do
-    exprs' <- mapM (sexprToExprWithContext boundVars) exprs
+    exprs' <- mapM sexprToExpr exprs
     Right $ EList exprs'
 
   -- Application: (f args...)
   SList (f : args) _ -> do
-    func <- sexprToExprWithContext boundVars f
-    args' <- mapM (sexprToExprWithContext boundVars) args
+    func <- sexprToExpr f
+    args' <- mapM sexprToExpr args
     Right $ EApp func args'
 
   SList [] loc -> Left $ SyntaxError "Empty list not allowed" loc

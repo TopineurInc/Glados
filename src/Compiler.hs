@@ -116,7 +116,7 @@ transformProgram sexprs =
       Right (name, SList [SAtom (ASymbol "lambda") Nothing, SList params Nothing, body] loc)
     extractBinding (SList (SAtom (ASymbol "define") _ : []) _) =
       Left $ SyntaxError "define requires a name and value" Nothing
-    extractBinding (SList (SAtom (ASymbol "define") _ : [SAtom (ASymbol name) _]) _) =
+    extractBinding (SList (SAtom (ASymbol "define") _ : [SAtom (ASymbol _) _]) _) =
       Left $ SyntaxError "define requires a value" Nothing
     extractBinding other =
       Left $ SyntaxError "Invalid define syntax" (sexprLoc other)
