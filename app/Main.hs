@@ -91,10 +91,7 @@ runFile file = do
       case execResult of
         Left ex -> exitWithError $ "Runtime error: " ++ show ex
         Right (Left err) -> exitWithError $ "Runtime error: " ++ show err
-        Right (Right val) ->
-          putStrLn (renderValue val)
-            >> exitSuccess
-
+        Right (Right _) -> exitSuccess
 -- Disassemble a file
 disasmFile :: FilePath -> IO ()
 disasmFile file = do
