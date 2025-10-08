@@ -1,6 +1,7 @@
 module Main (main) where
 
 import System.Exit (exitFailure, exitSuccess)
+import System.IO (hSetEncoding, stdout, stderr, utf8)
 import Test.HUnit
 
 import qualified Test.AlphaRenameSpec as AlphaRenameSpec
@@ -43,8 +44,8 @@ main = do
   putStrLn "==========================================="
   if errors summary + failures summary == 0
     then do
-      putStrLn "✓ ALL TESTS PASSED!"
+      putStrLn "[PASS] ALL TESTS PASSED!"
       exitSuccess
     else do
-      putStrLn "✗ SOME TESTS FAILED"
+      putStrLn "[FAIL] SOME TESTS FAILED"
       exitFailure
