@@ -109,7 +109,7 @@ transformProgram sexprs =
     -- Only treat well-formed define as a definition here; malformed ones
     -- should flow to later stages to produce a SyntaxError instead of crashing
     isDefine (SList [SAtom (ASymbol "define") _, SAtom (ASymbol _) _, _] _) = True
-    isDefine (SList [SAtom (ASymbol "define") _, SList (SAtom (ASymbol _) _ : _) _, _] _) = True
+    isDefine (SList (SAtom (ASymbol "define") _ : SList (SAtom (ASymbol _) _ : _) _ : _ : _) _) = True
     isDefine _ = False
 
     extractBinding (SList (SAtom (ASymbol "define") _ : SAtom (ASymbol name) _ : [expr]) _) =

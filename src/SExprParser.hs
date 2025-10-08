@@ -24,12 +24,25 @@ import Data.Char (isAlpha, isAlphaNum)
 
 type Parser = Parsec String ()
 
+-- Parse a comment starting with ';' until end of line
+parseComment :: Parser ()
+parseComment = void $ char ';' >> many (noneOf "\n\r") >> optional (oneOf "\n\r")
+
 -- Parse whitespace and comments
 optionalWhitespace :: Parser ()
-optionalWhitespace = void $ many $ void (oneOf " \t\n\r")
+optionalWhitespace = void $ many $ (void (oneOf " \t\n\r") <|> parseComment)
 
 parseString :: Parser String
-parseString = between (char '"') (char '"') (many (noneOf "\""))
+parseString = between (char '"') (char '"') (many stringChar)
+  where
+    stringChar = escapedChar <|> noneOf "\""
+    escapedChar = char '\\' >> escapeChar
+    escapeChar =
+      (char '"' >> return '"') <|>
+      (char '\\' >> return '\\') <|>
+      (char 'n' >> return '\n') <|>
+      (char 't' >> return '\t') <|>
+      (char 'r' >> return '\r')
 
 parseInteger :: Parser Integer
 parseInteger = try $ do
