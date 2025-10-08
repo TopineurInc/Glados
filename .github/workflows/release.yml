@@ -95,7 +95,7 @@ jobs:
 
   build-and-release:
     runs-on: self-hosted
-    needs: build
+    needs: testing
     if: ${{ success() }}
 
     steps:
