@@ -67,6 +67,12 @@
                         "return": 84
                     },
                     {
+                        "name": "Empty file",
+                        "command": "./glados examples/empty_file.lisp",
+                        "output": "*",
+                        "return": 84
+                    },
+                    {
                         "name": "Not bound variable",
                         "command": "./glados examples/not_bound_variable.lisp",
                         "output": "*",
@@ -106,13 +112,7 @@
                     },
                     {
                         "name": "Add",
-                        "command": "./glados examples/hello.lisp",
-                        "output": "7\n",
-                        "return": 0
-                    },
-                    {
-                        "name": "Add",
-                        "command": "./glados examples/hello.lisp",
+                        "command": "./glados examples/add.lisp",
                         "output": "7\n",
                         "return": 0
                     },
