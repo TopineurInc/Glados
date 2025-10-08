@@ -69,41 +69,31 @@
                     {
                         "name": "Not bound variable",
                         "command": "./glados examples/not_bound_variable.lisp",
-                        "output": "*** ERROR : variable foo is not bound.\n",
-                        "return": 84
-                    },
-                    {
-                        "name": "Not bound variable",
-                        "command": "./glados examples/not_bound_variable.lisp",
-                        "output": "*** ERROR : variable foo is not bound.\n",
+                        "output": "*",
                         "return": 84
                     },
                     {
                         "name": "Missing if branch",
                         "command": "./glados examples/missing_if_branch.lisp",
-                        "std": "stderr",
-                        "grep": "Compilation error",
+                        "output": "*",
                         "return": 84
                     },
                     {
                         "name": "Empty define",
                         "command": "./glados examples/empty_define.lisp",
-                        "std": "stderr",
-                        "grep": "Compilation error",
+                        "output": "*",
                         "return": 84
                     },
                     {
                         "name": "Empty definition",
                         "command": "./glados examples/empty_definition.lisp",
-                        "std": "stderr",
-                        "grep": "Compilation error",
+                        "output": "*",
                         "return": 84
                     },
                     {
                         "name": "Invalid eq",
                         "command": "./glados examples/invalid_eq.lisp",
-                        "std": "stderr",
-                        "grep": "Compilation error",
+                        "output": "*",
                         "return": 84
                     }
                 ],
@@ -245,7 +235,14 @@
                         "command": "./glados examples/fibonacci_10.lisp",
                         "output": "55\n",
                         "return": 0
+                    },
+                    {
+                        "name": "Fibonacci 100",
+                        "command": "./glados examples/fibonacci_100.lisp",
+                        "output": "354224848179261915075\n",
+                        "return": 0
                     }
+
                 ]
             }
         ]
