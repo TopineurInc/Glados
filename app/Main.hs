@@ -92,6 +92,7 @@ runFile file = do
         Left ex -> exitWithError $ "Runtime error: " ++ show ex
         Right (Left err) -> exitWithError $ "Runtime error: " ++ show err
         Right (Right _) -> exitSuccess
+
 -- Disassemble a file
 disasmFile :: FilePath -> IO ()
 disasmFile file = do
