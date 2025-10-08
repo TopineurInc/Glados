@@ -44,10 +44,10 @@ testParseString = TestList
   [ "parse empty string" ~: parseFromString "\"\"" ~?= Right [SAtom (AString "") (Just (SourcePos 1 1))]
   , "parse simple string" ~: parseFromString "\"hello\"" ~?= Right [SAtom (AString "hello") (Just (SourcePos 1 1))]
   , "parse string with spaces" ~: parseFromString "\"hello world\"" ~?= Right [SAtom (AString "hello world") (Just (SourcePos 1 1))]
-  , "reject string with escaped quote" ~: case parseFromString "\"hello \\\"world\\\"\"" of
-      Left _ -> True
-      Right _ -> False
-      ~? "Should fail on unsupported escape sequences"
+  , "parse string with escaped quote" ~: case parseFromString "\"hello \\\"world\\\"\"" of
+      Right [SAtom (AString s) _] -> s == "hello \"world\""
+      _ -> False
+      ~? "Should parse escaped quotes in strings"
   , "parse string with numbers" ~: parseFromString "\"test123\"" ~?= Right [SAtom (AString "test123") (Just (SourcePos 1 1))]
   , "parse long string" ~: parseFromString "\"abcdefghijklmnopqrstuvwxyz\"" ~?= Right [SAtom (AString "abcdefghijklmnopqrstuvwxyz") (Just (SourcePos 1 1))]
   ]
