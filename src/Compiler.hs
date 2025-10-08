@@ -106,14 +106,19 @@ transformProgram sexprs =
                  SList (map toBinding bindings) Nothing,
                  body] Nothing
   where
-    isDefine (SList (SAtom (ASymbol "define") _ : _) _) = True
+    -- Only treat well-formed define as a definition here; malformed ones
+    -- should flow to later stages to produce a SyntaxError instead of crashing
+    isDefine (SList [SAtom (ASymbol "define") _, SAtom (ASymbol _) _, _] _) = True
+    isDefine (SList (SAtom (ASymbol "define") _ : SList (SAtom (ASymbol _) _ : _) _ : _ : _) _) = True
     isDefine _ = False
 
     extractBinding (SList (SAtom (ASymbol "define") _ : SAtom (ASymbol name) _ : [expr]) _) =
       (name, expr)
     extractBinding (SList (SAtom (ASymbol "define") _ : SList (SAtom (ASymbol name) _ : params) _ : body : _) loc) =
       (name, SList [SAtom (ASymbol "lambda") Nothing, SList params Nothing, body] loc)
-    extractBinding _ = error "Invalid define"
+    -- Do not crash on malformed defines here; we've restricted isDefine so
+    -- extractBinding should only see valid shapes.
+    extractBinding _ = error "Invalid define (unreachable)"
 
     toBinding (name, expr) =
       SList [SAtom (ASymbol name) Nothing, expr] Nothing
