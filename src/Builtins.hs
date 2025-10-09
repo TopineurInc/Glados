@@ -37,10 +37,8 @@ import Text.Read (readMaybe)
 
 builtins :: Map.Map Name Value
 builtins = Map.fromList
-  [ -- Common Lisp constants
-    ("t", VBool True)
+  [ ("t", VBool True)
   , ("nil", VBool False)
-  -- Builtins
   , ("+", VBuiltin "+" builtinAdd)
   , ("-", VBuiltin "-" builtinSub)
   , ("*", VBuiltin "*" builtinMul)
@@ -64,7 +62,6 @@ builtins = Map.fromList
   , ("format", VBuiltin "format" builtinFormat)
   ]
 
--- Arithmetic operations
 builtinAdd :: [Value] -> IO Value
 builtinAdd [VInt a, VInt b] = return $ VInt (a + b)
 builtinAdd [VFloat a, VFloat b] = return $ VFloat (a + b)
@@ -98,7 +95,6 @@ builtinMod [VInt a, VInt b]
   | otherwise = return $ VInt (a `mod` b)
 builtinMod _ = error "Type error: mod expects two integers"
 
--- Comparison operations
 builtinEq :: [Value] -> IO Value
 builtinEq [VInt a, VInt b] = return $ VBool (a == b)
 builtinEq [VFloat a, VFloat b] = return $ VBool (a == b)
@@ -189,13 +185,12 @@ builtinOr :: [Value] -> IO Value
 builtinOr [VBool a, VBool b] = return $ VBool (a || b)
 builtinOr _ = error "Type error: or expects two booleans"
 
--- Format function (Common Lisp style)
 builtinFormat :: [Value] -> IO Value
 builtinFormat (dest:VString fmt:args) =
   let formatted = processFormatString fmt args
   in case dest of
-       VBool True -> putStr formatted >> hFlush stdout >> return VVoid  -- t means stdout
-       VBool False -> return (VString formatted)  -- nil means return string
+       VBool True -> putStr formatted >> hFlush stdout >> return VVoid
+       VBool False -> return (VString formatted)
        _ -> error "Type error: format destination must be t or nil"
 builtinFormat _ = error "Type error: format expects (destination format-string ...)"
 

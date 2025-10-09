@@ -14,7 +14,6 @@ module Desugar
 
 import AST
 
--- Convert S-expression to AST surface language (Expr)
 sexprToExpr :: SExpr -> Either CompileError Expr
 sexprToExpr = \case
   SAtom (AInteger n) _ -> Right $ EInt n
@@ -31,50 +30,40 @@ sexprToExpr = \case
     e <- sexprToExpr elseE
     Right $ EIf c t e
 
-  -- Define with lambda: (define name expr)
   SList [SAtom (ASymbol "define") _, SAtom (ASymbol name) _, expr] _ -> do
     e <- sexprToExpr expr
     Right $ EDefine name e
 
-  -- Define with sugared syntax: (define (name args...) body)
   SList [SAtom (ASymbol "define") _, SList (SAtom (ASymbol name) _ : args) _, body] _loc -> do
     params <- mapM extractParam args
     b <- sexprToExpr body
     Right $ EDefine name (ELambda params b)
 
-  -- Malformed define forms should be rejected explicitly
   SList (SAtom (ASymbol "define") _ : _) loc ->
     Left $ SyntaxError "Invalid define form" loc
 
-  -- Lambda: (lambda (args...) body)
   SList [SAtom (ASymbol "lambda") _, SList args _, body] _loc -> do
     params <- mapM extractParam args
     b <- sexprToExpr body
     Right $ ELambda params b
 
-  -- Let: (let ((x val) ...) body) => ((lambda (x ...) body) val ...)
   SList [SAtom (ASymbol "let") _, SList bindings _, body] _loc -> do
     (names, vals) <- desugarBindings bindings
     b <- sexprToExpr body
     vals' <- mapM sexprToExpr vals
     Right $ EApp (ELambda names b) vals'
 
-  -- Letrec: (letrec ((f lambda) ...) body)
-  -- Desugar to nested defines in a begin block
   SList [SAtom (ASymbol "letrec") _, SList bindings _, body] _loc -> do
     (names, vals) <- desugarBindings bindings
     vals' <- mapM sexprToExpr vals
     b <- sexprToExpr body
-    -- Create a list of define expressions followed by the body
     let defines = zipWith (\name val -> EDefine name val) names vals'
     Right $ EList (defines ++ [b])
 
-  -- Begin: (begin expr1 expr2 ...) => evaluate all, return last
   SList (SAtom (ASymbol "begin") _ : exprs) _ -> do
     exprs' <- mapM sexprToExpr exprs
     Right $ EList exprs'
 
-  -- Application: (f args...)
   SList (f : args) _ -> do
     func <- sexprToExpr f
     args' <- mapM sexprToExpr args
@@ -82,9 +71,8 @@ sexprToExpr = \case
 
   SList [] loc -> Left $ SyntaxError "Empty list not allowed" loc
 
--- Desugar an Expr (additional pass if needed)
 desugar :: Expr -> Either CompileError Expr
-desugar expr = Right expr  -- Most desugaring happens in sexprToExpr
+desugar expr = Right expr
 
 extractParam :: SExpr -> Either CompileError Name
 extractParam (SAtom (ASymbol name) _) = Right name

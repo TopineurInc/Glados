@@ -5,8 +5,6 @@
 -- ClosureConversion
 -}
 
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module ClosureConversion
   ( closureConvert
   , ClosureInfo(..)
@@ -22,7 +20,6 @@ data ClosureInfo = ClosureInfo
 
 type Env = Set.Set Name
 
--- Analyze and annotate closures with free variable information
 closureConvert :: Expr -> Either CompileError Expr
 closureConvert expr = Right $ convertExpr Set.empty expr
 
@@ -54,7 +51,6 @@ convertExpr env (EIf cond thenE elseE) =
 convertExpr env (EApp func args) =
   EApp (convertExpr env func) (map (convertExpr env) args)
 
--- Get free variables in an expression
 getFreeVars :: Set.Set Name -> Expr -> Set.Set Name
 getFreeVars bound (EVar name)
   | Set.member name bound = Set.empty

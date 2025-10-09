@@ -1,8 +1,8 @@
 {-
 -- EPITECH PROJECT, 2025
--- G-FUN-500-LYN-5-1-glados-1
+-- glados
 -- File description:
--- src/SExprParser.hs
+-- SExprParser
 -}
 
 module SExprParser
@@ -25,11 +25,9 @@ import Data.Char (isAlpha, isAlphaNum)
 
 type Parser = Parsec String ()
 
--- Parse a comment starting with ';' until end of line
 parseComment :: Parser ()
 parseComment = void $ char ';' >> many (noneOf "\n\r") >> optional (oneOf "\n\r")
 
--- Parse whitespace and comments
 optionalWhitespace :: Parser ()
 optionalWhitespace = void $ many $ (void (oneOf " \t\n\r") <|> parseComment)
 

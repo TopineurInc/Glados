@@ -14,7 +14,6 @@ module Disasm
 import AST
 import qualified Data.Vector as Vector
 
--- Disassemble a complete code object
 disassemble :: CodeObject -> String
 disassemble co = unlines
   [ "CodeObject: " ++ coName co
@@ -26,21 +25,18 @@ disassemble co = unlines
   , dumpInstructions (coInstrs co)
   ]
 
--- Dump constant pool
 dumpConstants :: Vector.Vector Constant -> String
 dumpConstants consts =
   unlines $ Vector.toList $ Vector.imap formatConst consts
   where
     formatConst idx c = "    " ++ show idx ++ ": " ++ showConstant c
 
--- Dump instructions with addresses
 dumpInstructions :: Vector.Vector Instr -> String
 dumpInstructions instrs =
   unlines $ Vector.toList $ Vector.imap formatInstr instrs
   where
     formatInstr pc instr = "    " ++ padLeft 4 (show pc) ++ ": " ++ disassembleInstr instr
 
--- Disassemble a single instruction
 disassembleInstr :: Instr -> String
 disassembleInstr (IConst idx) = "CONST " ++ show idx
 disassembleInstr (ILoad slot) = "LOAD " ++ show slot
@@ -57,7 +53,6 @@ disassembleInstr (IMakeClosure name slots) = "MAKE_CLOSURE " ++ name ++ " " ++ s
 disassembleInstr (ILoadClosure idx) = "LOAD_CLOSURE " ++ show idx
 disassembleInstr (IStoreClosure idx) = "STORE_CLOSURE " ++ show idx
 
--- Show a constant value
 showConstant :: Constant -> String
 showConstant (CInt n) = "INT " ++ show n
 showConstant (CFloat n) = "FLOAT " ++ show n
@@ -65,11 +60,9 @@ showConstant (CBool b) = "BOOL " ++ show b
 showConstant (CString s) = "STRING " ++ show s
 showConstant (CFuncRef name) = "FUNCREF " ++ name
 
--- Dump a code object (full representation)
 dumpCodeObject :: CodeObject -> IO ()
 dumpCodeObject co = putStrLn (disassemble co)
 
--- Utility: pad string on the left
 padLeft :: Int -> String -> String
 padLeft n s
   | length s >= n = s

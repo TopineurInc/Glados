@@ -35,7 +35,6 @@ runRename m =
   let (result, st) = runState (unRenameM m) (RenameState 0 Set.empty)
   in (result, rsFreeVars st)
 
--- Generate a unique name
 gensym :: Name -> RenameM Name
 gensym base = do
   st <- get
@@ -43,7 +42,6 @@ gensym base = do
   put st { rsCounter = counter + 1 }
   return $ base ++ "#" ++ show counter
 
--- Add a free variable to the set
 addFreeVar :: Name -> RenameM ()
 addFreeVar name = modify $ \st -> st { rsFreeVars = Set.insert name (rsFreeVars st) }
 

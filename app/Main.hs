@@ -1,8 +1,8 @@
 {-
 -- EPITECH PROJECT, 2025
--- G-FUN-500-LYN-5-1-glados-1
+-- glados
 -- File description:
--- app/Main.hs
+-- Main
 -}
 
 module Main (main) where
@@ -90,7 +90,6 @@ printHelp =
     , "  ./glados --compiled program.lisp"
     ]
 
--- Run a file
 runFile :: FilePath -> IO ()
 runFile file = do
   sourceOrErr <- try (readFile file) :: IO (Either IOException String)
@@ -105,7 +104,6 @@ runFile file = do
       putStrLn (renderValue val)
         >> exitSuccess
 
--- Disassemble a file
 disasmFile :: FilePath -> IO ()
 disasmFile file = do
   sourceOrErr <- try (readFile file) :: IO (Either IOException String)
@@ -125,7 +123,6 @@ disasmFile file = do
           (Map.toList defs)
         >> exitSuccess
 
--- Show AST of a file
 showAst :: FilePath -> IO ()
 showAst file = do
   sourceOrErr <- try (readFile file) :: IO (Either IOException String)
@@ -142,7 +139,6 @@ showAst file = do
           Left err -> exitWithError ("Desugar error: " ++ show err)
           Right exprs -> mapM_ (putStrLn . show) exprs >> exitSuccess
 
--- Show compiled code of a file
 showCompiled :: FilePath -> IO ()
 showCompiled file = do
   sourceOrErr <- try (readFile file) :: IO (Either IOException String)
@@ -162,7 +158,6 @@ showCompiled file = do
           (Map.toList defs)
         >> exitSuccess
 
--- Show raw bytecode instructions of a file
 showBytecode :: FilePath -> IO ()
 showBytecode file = do
   sourceOrErr <- try (readFile file) :: IO (Either IOException String)
@@ -203,7 +198,6 @@ dumpBytecode co =
       (\i instr -> putStrLn $ "  " ++ show i ++ ": " ++ show instr)
       (coInstrs co)
 
--- Simple REPL
 repl :: IO ()
 repl = do
   interactive <- hIsTerminalDevice stdin
