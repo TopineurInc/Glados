@@ -241,6 +241,12 @@
                         "command": "./glados examples/fibonacci_100.lisp",
                         "output": "354224848179261915075\n",
                         "return": 0
+                    },
+                    {
+                        "name": "ID",
+                        "command": "./glados examples/id.lisp",
+                        "output": "2\n",
+                        "return": 0
                     }
 
                 ]
