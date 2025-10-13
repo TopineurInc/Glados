@@ -1,0 +1,7 @@
+// Recursively compute factorial with minimal ceremony
+def factorial(n: Int): Int =
+  if n <= 1 then 1
+  else n * factorial(n - 1)
+
+def main(): !{IO} Unit =
+  println("factorial(5) = " ++ show(factorial(5)))

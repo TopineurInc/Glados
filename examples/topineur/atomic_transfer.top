@@ -1,0 +1,25 @@
+// Atomic transfer using a linear capability
+object type Account {
+  balance: Int
+
+  def credit(amount: Int): Account =
+    Account { balance = balance + amount }
+
+  def debit(amount: Int): Account =
+    if balance >= amount then
+      Account { balance = balance - amount }
+    else
+      raise InsufficientFunds
+}
+
+def transfer(source: !lin Account,
+             target: !lin Account,
+             amount: Int): !{State} (!lin Account, !lin Account) =
+  atomic (source, target) as (src, dst) ->
+    let src = src.debit(amount)
+    let dst = dst.credit(amount)
+    (src, dst)
+
+let src: !lin Account = Account { balance = 100 }
+let dst: !lin Account = Account { balance = 10 }
+let (src, dst) = transfer(src, dst, 25)

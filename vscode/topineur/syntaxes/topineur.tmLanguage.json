@@ -1,0 +1,177 @@
+{
+  "scopeName": "source.topineur",
+  "name": "Topineur",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#effects" },
+    { "include": "#types" },
+    { "include": "#functionDef" },
+    { "include": "#capsule" },
+    {
+      "match": "\\b(true|false|unit)\\b",
+      "name": "constant.language.topineur"
+    },
+    {
+      "match": "\\b(self)\\b",
+      "name": "variable.language.self.topineur"
+    },
+    {
+      "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+      "name": "identifier.topineur"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.topineur",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.topineur",
+          "begin": "/\\*",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.comment.begin.topineur" }
+          },
+          "end": "\\*/",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.comment.end.topineur" }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.topineur",
+          "begin": "\"",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.topineur" }
+          },
+          "end": "\"",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.topineur" }
+          },
+          "patterns": [
+            {
+              "name": "constant.character.escape.topineur",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.topineur",
+          "match": "\\b((0x[0-9A-Fa-f]+)|(0b[01_]+)|(\\d+(_\\d+)*(\\.\\d+(_\\d+)*)?))\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.topineur",
+          "match": "\\b(match|case|if|then|else|actor|receive|async|await|return|raise|atomic|effect|mask)\\b"
+        },
+        {
+          "name": "storage.type.topineur",
+          "match": "\\b(object\\s+type|trait|impl|def|let|fun|type|module|import|export)\\b"
+        },
+        {
+          "name": "storage.modifier.topineur",
+          "match": "\\b(!lin|lazy)\\b"
+        }
+      ]
+    },
+    "effects": {
+      "patterns": [
+        {
+          "name": "support.type.effect-set.topineur",
+          "begin": "!\\{",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.effect.begin.topineur" }
+          },
+          "end": "\\}",
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.effect.end.topineur" }
+          },
+          "patterns": [
+            {
+              "match": "[A-Za-z_][A-Za-z0-9_]*",
+              "name": "support.constant.effect.label.topineur"
+            },
+            {
+              "match": ",",
+              "name": "punctuation.separator.comma.topineur"
+            },
+            {
+              "match": "\\s+",
+              "name": "meta.whitespace"
+            }
+          ]
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "entity.name.type.topineur",
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+        }
+      ]
+    },
+    "functionDef": {
+      "patterns": [
+        {
+          "name": "meta.function.definition.topineur",
+          "begin": "\\b(def)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+          "beginCaptures": {
+            "1": { "name": "storage.type.function.topineur" },
+            "2": { "name": "entity.name.function.topineur" }
+          },
+          "end": "(?==|:|\\()|$",
+          "patterns": [
+            {
+              "include": "#parameters"
+            }
+          ]
+        }
+      ]
+    },
+    "parameters": {
+      "patterns": [
+        {
+          "name": "variable.parameter.topineur",
+          "match": "\\b[a-z_][A-Za-z0-9_]*\\b"
+        }
+      ]
+    },
+    "capsule": {
+      "patterns": [
+        {
+          "name": "meta.object.definition.topineur",
+          "begin": "\\b(object\\s+type|trait|actor|impl)\\b",
+          "beginCaptures": {
+            "0": { "name": "storage.type.topineur" }
+          },
+          "end": "(?=\\{)",
+          "patterns": [
+            {
+              "name": "entity.name.type.topineur",
+              "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "fileTypes": [
+    "top"
+  ],
+  "uuid": "cc4f8c1c-4c09-4f9d-93b5-3f1d52509070"
+}

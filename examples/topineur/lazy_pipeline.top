@@ -1,0 +1,27 @@
+// Laziness applied selectively via the Lazy wrapper
+object type DataSource {
+  fetch: !{IO} List[Int]
+}
+
+object type Pipeline {
+  source: DataSource
+
+  def run(): !{IO} Lazy[List[Int]] =
+    let raw = source.fetch()
+    lazy map(raw, fun x -> x * x)
+}
+
+object type ImmediateSource {
+  data: List[Int]
+
+  def fetch(): !{IO} List[Int] =
+    data
+}
+
+let pipeline =
+  Pipeline {
+    source = ImmediateSource { data = [1, 2, 3, 4] }
+  }
+
+let squares = pipeline.run()
+evaluate(squares.take(2))  // Forces only the first two elements

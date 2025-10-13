@@ -1,0 +1,30 @@
+// Immutable modelling example for Topineur
+object type Point {
+  x: Float
+  y: Float
+
+  def translate(dx: Float, dy: Float): Point =
+    Point { x = x + dx, y = y + dy }
+}
+
+object type Polygon {
+  vertices: List[Point]
+
+  def centroid(): Point =
+    let (sumX, sumY) = fold(vertices, (0.0, 0.0),
+      fun ((accX, accY), point) ->
+        (accX + point.x, accY + point.y))
+
+    let count = float(length(vertices))
+    Point { x = sumX / count, y = sumY / count }
+}
+
+let triangle = Polygon {
+  vertices = [
+    Point { x = 0.0, y = 0.0 },
+    Point { x = 1.0, y = 0.0 },
+    Point { x = 0.0, y = 1.0 }
+  ]
+}
+
+let center = triangle.centroid()

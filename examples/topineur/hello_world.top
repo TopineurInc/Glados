@@ -1,0 +1,3 @@
+// Simplest possible Topineur program
+def main(): !{IO} Unit =
+  println("Hello, Topineur!")

@@ -1,0 +1,26 @@
+// Service composition with explicit effects
+trait Logger {
+  def log(level: LogLevel, message: String): !{IO} Unit
+}
+
+trait Repository[T] {
+  def save(entity: T): !{IO, Database} Unit
+}
+
+object type User {
+  name: String
+}
+
+object type UserService {
+  logger: Logger
+  repo: Repository[User]
+
+  def createUser(name: String): !{IO, Database} User =
+    logger.log(Info, "creating " ++ name)
+    let user = User { name = name }
+    repo.save(user)
+    user
+}
+
+def register(service: UserService, name: String): !{IO, Database} User =
+  service.createUser(name)

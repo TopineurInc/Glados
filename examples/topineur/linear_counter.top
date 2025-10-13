@@ -1,0 +1,16 @@
+// Linear capability usage for controlled mutation
+object type Counter {
+  value: Int
+
+  def increment(): !{State} Counter =
+    Counter { value = value + 1 }
+}
+
+def bump(counter: !lin Counter, times: Int): !{State} Counter =
+  if times == 0 then counter
+  else
+    let counter = counter.increment()
+    bump(counter, times - 1)
+
+let counter: !lin Counter = Counter { value = 0 }
+let counter = bump(counter, 10)

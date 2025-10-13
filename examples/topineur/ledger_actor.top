@@ -1,0 +1,23 @@
+// Actor-based concurrency with immutable messages
+actor Ledger {
+  balances: Map[AccountId, Int]
+
+  receive {
+    case Transfer(from, to, amount, replyTo) ->
+      if balances[from] >= amount then
+        balances = balances
+          .update(from, balances[from] - amount)
+          .update(to, balances[to] + amount)
+        replyTo.send(Success)
+      else
+        replyTo.send(InsufficientFunds)
+  }
+}
+
+def initiateTransfer(ledger: ActorRef[Ledger],
+                     from: AccountId,
+                     to: AccountId,
+                     amount: Int): !{IO, Actor[Ledger]} Unit =
+  let response = newMailbox[TransferResult]()
+  ledger.send(Transfer(from, to, amount, response))
+  await response.receive()

@@ -1,0 +1,30 @@
+// Adapter that narrows effects for reuse in effect-sensitive code
+trait TimeSource {
+  def now(): !{IO} Instant
+}
+
+object type FixedClock {
+  instant: Instant
+
+  def now(): Instant = instant
+}
+
+object type TimeSourceAdapter {
+  clock: FixedClock
+
+  // Expose the pure clock through an IO-compatible interface
+  def now(): !{IO} Instant =
+    effect mask {IO} ->
+      clock.now()
+}
+
+let adapter =
+  TimeSourceAdapter {
+    clock = FixedClock { instant = Instant.fromEpochMillis(42) }
+  }
+
+// Safe to pass to APIs that demand IO
+def printTimestamp(src: TimeSource): !{IO} Unit =
+  println(show(src.now()))
+
+printTimestamp(adapter)

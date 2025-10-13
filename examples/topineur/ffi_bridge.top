@@ -1,0 +1,16 @@
+// FFI bridge demonstrating safe interop
+foreign import js "Date.now" DateNow: !{IO, JS} Int
+
+trait JsClock {
+  def now(): !{IO, JS} Int
+}
+
+object type NativeJsClock {
+  def now(): !{IO, JS} Int =
+    DateNow()
+}
+
+def sample(clock: JsClock): !{IO, JS} Unit =
+  println("JS now = " ++ show(clock.now()))
+
+sample(NativeJsClock {})

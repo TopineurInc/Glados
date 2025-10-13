@@ -1,0 +1,22 @@
+// UI component as a pure value with effectful rendering
+object type Button {
+  label: String
+  onClick: Event -> !{IO} Button
+
+  def render(ctx: Canvas): !{IO} Unit =
+    ctx.drawLabel(label)
+}
+
+let button =
+  Button {
+    label = "OK",
+    onClick = fun event ->
+      Button {
+        label = "Clicked",
+        onClick = self.onClick
+      }
+  }
+
+// Render and simulate an event
+button.render(mainCanvas)
+let button = button.onClick(Click)
