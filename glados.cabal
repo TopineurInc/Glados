@@ -38,6 +38,7 @@ library
       Disasm
       Lib
       TopineurLexer
+      TopineurParser
   other-modules:
       SExprConstruct
       Paths_glados
