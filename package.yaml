@@ -52,6 +52,7 @@ library:
     - Compiler
     - Disasm
     - Lib
+    - TopineurLexer
 
 executables:
   glados-exe:

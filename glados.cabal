@@ -37,6 +37,7 @@ library
       Compiler
       Disasm
       Lib
+      TopineurLexer
   other-modules:
       SExprConstruct
       Paths_glados
