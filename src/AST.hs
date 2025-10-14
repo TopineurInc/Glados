@@ -125,7 +125,7 @@ data Effect
   | EffException
   | EffAsync
   | EffCustom Name
-  deriving (Eq, Show, Generic)
+  deriving (Eq, Show, Ord, Generic)
 
 -- Topineur Object Definitions
 data ObjectDef = ObjectDef

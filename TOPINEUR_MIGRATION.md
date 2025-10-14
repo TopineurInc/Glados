@@ -4,12 +4,12 @@
 
 This document summarizes the transformation of the GLaDOS project from a Lisp interpreter/compiler to a full **Topineur** language implementation.
 
-**Status:** ✅ **Phase 1-2 Complete** (AST, Lexer, Parser)
-**Progress:** 3/10 phases complete (~35% foundation done)
-**Next:** Phase 3 - Type system implementation
+**Status:** ✅ **Phase 1-3 Complete** (AST, Lexer, Parser, Type System)
+**Progress:** 4/10 phases complete (~45% foundation done)
+**Next:** Phase 4 - Desugaring implementation
 
 ### 🎉 Major Milestone Reached
-The entire frontend (lexer + parser) is now complete! This represents the foundation for all future work. The parser can successfully tokenize and parse Topineur syntax according to the formal grammar specification.
+The entire frontend (lexer + parser + type system) is now complete! This represents the foundation for all future work. The parser can successfully tokenize and parse Topineur syntax according to the formal grammar specification. The type system with Hindley-Milner inference, effect checking, and linearity analysis is now implemented.
 
 ### Implementation Summary (Current Session)
 
@@ -41,8 +41,21 @@ The entire frontend (lexer + parser) is now complete! This represents the founda
 - Primary expressions: lambdas, object literals, list literals, tuples, etc.
 - Postfix operations: method calls, field access, function calls, type annotations
 
+**✅ Phase 3: Type System Implementation** (src/TypeChecker.hs: 335 lines, src/EffectChecker.hs: 155 lines, src/LinearityChecker.hs: 175 lines)
+- Type inference with Hindley-Milner algorithm (Algorithm W)
+- Unification algorithm (Robinson's) with occurs check
+- Fresh type variable generation and substitution
+- Support for polymorphism (instantiate/generalize - simplified for now)
+- Effect system with row-polymorphic effects
+- Effect inference and checking for methods
+- Built-in effects: IO, State, Network, Exception, Async, Custom
+- Linearity checker for ownership semantics
+- Use-after-move detection
+- Linear variable consumption tracking
+- Prevents aliasing violations and unsafe mutation
+
 **Build Status:** ✅ All modules compile successfully with no errors
-**Lines of Code Added:** ~1100+ lines of production Haskell code
+**Lines of Code Added:** ~1800+ lines of production Haskell code
 
 ## What is Topineur?
 
@@ -93,19 +106,22 @@ The entire frontend (lexer + parser) is now complete! This represents the founda
 | 1 | Extend AST for Topineur | ✅ Done | Added Type, Effect, ObjectDef, TraitDef, etc. |
 | 2a | Implement Topineur lexer | ✅ Done | 120+ token types, full keyword support |
 | 2b | Implement Topineur parser | ✅ Done | Operator precedence, all constructs |
+| 3a | Implement type checker | ✅ Done | Hindley-Milner inference with unification |
+| 3b | Implement effect checker | ✅ Done | Row-polymorphic effects, inference + checking |
+| 3c | Implement linearity checker | ✅ Done | Ownership semantics, use-after-move detection |
 
 ### 🚧 In Progress (Implementation Phase)
 
 | Phase | Task | Status | Priority |
 |-------|------|--------|----------|
-| 2c | Test parser with examples | 🚧 Testing | 🔴 High |
+| - | Test parser with examples | 🚧 Testing | 🟡 Medium |
+| - | Fix Main.hs warnings for new Value types | 🚧 Pending | 🟢 Low |
 
 ### ⏳ Pending (Implementation Phase)
 
 | Phase | Task | Estimated Time | Priority |
 |-------|------|----------------|----------|
-| 3 | Type checker (with effects) | 7-10 days | 🔴 High |
-| 4 | Desugar Topineur → core IR | 3-5 days | 🟡 Medium |
+| 4 | Desugar Topineur → core IR | 3-5 days | 🔴 High |
 | 5 | Adapt code generation | 3-4 days | 🟡 Medium |
 | 6 | Extend VM for objects/traits | 4-6 days | 🟡 Medium |
 | 7 | Update builtins | 2-3 days | 🟢 Low |
@@ -113,8 +129,8 @@ The entire frontend (lexer + parser) is now complete! This represents the founda
 | 9 | Comprehensive test suite | 4-6 days | 🟡 Medium |
 | 10 | Standard library | 3-5 days | 🟢 Low |
 
-**Completed:** Phases 1, 2 (AST, Lexer, Parser)
-**Remaining time:** 24-40 days (5-8 weeks)
+**Completed:** Phases 1, 2, 3 (AST, Lexer, Parser, Type System)
+**Remaining time:** 17-30 days (3-6 weeks)
 
 ## Architecture Transformation
 
@@ -230,6 +246,9 @@ VM (stack-based + objects + actors)
 - `src/AST.hs` — ✅ Extended with Topineur types (Type, Effect, ObjectDef, TraitDef, etc.)
 - `src/TopineurLexer.hs` — ✅ Created (280 lines, 120+ token types)
 - `src/TopineurParser.hs` — ✅ Created (625 lines, full grammar support)
+- `src/TypeChecker.hs` — ✅ Created (335 lines, Hindley-Milner type inference)
+- `src/EffectChecker.hs` — ✅ Created (155 lines, effect system verification)
+- `src/LinearityChecker.hs` — ✅ Created (175 lines, ownership semantics)
 - `package.yaml` — ✅ Updated with new modules
 
 **🚧 To Modify:**
@@ -562,5 +581,5 @@ The implementation roadmap is clear and detailed. The next step is to begin Phas
 ---
 
 *Last updated: 2025-10-14*
-*Status: **Phase 1-2 Complete** - AST ✅, Lexer ✅, Parser ✅*
-*Next: Type system implementation (Phase 3)*
+*Status: **Phase 1-3 Complete** - AST ✅, Lexer ✅, Parser ✅, Type System ✅*
+*Next: Desugaring implementation (Phase 4)*

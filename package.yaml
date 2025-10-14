@@ -54,6 +54,9 @@ library:
     - Lib
     - TopineurLexer
     - TopineurParser
+    - TypeChecker
+    - EffectChecker
+    - LinearityChecker
 
 executables:
   glados-exe:

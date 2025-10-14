@@ -39,6 +39,9 @@ library
       Lib
       TopineurLexer
       TopineurParser
+      TypeChecker
+      EffectChecker
+      LinearityChecker
   other-modules:
       SExprConstruct
       Paths_glados

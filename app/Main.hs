@@ -54,6 +54,10 @@ renderValue (VString s) = s
 renderValue (VClosure _ _) = "#<procedure>"
 renderValue (VBuiltin name _) = "#<builtin:" ++ name ++ ">"
 renderValue VVoid = "#<void>"
+renderValue (VObject name fields _) = "#<object:" ++ name ++ ":" ++ show (Map.size fields) ++ " fields>"
+renderValue (VTraitDict name _) = "#<trait:" ++ name ++ ">"
+renderValue (VList vs) = "[" ++ unwords (map renderValue vs) ++ "]"
+renderValue (VTuple vs) = "(" ++ unwords (map renderValue vs) ++ ")"
 
 runProgram :: String -> IO (Either String Value)
 runProgram source =
