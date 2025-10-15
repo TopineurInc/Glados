@@ -13,6 +13,7 @@ module TypeChecker
   , TypeEnv
   , TypeError(..)
   , emptyTypeEnv
+  , defaultTypeEnv
   ) where
 
 import qualified AST
@@ -289,7 +290,7 @@ inferType env expr = case expr of
     ty <- inferType env expr
     return ty
 
-  -- Quote (from Lisp)
+  -- Quote (legacy placeholder)
   AST.EQuote _ -> return AST.TUnit
 
 -- Infer pattern type and extract bindings
@@ -327,9 +328,9 @@ inferPattern env pat = case pat of
 typeCheck :: TypeEnv -> AST.Expr -> Either TypeError AST.Type
 typeCheck env expr = runTypeM (inferType env expr)
 
--- Helper: add builtin types to environment
-builtinEnv :: TypeEnv
-builtinEnv = Map.fromList
+-- Helper: default type environment used by the compiler pipeline.
+defaultTypeEnv :: TypeEnv
+defaultTypeEnv = Map.fromList
   [ ("+", AST.TFunc [AST.TInt, AST.TInt] (AST.EffectRow []) AST.TInt)
   , ("-", AST.TFunc [AST.TInt, AST.TInt] (AST.EffectRow []) AST.TInt)
   , ("*", AST.TFunc [AST.TInt, AST.TInt] (AST.EffectRow []) AST.TInt)

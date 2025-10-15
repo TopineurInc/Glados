@@ -11,6 +11,7 @@ module EffectChecker
   , EffectEnv
   , EffectError(..)
   , emptyEffectEnv
+  , defaultEffectEnv
   ) where
 
 import qualified AST
@@ -143,9 +144,9 @@ checkEffects env methodDef =
      then Right ()
      else Left $ EffectMismatch actualEffects declaredEffects
 
--- Builtin effects environment
-builtinEffects :: EffectEnv
-builtinEffects = Map.fromList
+-- Default effect environment used by the compiler pipeline.
+defaultEffectEnv :: EffectEnv
+defaultEffectEnv = Map.fromList
   [ ("println", AST.EffectRow [AST.EffIO])
   , ("print", AST.EffectRow [AST.EffIO])
   , ("readLine", AST.EffectRow [AST.EffIO])

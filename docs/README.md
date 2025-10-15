@@ -1,14 +1,14 @@
 # Documentation Map
 
-We rebuilt the documentation from scratch so it matches what you actually touch day to day. Follow the trail that fits what you need:
+The documentation now mirrors the Topineur-first toolchain. Start with:
 
-- **Project architecture** → `docs/ARCHITECTURE.md`  
-  How the compiler and VM are split, what each pass produces, and where to tweak them.
+- **Architecture overview** → `docs/ARCHITECTURE.md`  
+  Current frontend pipeline and migration roadmap for the backend.
 - **Language guide** → `docs/LANGUAGE_GUIDE.md`  
-  Paradigms, formal grammar (EBNF), evaluation rules, and everyday syntax/builtins for the Lisp dialect.
-- **Bytecode & runtime reference** → `docs/INSTRUCTIONS.md`  
-  Instruction set, calling convention, frame layout, and how closures behave at runtime.
+  Pointers into the Topineur specifications (`docs/topineur/`).
+- **Core IR & runtime roadmap** → `docs/INSTRUCTIONS.md`  
+  Status of the backend redesign and links to IR docs.
 - **Developer workflow** → `docs/DEVELOPMENT.md`  
-  Building with `stack`, running the tests, debugging tips, and extending the project.
+  Build commands, CLI usage, and migration-era guidelines.
 
-If you only have two minutes, read the first two sections of the architecture doc to get the big picture, then skim the language guide for syntax reminders.
+The in-depth specifications (grammar, user manual, compilation plan, security review) live under `docs/topineur/`.

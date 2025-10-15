@@ -13,6 +13,7 @@ maintenance.
 
    overview
    language_reference
+   core_ir
    runtime_and_effects
    use_cases
    tooling

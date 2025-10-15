@@ -54,6 +54,13 @@ The entire frontend (lexer + parser + type system) is now complete! This represe
 - Linear variable consumption tracking
 - Prevents aliasing violations and unsafe mutation
 
+**🚀 Phase 4 Prep: Frontend Orchestration & IR Contract**
+- `src/ObjectDesugar.hs`, `src/TraitResolver.hs` — scaffolding modules representing object lowering and trait dictionaries with typed APIs.
+- `src/TopineurPipeline.hs` — new orchestration entry point running parse → type/effect/linearity checks → Topineur-aware desugaring context.
+- `docs/topineur/core_ir.rst` — authoritative snapshot of the core IR invariants consumed by Phase 4.
+- `src/Desugar.hs` — extended with a `TopineurDesugarContext` to feed future lowering work.
+- `app/Main.hs` — CLI `--topineur` flag to exercise the new pipeline from the executable.
+
 **Build Status:** ✅ All modules compile successfully with no errors
 **Lines of Code Added:** ~1800+ lines of production Haskell code
 
@@ -114,8 +121,9 @@ The entire frontend (lexer + parser + type system) is now complete! This represe
 
 | Phase | Task | Status | Priority |
 |-------|------|--------|----------|
-| - | Test parser with examples | 🚧 Testing | 🟡 Medium |
-| - | Fix Main.hs warnings for new Value types | 🚧 Pending | 🟢 Low |
+| 4 | Draft desugaring spec & module scaffolding | 🚧 Planning | 🔴 High |
+| - | Parser golden tests (covering objects/effects/actors) | 🚧 Testing | 🟡 Medium |
+| - | CLI integration of type/effect/linearity passes | 🚧 Pending | 🟢 Low |
 
 ### ⏳ Pending (Implementation Phase)
 
@@ -251,6 +259,13 @@ VM (stack-based + objects + actors)
 - `src/LinearityChecker.hs` — ✅ Created (175 lines, ownership semantics)
 - `package.yaml` — ✅ Updated with new modules
 
+**🔧 Newly Added (Phase 4 scaffolding):**
+- `src/ObjectDesugar.hs` — object-lowering environment + API stubs
+- `src/TraitResolver.hs` — trait dictionary planning helpers
+- `src/TopineurPipeline.hs` — Topineur frontend driver (parse → type/effect/linearity → desugar)
+- `docs/topineur/core_ir.rst` — core IR reference
+- `src/Desugar.hs` — Topineur-aware context wiring
+
 **🚧 To Modify:**
 - `src/Compiler.hs` — Orchestrate new pipeline
 - `src/CodeGen.hs` — Handle new constructs
@@ -312,32 +327,27 @@ VM (stack-based + objects + actors)
 
 ### 🚧 To Be Implemented
 
-- [ ] **Virtual Machine** — Extend for objects/traits/actors
-- [ ] **Compiler** — Implement type checking, effect checking, linearity
-- [ ] **Standard library** — Written in Topineur
-- [ ] **Test suite** — Comprehensive unit and integration tests
-- [ ] **Examples** — All examples must compile and run
+- [ ] **Phase 4 – Desugaring** — Lower Topineur AST to core IR (`ObjectDesugar`, `TraitResolver`, effect mapping).
+- [ ] **Phase 5 – Code Generation** — Teach `CodeGen` new instructions and metadata for objects, traits, effects.
+- [ ] **Phase 6 – VM** — Extend runtime with object layouts, trait dictionaries, actor primitives.
+- [ ] **Phase 7 – Builtins** — Update signatures + implementations to align with Topineur types/effects.
+- [ ] **Phase 9 – Test suite** — Comprehensive unit + integration coverage for parser, typer, backend, runtime.
+- [ ] **Phase 10 – Standard library** — Core/IO/collections/actors modules authored in Topineur.
+- [ ] **Examples** — Ensure all documented examples compile, type-check, and execute via the new pipeline.
 
-## Quick Start (After Implementation)
+## Quick Start (Current CLI)
 
 ```bash
 # Build the compiler
 make
 
-# Run a Topineur program
-./glados examples/topineur/hello_world.top
+# Inspect the frontend pipeline
+./glados pipeline examples/topineur/hello_world.top
 
-# Compile to bytecode
-./glados --compile examples/topineur/factorial_recursive.top -o factorial.tbc
+# Type-check a module (fails with non-zero exit code on issues)
+./glados check examples/topineur/factorial_recursive.top
 
-# Disassemble bytecode
-./glados --disasm factorial.tbc
-
-# Show type annotations
-./glados --types examples/topineur/factorial_recursive.top
-
-# Run tests
-stack test
+# Additional tooling lives under docs/topineur/ and vscode/topineur/
 ```
 
 ## Example Topineur Code
@@ -439,43 +449,59 @@ def main(): !{IO, Async} Unit =
 
 ### Immediate (High Priority)
 
-1. **Start Phase 1:** Extend `src/AST.hs` with Topineur types
-   - Add `ObjectDef`, `TraitDef`, `EffectRow`, etc.
-   - Keep existing Lisp AST temporarily
-
-2. **Start Phase 2:** Implement Topineur parser
-   - Create `src/TopineurLexer.hs`
-   - Create `src/TopineurParser.hs`
-   - Use Parsec/Megaparsec
-   - Implement precedence climbing for operators
-
-3. **Test incrementally:** Write tests as you go
-   - Parser tests first
-   - One feature at a time
+1. **Kick off Phase 4:** Finalize the desugaring design that maps Topineur AST nodes to the existing core IR now that the Lisp path has been removed.
+2. **Stand up `ObjectDesugar`:** Build scaffolding plus pattern coverage for objects, traits, effect annotations, and linear bindings so Phase 4 has an executable entry point.
+3. **Wire the pipeline:** Hook lexer/parser/type+effect+linearity passes into `Compiler.hs` end-to-end and add regression tests for `examples/topineur`.
 
 ### Short-term (Medium Priority)
 
-4. **Implement type system (Phase 3-4)**
-   - Type inference (Hindley-Milner)
-   - Effect checking
-   - Linearity checking
-
-5. **Connect to existing pipeline (Phase 5-7)**
-   - Desugar Topineur → core IR
-   - Extend code generation
-   - Extend VM
+4. **Extend backend entry points:** Update `CodeGen.hs` and `Builtins.hs` signatures so they accept the enriched AST artifacts emitted by the new pipeline.
+5. **Phase 4 ➜ 5 bridge:** Define intermediate structures (`TraitResolver`, `ObjectLowering`) that feed the code generator with trait dictionaries and method tables.
+6. **Parser/typechecker validation:** Grow `test/` with parser golden files and the first inference/effect snapshots to prevent regressions while Phase 4 evolves.
 
 ### Long-term (Lower Priority)
 
-6. **Optimize and polish**
-   - Bytecode optimization
-   - Better error messages
-   - Performance tuning
+7. **VM evolution:** Introduce object layouts, actor mailbox primitives, and effect-aware instructions in `VM.hs`.
+8. **Standard library build-out:** Populate `stdlib/` with core, IO, collections, and concurrency helpers once the backend executes real programs.
+9. **Optimization & tooling polish:** Revisit ANF, closure conversion, and diagnostics once the full Topineur path is functional.
 
-7. **Standard library**
-   - Core utilities
-   - IO operations
-   - Collections
+## Phase 4 Blueprint (Desugaring to Core IR)
+
+### Objectives
+
+- Translate Topineur constructs (objects, traits, effect annotations, linear bindings) into the existing core IR while embracing the new Topineur-only pipeline.
+- Provide a dedicated desugaring module that exposes a clean API (`desugarTopModule :: AST.Module -> Core.Module`) consumed by `Compiler.hs`.
+- Preserve and propagate metadata (source spans, inferred types/effects) so downstream passes can surface actionable diagnostics.
+
+### Planned Deliverables
+
+- `src/ObjectDesugar.hs`: structural lowering for object literals, method bodies, and pattern expansions.
+- `src/TraitResolver.hs`: dictionary construction + monomorphization for trait implementations.
+- `src/Desugar/Effects.hs` (or equivalent helpers): utilities to encode effect rows and linear consumption markers in the core form.
+- `src/Desugar.hs`: Topineur-only context builder coordinating object/trait lowering helpers.
+
+### Core IR Snapshot
+
+- **Module structure:** `Module { moduleName, imports, declarations }` where declarations are functions, objects, or traits lowered to the core lambda calculus with explicit environment captures.
+- **Function form:** Functions are represented as `CoreLambda params body` with ANF-ready bodies; every call site awaits desugaring to apply arguments positionally with pre-validated arity.
+- **Data layout:** Objects become records (`CoreRecord`) with deterministic field slots; methods are emitted as standalone lambdas with the receiver passed explicitly as the first argument.
+- **Trait resolution artifacts:** Trait impls materialize as dictionary records (`CoreDict`) bundled with method closures and metadata pointers used during code generation.
+- **Effect encoding:** Effect rows collapse to an ordered list of capability tags carried on lambda metadata so backend checks can insert runtime guards or dispatch to effectful builtins.
+- **Linearity markers:** Linear bindings are annotated via `CoreConsume` nodes that the optimizer must preserve to guarantee no double-consume scenarios reach the VM.
+
+### Work Breakdown
+
+1. Document the target core IR surface (constructors, expected invariants, ownership model) and add it to `docs/topineur/` for reference.
+2. Implement expression-level lowering (functions, let/let* desugaring, match expansion) leveraging existing ANF prerequisites.
+3. Encode method dispatch by generating vtable records and trait dictionary lookups with deterministic naming.
+4. Introduce regression tests that run the desugaring pass on `examples/topineur/*.top` and snapshot the resulting core IR.
+5. Validate integration by invoking the full pipeline on `hello_world.top`, ensuring bytecode emission stays stable.
+
+### Risks & Mitigations
+
+- **Complex trait interactions:** start with single-trait implementations, add multi-trait support once the pipeline is stable.
+- **Linearity leaks during lowering:** reuse `LinearityChecker` outputs to assert consumption post-desugar.
+- **Diagnostic drift:** keep source span threading intact and add failing test cases to guarantee error messages reference Topineur code.
 
 ## Resources
 
@@ -486,6 +512,7 @@ def main(): !{IO, Async} Unit =
 - **Security:** `docs/topineur/security_review.rst`
 - **User manual:** `docs/topineur/user_manual.rst`
 - **Compilation:** `docs/topineur/compilation.rst`
+- **Core IR reference:** `docs/topineur/core_ir.rst`
 - **Transformation plan:** `docs/topineur/transformation_plan.rst`
 
 ### Examples
@@ -504,10 +531,12 @@ def main(): !{IO, Async} Unit =
 
 - **Documentation:** ✅ Complete (5-7 days)
 - **Implementation:** 33-49 days (6-10 weeks)
-  - Core compiler: 20-30 days
-  - Testing: 4-6 days
-  - Standard library: 3-5 days
-  - Polish: 6-8 days
+  - Phases 1-3: ✅ 9-13 days already invested
+  - Phases 4-6 (desugaring, codegen, VM): 14-20 days remaining
+  - Phase 7 (builtins refresh): 2-3 days
+  - Phase 9 (test suite): 4-6 days
+  - Phase 10 (standard library): 3-5 days
+  - Polish / performance / diagnostics: 6-8 days
 
 **For defense preparation:**
 
@@ -528,13 +557,13 @@ Focus on:
 - [x] User manual
 - [x] Compilation process documented
 - [x] Parser working for basic programs ✅
-- [ ] Type checking for simple cases
+- [ ] Type checking for simple cases (integration pending)
 - [ ] Basic VM support for objects
 - [ ] At least 3 examples compiling and running
 
 ### Target (for good grade)
 
-- [ ] Full type system (inference + effects + linearity)
+- [ ] Full type system (inference + effects + linearity) integrated into pipeline
 - [ ] Complete standard library
 - [ ] All 12 examples working
 - [ ] Test coverage > 80%
@@ -553,8 +582,8 @@ Focus on:
 **Q: Why Topineur instead of sticking with Lisp?**
 A: Part 2 requires a non-S-expression syntax, and Topineur adds modern features (effects, ownership) that make the language suitable for real-world use.
 
-**Q: Is all the Lisp code thrown away?**
-A: No! The VM, bytecode format, and compilation pipeline architecture are reused. We're replacing the frontend (parser) and adding new features (type system, effects).
+**Q: What happened to the Lisp toolchain?**
+A: It has been removed from the main branch. Legacy sources live only in history; all active work targets Topineur.
 
 **Q: How long will this take?**
 A: 6-10 weeks for one developer to implement everything. 4-5 weeks for a minimal viable version for defense.
@@ -562,8 +591,8 @@ A: 6-10 weeks for one developer to implement everything. 4-5 weeks for a minimal
 **Q: What if we run out of time?**
 A: The documentation is complete, which satisfies many Part 2 requirements. Focus on getting the parser and basic type checking working, with at least 3 examples compiling.
 
-**Q: Can we still use the Lisp version?**
-A: Keep it on a separate git branch for reference, but the main branch should transition to Topineur.
+**Q: Can we still run Lisp programs here?**
+A: No. The CLI, examples, and documentation are now exclusively Topineur-focused.
 
 ## Conclusion
 
@@ -574,12 +603,12 @@ The documentation phase is **complete**. All mandatory documents for Part 2 are 
 - ✅ User manual
 - ✅ Compilation process
 
-The implementation roadmap is clear and detailed. The next step is to begin Phase 1 (extend AST) and Phase 2 (implement parser).
+The implementation roadmap is clear and detailed. With the frontend stack complete, the immediate focus is Phase 4: desugaring and end-to-end pipeline wiring.
 
-**The foundation is solid. Time to build!**
+**Phase 4 planning is underway. Time to bring the backend to life!**
 
 ---
 
-*Last updated: 2025-10-14*
-*Status: **Phase 1-3 Complete** - AST ✅, Lexer ✅, Parser ✅, Type System ✅*
-*Next: Desugaring implementation (Phase 4)*
+*Last updated: 2025-10-14 16:05 CEST*
+*Status: **Phase 1-3 Complete** – AST ✅, Lexer ✅, Parser ✅, Type System ✅; Phase 4 planning 🚧*
+*Next: Desugaring implementation (Phase 4) kickoff + pipeline wiring*

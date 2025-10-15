@@ -25,6 +25,7 @@ dependencies:
 - vector
 - mtl
 - parsec
+- filepath
 
 ghc-options:
 - -Wall
@@ -41,19 +42,13 @@ library:
   source-dirs: src
   exposed-modules:
     - AST
-    - SExprParser
-    - MacroExpander
     - Desugar
-    - AlphaRename
-    - ClosureConversion
-    - CodeGen
-    - Builtins
-    - VM
+    - ObjectDesugar
+    - TraitResolver
     - Compiler
-    - Disasm
-    - Lib
     - TopineurLexer
     - TopineurParser
+    - TopineurPipeline
     - TypeChecker
     - EffectChecker
     - LinearityChecker
@@ -69,23 +64,3 @@ executables:
     dependencies:
     - glados
 
-tests:
-  glados-test:
-    main:                Spec.hs
-    source-dirs:         test
-    other-modules:
-    - Test.AlphaRenameSpec
-    - Test.BuiltinsSpec
-    - Test.ClosureConversionSpec
-    - Test.CodeGenSpec
-    - Test.CompilerSpec
-    - Test.DesugarSpec
-    - Test.SExprParserSpec
-    - Test.VMSpec
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - glados
-    - HUnit

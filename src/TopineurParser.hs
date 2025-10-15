@@ -35,10 +35,10 @@ parseTopineurFile filename input = do
 
 -- Module parser (top-level declarations)
 parseModule :: Parser [AST.Expr]
-parseModule = many parseDeclaration <* eof
+parseModule = manyTill parseDeclaration eof
 
 parseDeclaration :: Parser AST.Expr
-parseDeclaration = choice
+parseDeclaration = notFollowedBy eof *> choice
   [ try parseObjectDef
   , try parseTraitDef
   , try parseTraitImpl

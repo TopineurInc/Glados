@@ -1,3 +1,5 @@
+> **Migration note (2025):** The active `main` branch now implements the Topineur language and no longer ships the Lisp compiler described below. This specification is archived unchanged for historical context only.
+
 ## GLADOS \_
 
 < GENERIC LANGUAGE AND DATA OPERAND SYNTAX />
