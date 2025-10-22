@@ -154,8 +154,12 @@ compileExpr (EApp (EVar funcName) args) =
       "eq?" -> emit (IPrim "eq?")
       "<" -> emit (IPrim "<")
       ">" -> emit (IPrim ">")
+      "<=" -> emit (IPrim "<=")
+      ">=" -> emit (IPrim ">=")
       "print" -> emit (IPrim "print")
+      "println" -> emit (IPrim "println")
       "display" -> emit (IPrim "display")
+      "show" -> emit (IPrim "show")
       "input" -> emit (IPrim "input")
       "read-line" -> emit (IPrim "read-line")
       "string->number" -> emit (IPrim "string->number")
@@ -166,6 +170,7 @@ compileExpr (EApp (EVar funcName) args) =
       "not" -> emit (IPrim "not")
       "and" -> emit (IPrim "and")
       "or" -> emit (IPrim "or")
+      "format" -> emit (IPrim "format")
       _ -> emit (ICall (length args) funcName)
 
 compileExpr (EApp func args) =
@@ -200,6 +205,72 @@ compileExpr (EList exprs) = case exprs of
       >> compileExpr (EList es)
 
 compileExpr (EQuote _) = return ()
+
+-- Topineur constructs
+compileExpr (EBlock exprs) = case exprs of
+  [] -> do
+    idx <- addConst (CInt 0)
+    emit (IConst idx)
+  [e] -> compileExpr e
+  (e:es) ->
+    compileExpr e
+      >> emit IPop
+      >> compileExpr (EBlock es)
+
+compileExpr (ELet name maybeType valExpr body) = do
+  compileExpr valExpr
+  slot <- allocLocal name
+  emit (IStore slot)
+  compileExpr body
+
+compileExpr (ETyped expr _) = compileExpr expr
+
+compileExpr (EFieldAccess objExpr fieldName) = do
+  compileExpr objExpr
+  emit (IGetField fieldName)
+
+compileExpr (EObjectLit objName fields) = do
+  mapM_ (\(_, expr) -> compileExpr expr) fields
+  emit (IMakeObject objName (length fields))
+
+compileExpr (EMethodCall objExpr methodName args) = do
+  mapM_ compileExpr args
+  compileExpr objExpr
+  emit (IMethodCall methodName (length args))
+
+compileExpr (EObjectDef objDef) = do
+  -- For now, compile object definitions as no-op
+  -- In full implementation, we'd register the object type
+  idx <- addConst (CInt 0)
+  emit (IConst idx)
+
+compileExpr (ETraitDef _) = do
+  -- Trait definitions are compile-time only
+  idx <- addConst (CInt 0)
+  emit (IConst idx)
+
+compileExpr (ETraitImpl _) = do
+  -- Trait implementations are compile-time only
+  idx <- addConst (CInt 0)
+  emit (IConst idx)
+
+compileExpr (ELinearBind name valExpr body) = do
+  -- For now, treat linear bindings like regular let bindings
+  compileExpr valExpr
+  slot <- allocLocal name
+  emit (IStore slot)
+  compileExpr body
+
+compileExpr (EMatch scrutinee cases) = do
+  -- Simplified pattern matching - compile first matching case
+  -- Full implementation would need proper pattern compilation
+  compileExpr scrutinee
+  emit IPop  -- Pop the scrutinee for now
+  case cases of
+    [] -> do
+      idx <- addConst (CInt 0)
+      emit (IConst idx)
+    ((_, body):_) -> compileExpr body
 
 patchJump :: Int -> Int -> CodeGenM ()
 patchJump instrIdx target = do

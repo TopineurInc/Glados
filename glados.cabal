@@ -26,8 +26,6 @@ source-repository head
 library
   exposed-modules:
       AST
-      SExprParser
-      MacroExpander
       Desugar
       AlphaRename
       ClosureConversion
@@ -42,8 +40,8 @@ library
       TypeChecker
       EffectChecker
       LinearityChecker
+      ObjectDesugar
   other-modules:
-      SExprConstruct
       Paths_glados
   autogen-modules:
       Paths_glados
@@ -86,7 +84,6 @@ test-suite glados-test
       Test.CodeGenSpec
       Test.CompilerSpec
       Test.DesugarSpec
-      Test.SExprParserSpec
       Test.VMSpec
   hs-source-dirs:
       test

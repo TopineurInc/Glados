@@ -1,7 +1,7 @@
 // Immutable modelling example for Topineur
 object type Point {
-  x: Float
-  y: Float
+  x: Float;
+  y: Float = 6.3434;
 
   def translate(dx: Float, dy: Float): Point =
     Point { x = x + dx, y = y + dy }

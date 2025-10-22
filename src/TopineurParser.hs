@@ -127,9 +127,14 @@ parseMethodDef :: Parser AST.MethodDef
 parseMethodDef = do
   token TokDef
   name <- ident
-  token TokLParen
-  params <- sepBy parseParam (token TokComma)
-  token TokRParen
+  -- Accept either () as TokUnit or (params) as TokLParen ... TokRParen
+  params <- choice
+    [ try $ token TokUnit >> return []
+    , do token TokLParen
+         ps <- sepBy parseParam (token TokComma)
+         token TokRParen
+         return ps
+    ]
   token TokColon
   effects <- option (AST.EffectRow []) parseEffectRow
   retType <- parseType
@@ -171,9 +176,14 @@ parseMethodSig :: Parser AST.MethodSig
 parseMethodSig = do
   token TokDef
   name <- ident
-  token TokLParen
-  params <- sepBy parseParam (token TokComma)
-  token TokRParen
+  -- Accept either () as TokUnit or (params) as TokLParen ... TokRParen
+  params <- choice
+    [ try $ token TokUnit >> return []
+    , do token TokLParen
+         ps <- sepBy parseParam (token TokComma)
+         token TokRParen
+         return ps
+    ]
   token TokColon
   effects <- option (AST.EffectRow []) parseEffectRow
   retType <- parseType
@@ -220,17 +230,24 @@ parseFunctionDef = do
   token TokDef
   name <- ident
   typeParams <- option [] parseTypeParams
-  token TokLParen
-  params <- sepBy parseParam (token TokComma)
-  token TokRParen
+  -- Accept either () as TokUnit or (params) as TokLParen ... TokRParen
+  params <- choice
+    [ try $ token TokUnit >> return []
+    , do token TokLParen
+         ps <- sepBy parseParam (token TokComma)
+         token TokRParen
+         return ps
+    ]
   token TokColon
   effects <- option (AST.EffectRow []) parseEffectRow
   retType <- parseType
   whereClauses <- option [] parseWhereClauses
   token TokAssign
   body <- parseExpr
-  -- Convert to lambda and define
-  let lambda = foldr (\(pName, _) e -> AST.ELambda [pName] e) body params
+  -- Convert to lambda and define (always wrap in lambda, even for no params)
+  let lambda = if null params
+               then AST.ELambda [] body
+               else foldr (\(pName, _) e -> AST.ELambda [pName] e) body params
   return $ AST.EDefine name lambda
 
 -- Type parser
@@ -553,9 +570,14 @@ parsePrimary = choice
 parseLambda :: Parser AST.Expr
 parseLambda = do
   token TokFn
-  token TokLParen
-  params <- sepBy parseParam (token TokComma)
-  token TokRParen
+  -- Accept either () as TokUnit or (params) as TokLParen ... TokRParen
+  params <- choice
+    [ try $ token TokUnit >> return []
+    , do token TokLParen
+         ps <- sepBy parseParam (token TokComma)
+         token TokRParen
+         return ps
+    ]
   optionMaybe $ do
     token TokColon
     parseEffectRow
@@ -563,7 +585,9 @@ parseLambda = do
   token TokFatArrow
   body <- parseExpr
   let paramNames = map fst params
-  return $ foldr (\p e -> AST.ELambda [p] e) body paramNames
+  return $ if null paramNames
+           then body
+           else foldr (\p e -> AST.ELambda [p] e) body paramNames
 
 parseObjectLiteral :: Parser AST.Expr
 parseObjectLiteral = do

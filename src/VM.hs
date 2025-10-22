@@ -140,6 +140,79 @@ executeInstr vmState frame instr = case instr of
     let frame' = frame { fPC = fPC frame + 1 }
     in return $ Right (updateFrame vmState frame', Nothing)
 
+  -- Topineur object instructions
+  IMakeObject objName numFields ->
+    let (fieldValues, stack') = splitAt numFields (fStack frame)
+    in if length fieldValues < numFields
+      then return $ Left StackUnderflow
+      else
+        -- Assume fields are pushed in order: field1, field2, ..., fieldN
+        -- We need to extract field names from the code object's constants
+        let fields = zip (map (\i -> "field" ++ show i) [0..numFields-1]) (reverse fieldValues)
+            obj = VObject objName (Map.fromList fields) Map.empty
+            frame' = frame { fStack = obj : stack', fPC = fPC frame + 1 }
+        in return $ Right (updateFrame vmState frame', Nothing)
+
+  IGetField fieldName -> case fStack frame of
+    [] -> return $ Left StackUnderflow
+    (VObject _ fields _ : stack') ->
+      case Map.lookup fieldName fields of
+        Nothing -> return $ Left $ RuntimeError $ "Field '" ++ fieldName ++ "' not found in object"
+        Just val ->
+          let frame' = frame { fStack = val : stack', fPC = fPC frame + 1 }
+          in return $ Right (updateFrame vmState frame', Nothing)
+    (_:_) -> return $ Left $ TypeError "Expected object for field access"
+
+  ISetField fieldName -> case fStack frame of
+    (val : VObject objName fields vtable : stack') ->
+      let fields' = Map.insert fieldName val fields
+          obj' = VObject objName fields' vtable
+          frame' = frame { fStack = obj' : stack', fPC = fPC frame + 1 }
+      in return $ Right (updateFrame vmState frame', Nothing)
+    _ -> return $ Left $ TypeError "Expected value and object for field assignment"
+
+  IMethodCall methodName arity -> case fStack frame of
+    stack | length stack < arity + 1 -> return $ Left StackUnderflow
+    stack ->
+      let (args, obj:stackRest) = splitAt arity stack
+      in case obj of
+        VObject objName _ vtable ->
+          case Map.lookup methodName vtable of
+            Nothing -> return $ Left $ RuntimeError $ "Method '" ++ methodName ++ "' not found in object '" ++ objName ++ "'"
+            Just (VClosure closureName env) ->
+              -- Call the closure with the object as first arg (self) followed by other args
+              case Map.lookup closureName (vCodeObjects vmState) of
+                Nothing -> return $ Left $ UndefinedFunction closureName
+                Just code ->
+                  let baseLocals = Vector.replicate (coMaxLocals code) Nothing
+                      allArgs = obj : reverse args
+                      argValues = map Just allArgs
+                      localsWithArgs = baseLocals Vector.// zip [0..] argValues
+                      envValues = map Just env
+                      envStart = length argValues
+                      localsFinal = localsWithArgs Vector.// zip [envStart..] envValues
+                      newFrame = Frame
+                        { fLocals = localsFinal
+                        , fStack = []
+                        , fCode = code
+                        , fPC = 0
+                        }
+                      frame' = frame { fStack = stackRest, fPC = fPC frame + 1 }
+                  in case vFrames vmState of
+                    (_:rest) ->
+                      return $ Right (vmState { vFrames = newFrame : frame' : rest }, Nothing)
+                    [] -> return $ Left $ RuntimeError "No frames for method call"
+            Just _ -> return $ Left $ TypeError "Method is not a closure"
+        _ -> return $ Left $ TypeError "Expected object for method call"
+
+  ILoadDict traitName ->
+    case Map.lookup traitName (vGlobals vmState) of
+      Just dict@(VTraitDict _ _) ->
+        let frame' = frame { fStack = dict : fStack frame, fPC = fPC frame + 1 }
+        in return $ Right (updateFrame vmState frame', Nothing)
+      Just _ -> return $ Left $ TypeError $ "'" ++ traitName ++ "' is not a trait dictionary"
+      Nothing -> return $ Left $ RuntimeError $ "Trait dictionary '" ++ traitName ++ "' not found"
+
   _ -> return $ Left $ InvalidInstruction "Instruction not implemented"
 
 builtinArity :: String -> Int
@@ -152,8 +225,12 @@ builtinArity op = case op of
   "eq?" -> 2
   "<" -> 2
   ">" -> 2
+  "<=" -> 2
+  ">=" -> 2
   "print" -> 1
+  "println" -> 1
   "display" -> 1
+  "show" -> 1
   "input" -> 0
   "read-line" -> 0
   "string->number" -> 1
@@ -164,6 +241,7 @@ builtinArity op = case op of
   "not" -> 1
   "and" -> 2
   "or" -> 2
+  "format" -> -1
   _ -> 2
 
 executePrim :: VMState -> Frame -> String -> IO (Either VMError (VMState, Maybe Value))

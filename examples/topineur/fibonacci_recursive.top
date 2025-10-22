@@ -1,7 +1,12 @@
-// Naive recursive Fibonacci for quick experiments
-def fib(n: Int): Int =
+|- Naive recursive Fibonacci for quick experiments
+
+@qqdsqsddqs
+def fib(n: Int): Int {
   if n <= 1 then n
   else fib(n - 1) + fib(n - 2)
+}
 
-def main(): !{IO} Unit =
-  println("fib(10) = " ++ show(fib(10)))
+def main(): Int {
+  println("fib(10) = " ++ show(fib(10)));
+  top 42;
+}

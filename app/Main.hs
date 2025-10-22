@@ -2,7 +2,7 @@
 -- EPITECH PROJECT, 2025
 -- glados
 -- File description:
--- Main
+-- Main - Topineur compiler and interpreter
 -}
 
 module Main (main) where
@@ -17,9 +17,8 @@ import Data.Char (isSpace)
 
 import AST
 import Compiler
-import Desugar
 import Disasm
-import SExprParser
+import TopineurParser
 import VM
 
 main :: IO ()
@@ -32,6 +31,7 @@ main = do
     ["--ast", file] -> showAst file
     ["--compiled", file] -> showCompiled file
     ["--bytecode", file] -> showBytecode file
+    ["--types", file] -> showTypes file
     [file] -> runFile file
     _ ->
       exitWithError "Invalid arguments. Use --help for usage."
@@ -76,22 +76,30 @@ printHelp :: IO ()
 printHelp =
   mapM_
     putStrLn
-    [ "GLaDOS - A LISP compiler and VM"
+    [ "GLaDOS - Topineur Language Compiler and VM"
     , ""
     , "Usage:"
-    , "  ./glados [file]             Compile and run a LISP file"
-    , "  ./glados --disasm [file]    Disassemble a LISP file"
-    , "  ./glados --ast [file]       Show AST of a LISP file"
-    , "  ./glados --compiled [file]  Show compiled code of a LISP file"
-    , "  ./glados --bytecode [file]  Show bytecode instructions of a LISP file"
+    , "  ./glados [file]             Compile and run a Topineur file (.top)"
+    , "  ./glados --disasm [file]    Disassemble a Topineur file"
+    , "  ./glados --ast [file]       Show AST of a Topineur file"
+    , "  ./glados --compiled [file]  Show compiled code of a Topineur file"
+    , "  ./glados --bytecode [file]  Show bytecode instructions"
+    , "  ./glados --types [file]     Show type annotations"
     , "  ./glados                    Start REPL (interactive mode)"
     , "  ./glados --help             Show this help message"
     , ""
     , "Examples:"
-    , "  ./glados program.lisp"
-    , "  ./glados --disasm program.lisp"
-    , "  ./glados --ast program.lisp"
-    , "  ./glados --compiled program.lisp"
+    , "  ./glados examples/topineur/hello_world.top"
+    , "  ./glados --disasm examples/topineur/factorial_recursive.top"
+    , "  ./glados --types examples/topineur/factorial_recursive.top"
+    , ""
+    , "Topineur features:"
+    , "  - Static type inference (Hindley-Milner)"
+    , "  - Effect system (IO, State, Network, etc.)"
+    , "  - Linear types (ownership semantics)"
+    , "  - Object-oriented constructs"
+    , "  - Trait system"
+    , "  - Pattern matching"
     ]
 
 runFile :: FilePath -> IO ()
@@ -133,15 +141,12 @@ showAst file = do
   source <- case sourceOrErr of
     Left _ -> exitWithError $ "Cannot open file: " ++ file
     Right src -> return src
-  case parseFromString source of
-    Left err -> exitWithError (formatCompileError err)
-    Right sexprs ->
-      putStrLn "=== S-Expression ==="
-        >> mapM_ (putStrLn . show) sexprs
-        >> putStrLn "\n=== AST ==="
-        >> case mapM sexprToExpr sexprs of
-          Left err -> exitWithError ("Desugar error: " ++ show err)
-          Right exprs -> mapM_ (putStrLn . show) exprs >> exitSuccess
+  case parseTopineur source of
+    Left err -> exitWithError ("Parse error: " ++ show err)
+    Right topModule ->
+      putStrLn "=== Topineur AST ==="
+        >> mapM_ (putStrLn . show) topModule
+        >> exitSuccess
 
 showCompiled :: FilePath -> IO ()
 showCompiled file = do
@@ -179,6 +184,19 @@ showBytecode file = do
             putStrLn ("\n--- " ++ name ++ " ---")
               >> dumpBytecode obj)
           (Map.toList defs)
+        >> exitSuccess
+
+showTypes :: FilePath -> IO ()
+showTypes file = do
+  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
+  source <- case sourceOrErr of
+    Left _ -> exitWithError $ "Cannot open file: " ++ file
+    Right src -> return src
+  case parseTopineur source of
+    Left err -> exitWithError ("Parse error: " ++ show err)
+    Right topModule ->
+      putStrLn "=== Type Inference ==="
+        >> putStrLn "(Type inference visualization coming soon)"
         >> exitSuccess
 
 dumpCodeInfo :: CodeObject -> IO ()
@@ -229,7 +247,7 @@ replLoop = do
 
 replInteractive :: IO ()
 replInteractive =
-  putStrLn "GLaDOS REPL - Enter expressions (Ctrl+D to exit)"
+  putStrLn "GLaDOS Topineur REPL - Enter expressions (Ctrl+D to exit)"
     >> replLoop
 
 replNonInteractive :: IO ()

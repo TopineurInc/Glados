@@ -41,8 +41,6 @@ library:
   source-dirs: src
   exposed-modules:
     - AST
-    - SExprParser
-    - MacroExpander
     - Desugar
     - AlphaRename
     - ClosureConversion
@@ -57,6 +55,7 @@ library:
     - TypeChecker
     - EffectChecker
     - LinearityChecker
+    - ObjectDesugar
 
 executables:
   glados-exe:
@@ -80,7 +79,6 @@ tests:
     - Test.CodeGenSpec
     - Test.CompilerSpec
     - Test.DesugarSpec
-    - Test.SExprParserSpec
     - Test.VMSpec
     ghc-options:
     - -threaded

@@ -2,19 +2,12 @@
 -- EPITECH PROJECT, 2025
 -- glados
 -- File description:
--- Lib
+-- Lib - Library module for GLaDOS Topineur
 -}
 
 module Lib
     ( someFunc
     ) where
 
-import SExprParser (parseFromString)
-import SExprConstruct (sourceFromSExprs)
-
 someFunc :: IO ()
-someFunc = do
-  contents <- readFile "ok.lsp"
-  case parseFromString contents of
-    Left err -> print err
-    Right exprs -> putStr $ sourceFromSExprs exprs
+someFunc = putStrLn "GLaDOS - Topineur Language Compiler"

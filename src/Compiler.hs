@@ -2,7 +2,7 @@
 -- EPITECH PROJECT, 2025
 -- glados
 -- File description:
--- Compiler
+-- Compiler - Topineur compilation pipeline
 -}
 
 module Compiler
@@ -14,8 +14,9 @@ module Compiler
   ) where
 
 import AST
-import SExprParser
-import MacroExpander
+import TopineurParser (parseTopineur)
+import Text.Parsec (ParseError)
+import ObjectDesugar
 import Desugar
 import AlphaRename
 import ClosureConversion
@@ -26,106 +27,183 @@ import Data.Map (Map)
 data CompilerConfig = CompilerConfig
   { cfgTCO :: Bool  -- Tail call optimization enabled
   , cfgDebug :: Bool
-  , cfgMacroEnv :: MacroEnv
+  , cfgTypeCheck :: Bool  -- Enable type checking (disabled for now)
+  , cfgEffectCheck :: Bool  -- Enable effect checking (disabled for now)
+  , cfgLinearityCheck :: Bool  -- Enable linearity checking (disabled for now)
   }
 
 defaultConfig :: CompilerConfig
 defaultConfig = CompilerConfig
   { cfgTCO = True
   , cfgDebug = False
-  , cfgMacroEnv = defaultMacroEnv
+  , cfgTypeCheck = False  -- Disabled for now
+  , cfgEffectCheck = False  -- Disabled for now
+  , cfgLinearityCheck = False  -- Disabled for now
   }
 
+-- Convert ParseError to CompileError
+convertParseError :: ParseError -> CompileError
+convertParseError err = ParseError (show err) Nothing
+
+-- Compile Topineur source code to bytecode
 compile :: CompilerConfig -> String -> Either CompileError CodeObject
 compile config source = do
-  exprs <- parseFromString source
-  case exprs of
-    [] -> Left $ SyntaxError "Empty program" Nothing
-    sexprs -> do
-      let transformed = transformProgram sexprs
+  -- Phase 1: Parse Topineur source
+  topModule <- case parseTopineur source of
+    Left err -> Left (convertParseError err)
+    Right exprs -> Right exprs
 
-      expanded <- expandMacros (cfgMacroEnv config) transformed
+  -- Phase 5: Object desugaring
+  desugared <- desugarObjects topModule
 
-      expr <- sexprToExpr expanded
+  -- Phase 6: Convert to single expression and auto-call main if present
+  let expr = case desugared of
+        [] -> EInt 0
+        [EDefine "main" body] ->
+          -- Single main function: define and call it
+          case body of
+            ELambda [] bodyExpr ->
+              ELet "main" Nothing bodyExpr (EVar "main")
+            _ ->
+              ELet "main" Nothing body (EApp (EVar "main") [])
+        [e] -> e
+        es ->
+          -- Multiple definitions: chain them with let bindings and call main
+          let hasMain = any isMainDef es
+              isMainDef (EDefine "main" _) = True
+              isMainDef _ = False
+              buildLetChain [] =
+                -- Look for main and call it, or return 0
+                if hasMain then EApp (EVar "main") [] else EInt 0
+              buildLetChain (EDefine name body : rest) =
+                ELet name Nothing body (buildLetChain rest)
+              buildLetChain (expr : rest) =
+                -- Non-define expression: execute and continue
+                ELet "_tmp" Nothing expr (buildLetChain rest)
+          in buildLetChain es
 
-      renamed <- alphaRename expr
+  -- Phase 7: Desugar standard constructs
+  coreExpr <- desugarToCore expr
 
-      converted <- closureConvert renamed
+  -- Phase 8: Alpha renaming
+  renamed <- alphaRename coreExpr
 
-      let (mainCodeE, _) = generateCodeWithDefs "main" converted
-      mainCodeE
+  -- Phase 9: Closure conversion
+  converted <- closureConvert renamed
 
+  -- Phase 10: Code generation
+  let (mainCodeE, _) = generateCodeWithDefs "main" converted
+  mainCodeE
+
+-- Compile with nested definitions
 compileWithDefs :: CompilerConfig -> String -> Either CompileError (CodeObject, Map Name CodeObject)
 compileWithDefs config source = do
-  exprs <- parseFromString source
-  case exprs of
-    [] -> Left $ SyntaxError "Empty program" Nothing
-    sexprs -> do
-      let transformed = transformProgram sexprs
+  -- Phase 1: Parse
+  topModule <- case parseTopineur source of
+    Left err -> Left (convertParseError err)
+    Right exprs -> Right exprs
 
-      expanded <- expandMacros (cfgMacroEnv config) transformed
+  -- Phase 5: Object desugaring
+  desugared <- desugarObjects topModule
 
-      expr <- sexprToExpr expanded
+  -- Phase 6: Convert to single expression and auto-call main if present
+  let expr = case desugared of
+        [] -> EInt 0
+        [EDefine "main" body] ->
+          -- Single main function: define and call it
+          case body of
+            ELambda [] bodyExpr ->
+              ELet "main" Nothing bodyExpr (EVar "main")
+            _ ->
+              ELet "main" Nothing body (EApp (EVar "main") [])
+        [e] -> e
+        es ->
+          -- Multiple definitions: chain them with let bindings and call main
+          let hasMain = any isMainDef es
+              isMainDef (EDefine "main" _) = True
+              isMainDef _ = False
+              buildLetChain [] =
+                -- Look for main and call it, or return 0
+                if hasMain then EApp (EVar "main") [] else EInt 0
+              buildLetChain (EDefine name body : rest) =
+                ELet name Nothing body (buildLetChain rest)
+              buildLetChain (expr : rest) =
+                -- Non-define expression: execute and continue
+                ELet "_tmp" Nothing expr (buildLetChain rest)
+          in buildLetChain es
 
-      renamed <- alphaRename expr
+  -- Phase 7-10: Desugar, rename, convert, generate
+  coreExpr <- desugarToCore expr
+  renamed <- alphaRename coreExpr
+  converted <- closureConvert renamed
 
-      converted <- closureConvert renamed
+  let (mainCodeE, defs) = generateCodeWithDefs "main" converted
+  mainCode <- mainCodeE
+  return (mainCode, defs)
 
-      let (mainCodeE, defs) = generateCodeWithDefs "main" converted
-      mainCode <- mainCodeE
-      return (mainCode, defs)
-
-transformProgram :: [SExpr] -> SExpr
-transformProgram sexprs =
-  let (defines, others) = span isDefine sexprs
-      bindings = map extractBinding defines
-      body = case others of
-               [] -> SAtom (AInteger 0) Nothing
-               [e] -> e
-               es -> SList (SAtom (ASymbol "begin") Nothing : es) Nothing
-  in if null bindings
-     then body
-     else SList [SAtom (ASymbol "letrec") Nothing,
-                 SList (map toBinding bindings) Nothing,
-                 body] Nothing
-  where
-    isDefine (SList [SAtom (ASymbol "define") _, SAtom (ASymbol _) _, _] _) = True
-    isDefine (SList (SAtom (ASymbol "define") _ : SList (SAtom (ASymbol _) _ : _) _ : _ : _) _) = True
-    isDefine _ = False
-
-    extractBinding (SList (SAtom (ASymbol "define") _ : SAtom (ASymbol name) _ : [expr]) _) =
-      (name, expr)
-    extractBinding (SList (SAtom (ASymbol "define") _ : SList (SAtom (ASymbol name) _ : params) _ : body : _) loc) =
-      (name, SList [SAtom (ASymbol "lambda") Nothing, SList params Nothing, body] loc)
-    extractBinding _ = error "Invalid define (unreachable)"
-
-    toBinding (name, expr) =
-      SList [SAtom (ASymbol name) Nothing, expr] Nothing
-
+-- Compile a program with multiple top-level definitions
 compileProgram :: CompilerConfig -> String -> Either CompileError (Map.Map Name CodeObject)
 compileProgram config source = do
-  sexprs <- parseMultipleSExprs source
+  topModule <- case parseTopineur source of
+    Left err -> Left (convertParseError err)
+    Right exprs -> Right exprs
 
-  codeObjects <- mapM (compileTopLevel config) sexprs
+  -- Desugar and compile each top-level definition
+  desugared <- desugarObjects topModule
+  codeObjects <- mapM (compileTopLevel config) desugared
 
   Right $ Map.fromList codeObjects
 
-compileTopLevel :: CompilerConfig -> SExpr -> Either CompileError (Name, CodeObject)
-compileTopLevel config sexpr = do
-  expanded <- expandMacros (cfgMacroEnv config) sexpr
+-- Compile a single top-level definition
+compileTopLevel :: CompilerConfig -> Expr -> Either CompileError (Name, CodeObject)
+compileTopLevel config expr = do
+  coreExpr <- desugarToCore expr
 
-  expr <- sexprToExpr expanded
-
-  case expr of
+  case coreExpr of
     EDefine name body -> do
       renamed <- alphaRename body
-
       converted <- closureConvert renamed
-
       code <- generateCode name converted
       Right (name, code)
-
     _ -> Left $ SyntaxError "Top-level must be define" Nothing
 
-parseMultipleSExprs :: String -> Either CompileError [SExpr]
-parseMultipleSExprs = parseFromString
+-- Desugar standard constructs (from the old Desugar module)
+-- This handles remaining constructs after object desugaring
+desugarToCore :: Expr -> Either CompileError Expr
+desugarToCore = sexprToExpr . exprToSExpr
+
+-- Temporary conversion functions (simplified)
+exprToSExpr :: Expr -> SExpr
+exprToSExpr (EInt i) = SAtom (AInteger i) Nothing
+exprToSExpr (EFloat f) = SAtom (AFloat f) Nothing
+exprToSExpr (EBool b) = SAtom (ABool b) Nothing
+exprToSExpr (EString s) = SAtom (AString s) Nothing
+exprToSExpr (EVar n) = SAtom (ASymbol n) Nothing
+exprToSExpr (EList exprs) = SList (map exprToSExpr exprs) Nothing
+exprToSExpr (ELambda params body) =
+  SList [SAtom (ASymbol "lambda") Nothing,
+         SList (map (\p -> SAtom (ASymbol p) Nothing) params) Nothing,
+         exprToSExpr body] Nothing
+exprToSExpr (EDefine name expr) =
+  SList [SAtom (ASymbol "define") Nothing,
+         SAtom (ASymbol name) Nothing,
+         exprToSExpr expr] Nothing
+exprToSExpr (EIf cond thenE elseE) =
+  SList [SAtom (ASymbol "if") Nothing,
+         exprToSExpr cond,
+         exprToSExpr thenE,
+         exprToSExpr elseE] Nothing
+exprToSExpr (EApp func args) =
+  SList (exprToSExpr func : map exprToSExpr args) Nothing
+exprToSExpr (EQuote s) = SList [SAtom (ASymbol "quote") Nothing, s] Nothing
+exprToSExpr (ELet name _ valExpr body) =
+  SList [SAtom (ASymbol "let") Nothing,
+         SList [SList [SAtom (ASymbol name) Nothing, exprToSExpr valExpr] Nothing] Nothing,
+         exprToSExpr body] Nothing
+exprToSExpr (EBlock exprs) =
+  case exprs of
+    [] -> exprToSExpr (EInt 0)
+    [e] -> exprToSExpr e
+    es -> SList (SAtom (ASymbol "begin") Nothing : map exprToSExpr es) Nothing
+-- Topineur constructs should be desugared already
+exprToSExpr e = error $ "Unexpected Topineur construct in desugarToCore: " ++ show e
