@@ -1,0 +1,24 @@
+package main
+
+|- Naive recursive Fibonacci for quick experiments
+
+@cache
+def fib(n: Int): Int {
+  if n <= 1 then top n |- Ifs can also be of multiple lines with one more indentation after then (same for else)
+  else top fib(n - 1) + fib(n - 2) |- Else is optional
+}
+
+def main(): Int {
+  let f = fib(10)
+  println("fib(10) = " ++ show(f))
+
+  while f < 100 do
+      f = f + 1
+  end
+
+  for i in 0..f do
+      println(show(i))
+  end
+
+  top 42
+}

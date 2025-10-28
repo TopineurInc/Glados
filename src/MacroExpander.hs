@@ -5,8 +5,6 @@
 -- MacroExpander
 -}
 
-{-# LANGUAGE LambdaCase #-}
-
 module MacroExpander
   ( expandMacros
   , MacroEnv

@@ -12,7 +12,7 @@
                     },
                     {
                         "name": "AST Flag",
-                        "command": "./glados --ast examples/div_call.lisp",
+                        "command": "./glados --ast examples/lisp/div_call.lisp",
                         "output": "*",
                         "return": 0
                     }
@@ -20,40 +20,40 @@
                 "Parsing": [
                     {
                         "name": "Simple call S-Expressions",
-                        "command": "./glados --ast examples/div_call.lisp",
+                        "command": "./glados --ast examples/lisp/div_call.lisp",
                         "grep": "SList [SAtom (ASymbol \"div\") (Just (SourcePos {spLine = 1, spCol = 2})),SAtom (AInteger 10) (Just (SourcePos {spLine = 1, spCol = 6})),SAtom (AInteger 2) (Just (SourcePos {spLine = 1, spCol = 9}))] (Just (SourcePos {spLine = 1, spCol = 1}))",
                         "return": 0
                     },
                     {
                         "name": "Simple call AST",
-                        "command": "./glados --ast examples/div_call.lisp",
+                        "command": "./glados --ast examples/lisp/div_call.lisp",
                         "grep": "EApp (EVar \"div\") [EInt 10,EInt 2]",
                         "return": 0
                     },
                     {
                         "name": "Missing closing parenthesis",
-                        "command": "./glados examples/missing_closing_parenthesis.lisp",
+                        "command": "./glados examples/lisp/missing_closing_parenthesis.lisp",
                         "std": "stderr",
                         "grep": "ParseError",
                         "return": 84
                     },
                     {
                         "name": "Missing closing quote",
-                        "command": "./glados examples/missing_closing_quote.lisp",
+                        "command": "./glados examples/lisp/missing_closing_quote.lisp",
                         "std": "stderr",
                         "grep": "ParseError",
                         "return": 84
                     },
                     {
                         "name": "Missing opening parenthesis",
-                        "command": "./glados examples/missing_closing_quote.lisp",
+                        "command": "./glados examples/lisp/missing_closing_quote.lisp",
                         "std": "stderr",
                         "grep": "ParseError",
                         "return": 84
                     },
                     {
                         "name": "String escaping",
-                        "command": "./glados examples/string_escape.lisp",
+                        "command": "./glados examples/lisp/string_escape.lisp",
                         "std": "stderr",
                         "grep": "ParseError",
                         "return": 84
@@ -68,37 +68,37 @@
                     },
                     {
                         "name": "Empty file",
-                        "command": "./glados examples/empty_file.lisp",
+                        "command": "./glados examples/lisp/empty_file.lisp",
                         "output": "*",
                         "return": 84
                     },
                     {
                         "name": "Not bound variable",
-                        "command": "./glados examples/not_bound_variable.lisp",
+                        "command": "./glados examples/lisp/not_bound_variable.lisp",
                         "output": "*",
                         "return": 84
                     },
                     {
                         "name": "Missing if branch",
-                        "command": "./glados examples/missing_if_branch.lisp",
+                        "command": "./glados examples/lisp/missing_if_branch.lisp",
                         "output": "*",
                         "return": 84
                     },
                     {
                         "name": "Empty define",
-                        "command": "./glados examples/empty_define.lisp",
+                        "command": "./glados examples/lisp/empty_define.lisp",
                         "output": "*",
                         "return": 84
                     },
                     {
                         "name": "Empty definition",
-                        "command": "./glados examples/empty_definition.lisp",
+                        "command": "./glados examples/lisp/empty_definition.lisp",
                         "output": "*",
                         "return": 84
                     },
                     {
                         "name": "Invalid eq",
-                        "command": "./glados examples/invalid_eq.lisp",
+                        "command": "./glados examples/lisp/invalid_eq.lisp",
                         "output": "*",
                         "return": 84
                     }
@@ -106,145 +106,145 @@
                 "Functional-Tests": [
                     {
                         "name": "Hello world",
-                        "command": "./glados examples/hello.lisp",
+                        "command": "./glados examples/lisp/hello.lisp",
                         "output": "Hello, world!\n",
                         "return": 0
                     },
                     {
                         "name": "Add",
-                        "command": "./glados examples/add.lisp",
+                        "command": "./glados examples/lisp/add.lisp",
                         "output": "7\n",
                         "return": 0
                     },
                     {
                         "name": "Define constant number",
-                        "command": "./glados examples/simple_operation_define_number.lisp",
+                        "command": "./glados examples/lisp/simple_operation_define_number.lisp",
                         "output": "42\n",
                         "return": 0
                     },
                     {
                         "name": "Define constant number",
-                        "command": "./glados examples/simple_operation_define_number.lisp",
+                        "command": "./glados examples/lisp/simple_operation_define_number.lisp",
                         "output": "42\n",
                         "return": 0
                     },
                     {
                         "name": "Print number",
-                        "command": "./glados examples/print_number.lisp",
+                        "command": "./glados examples/lisp/print_number.lisp",
                         "output": "x = 123\n",
                         "return": 0
                     },
                     {
                         "name": "Factorial 5",
-                        "command": "./glados examples/factorial_5.lisp",
+                        "command": "./glados examples/lisp/factorial_5.lisp",
                         "output": "120\n",
                         "return": 0
                     },
                     {
                         "name": "Factorial 10",
-                        "command": "./glados examples/factorial_10.lisp",
+                        "command": "./glados examples/lisp/factorial_10.lisp",
                         "output": "3628800\n",
                         "return": 0
                     },
                     {
                         "name": "Factorial 100",
-                        "command": "./glados examples/factorial_100.lisp",
+                        "command": "./glados examples/lisp/factorial_100.lisp",
                         "output": "93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000\n",
                         "return": 0
                     },
                     {
                         "name": "Simple div call",
-                        "command": "./glados examples/div_call.lisp",
+                        "command": "./glados examples/lisp/div_call.lisp",
                         "output": "5\n",
                         "return": 0
                     },
                     {
                         "name": "Lambda 1",
-                        "command": "./glados < examples/lambda1.lisp",
+                        "command": "./glados < examples/lisp/lambda1.lisp",
                         "output": "#<procedure>\n",
                         "return": 0
                     },
                     {
                         "name": "Lambda 2",
-                        "command": "./glados < examples/lambda2.lisp",
+                        "command": "./glados < examples/lisp/lambda2.lisp",
                         "output": "3\n",
                         "return": 0
                     },
                     {
                         "name": "Lambda 3",
-                        "command": "./glados < examples/lambda3.lisp",
+                        "command": "./glados < examples/lisp/lambda3.lisp",
                         "output": "7\n",
                         "return": 0
                     },
                     {
                         "name": "If 1",
-                        "command": "./glados < examples/if1.lisp",
+                        "command": "./glados < examples/lisp/if1.lisp",
                         "output": "1\n",
                         "return": 0
                     },
                     {
                         "name": "If 2",
-                        "command": "./glados < examples/if2.lisp",
+                        "command": "./glados < examples/lisp/if2.lisp",
                         "output": "2\n",
                         "return": 0
                     },
                     {
                         "name": "If 3",
-                        "command": "./glados < examples/if3.lisp",
+                        "command": "./glados < examples/lisp/if3.lisp",
                         "output": "21\n",
                         "return": 0
                     },
                     {
                         "name": "Builtins 1",
-                        "command": "./glados < examples/builtins1.lisp",
+                        "command": "./glados < examples/lisp/builtins1.lisp",
                         "output": "11\n",
                         "return": 0
                     },
                     {
                         "name": "Builtins 2",
-                        "command": "./glados < examples/builtins2.lisp",
+                        "command": "./glados < examples/lisp/builtins2.lisp",
                         "output": "#t\n",
                         "return": 0
                     },
                     {
                         "name": "Builtins 3",
-                        "command": "./glados < examples/builtins3.lisp",
+                        "command": "./glados < examples/lisp/builtins3.lisp",
                         "output": "#f\n",
                         "return": 0
                     },
                     {
                         "name": "Superior",
-                        "command": "./glados < examples/superior.lisp",
+                        "command": "./glados < examples/lisp/superior.lisp",
                         "output": "#t\n",
                         "return": 0
                     },
                     {
                         "name": "Print float",
-                        "command": "./glados < examples/print_float.lisp",
+                        "command": "./glados < examples/lisp/print_float.lisp",
                         "output": "x = 1.2\n",
                         "return": 0
                     },
                     {
                         "name": "Fibonacci 5",
-                        "command": "./glados examples/fibonacci_5.lisp",
+                        "command": "./glados examples/lisp/fibonacci_5.lisp",
                         "output": "5\n",
                         "return": 0
                     },
                     {
                         "name": "Fibonacci 10",
-                        "command": "./glados examples/fibonacci_10.lisp",
+                        "command": "./glados examples/lisp/fibonacci_10.lisp",
                         "output": "55\n",
                         "return": 0
                     },
                     {
                         "name": "Fibonacci 100",
-                        "command": "./glados examples/fibonacci_100.lisp",
+                        "command": "./glados examples/lisp/fibonacci_100.lisp",
                         "output": "354224848179261915075\n",
                         "return": 0
                     },
                     {
                         "name": "ID",
-                        "command": "./glados examples/id.lisp",
+                        "command": "./glados examples/lisp/id.lisp",
                         "output": "2\n",
                         "return": 0
                     }
