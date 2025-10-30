@@ -42,6 +42,7 @@ library:
   exposed-modules:
     - AST
     - SExprParser
+    - TopineurParser
     - MacroExpander
     - Desugar
     - AlphaRename
@@ -77,6 +78,7 @@ tests:
     - Test.DesugarSpec
     - Test.SExprParserSpec
     - Test.VMSpec
+    - Test.TopineurParserSpec
     ghc-options:
     - -threaded
     - -rtsopts

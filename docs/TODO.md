@@ -24,8 +24,8 @@ AST extensions (src/AST.hs):
 
 Parser (new: src/TopineurParser.hs):
 - [ ] Implement lexer (idents, keywords, numbers int/float, strings, operators, punctuation)
-- [ ] Implement comments (lines starting with "|-" and regular whitespace/comments)
-- [ ] Parse: `package` header
+- [x] Implement comments (lines starting with "|-" and regular whitespace)
+- [x] Parse: `package` header
 - [ ] Parse: `let name: Type = expr` (and mutable reassignment later)
 - [ ] Parse: `def f(a: T, b: U): R { body }`
 - [ ] Parse: `@annotation` before defs and lambdas; `fun (x: T): R -> expr`
@@ -40,6 +40,7 @@ Parser (new: src/TopineurParser.hs):
 Integration:
 - [ ] Detect .top files in app/Main.hs and route to TopineurParser for AST dump modes
 - [ ] Add golden test: parse examples/all.top → snapshot AST/pretty
+- [x] Wire new Topineur parser test into test runner
 
 ---
 
@@ -114,6 +115,10 @@ Examples/CI:
 - Interop between Lisp and Topineur (shared builtins? cross-call?)
 - REPL scope: Lisp-only or accept Topineur snippets?
 - Indexing base (0 vs. 1) and error behavior on bounds
+
+Build tooling:
+- [ ] Decide on Hpack vs Cabal single source of truth (currently glados.cabal overrides package.yaml)
+- [x] Ensure new modules/tests are added to glados.cabal when introduced
 
 ---
 

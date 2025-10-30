@@ -27,6 +27,7 @@ library
   exposed-modules:
       AST
       SExprParser
+      TopineurParser
       MacroExpander
       Desugar
       AlphaRename
@@ -81,8 +82,10 @@ test-suite glados-test
       Test.CodeGenSpec
       Test.CompilerSpec
       Test.DesugarSpec
+      Test.MacroExpanderSpec
       Test.SExprParserSpec
       Test.VMSpec
+      Test.TopineurParserSpec
   hs-source-dirs:
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
