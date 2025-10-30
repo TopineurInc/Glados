@@ -13,11 +13,13 @@ import qualified Test.SExprParserSpec as SExprParserSpec
 import qualified Test.VMSpec as VMSpec
 import qualified Test.MacroExpanderSpec as MacroExpanderSpec
 import qualified Test.TopineurParserSpec as TopineurParserSpec
+import qualified Test.TopineurTypeSpec as TopineurTypeSpec
 
 allTests :: Test
 allTests = TestList
   [ TestLabel "SExpr Parser" SExprParserSpec.tests
   , TestLabel "Topineur Parser" TopineurParserSpec.tests
+  , TestLabel "Topineur Type" TopineurTypeSpec.tests
   , TestLabel "Macro Expander" MacroExpanderSpec.tests
   , TestLabel "Desugar" DesugarSpec.tests
   , TestLabel "Alpha Rename" AlphaRenameSpec.tests

@@ -26,6 +26,7 @@ Parser (new: src/TopineurParser.hs):
 - [ ] Implement lexer (idents, keywords, numbers int/float, strings, operators, punctuation)
 - [x] Implement comments (lines starting with "|-" and regular whitespace)
 - [x] Parse: `package` header
+- [x] Parse: type annotations (primitives, List[T], Tuple[...], custom, TVar)
 - [ ] Parse: `let name: Type = expr` (and mutable reassignment later)
 - [ ] Parse: `def f(a: T, b: U): R { body }`
 - [ ] Parse: `@annotation` before defs and lambdas; `fun (x: T): R -> expr`
@@ -93,7 +94,9 @@ Integration:
 ## Phase 5 — Tests, docs, examples
 
 Tests:
-- [ ] Unit tests for TopineurParser (happy + error paths)
+- [x] Unit tests: parser skeleton (package/comments)
+- [x] Unit tests: type parser (primitives, generics, custom, errors)
+- [ ] Unit tests: declarations/expressions/control flow/objects/operators/lists/tuples
 - [ ] Golden tests for pretty-printed AST
 - [ ] Typechecker tests
 - [ ] Runtime E2E tests for Topineur programs (fibonacci, quicksort, geometry)
