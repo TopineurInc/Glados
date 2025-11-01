@@ -17,7 +17,7 @@
                         "return": 0
                     }
                 ],
-                "Parsing": [
+                "Lisp-Parsing": [
                     {
                         "name": "Simple call S-Expressions",
                         "command": "./glados --ast examples/lisp/div_call.lisp",
@@ -57,6 +57,44 @@
                         "std": "stderr",
                         "grep": "ParseError",
                         "return": 84
+                    }
+                ],
+                "Topineur-Parsing": [
+                    {
+                        "name": "No package definition",
+                        "command": "./glados --parse-top examples/topineur/no-package.top",
+                        "output": "*",
+                        "return": 84
+                    },
+                    {
+                        "name": "Simple main package",
+                        "command": "./glados --parse-top examples/topineur/simple-main.top",
+                        "grep": "EApp (EVar \"div\") [EInt 10,EInt 2]",
+                        "return": 0
+                    },
+                    {
+                        "name": "Object type parsing with lambda functions",
+                        "command": "./glados --parse-top examples/topineur/objects.top",
+                        "output": "*",
+                        "return": 84
+                    },
+                    {
+                        "name": "Fibonacci",
+                        "command": "./glados --parse-top examples/topineur/fibonacci.top",
+                        "output": "*",
+                        "return": 0
+                    },
+                    {
+                        "name": "Iterative and Recursive Factorial",
+                        "command": "./glados --parse-top examples/topineur/factorial.top",
+                        "output": "*",
+                        "return": 0
+                    },
+                    {
+                        "name": "Import statements",
+                        "command": "./glados --parse-top examples/topineur/import-statements.top",
+                        "output": "*",
+                        "return": 0
                     }
                 ],
                 "Error-Handling": [

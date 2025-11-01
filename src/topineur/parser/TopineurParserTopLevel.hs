@@ -11,7 +11,7 @@ module TopineurParserTopLevel
   , decl
   ) where
 
-import Control.Applicative (many)
+import Control.Applicative (many, (*>), (<*))
 import Data.List (intercalate)
 import Text.Parsec
     ( (<|>)
@@ -38,7 +38,8 @@ blockBraced = do
   pos <- getPosition
   _ <- symbol "{"
   _ <- newline1
-  ss <- many (stmt <* optional newline1)
+  ss <- many (whitespaceWithComments *> stmt <* whitespaceWithComments)
+  whitespaceWithComments
   _ <- symbol "}"
   return (Block (toLoc pos) ss)
 
@@ -70,7 +71,8 @@ objectTypeDecl = do
   (l, n) <- ident
   _ <- symbol "{"
   whitespaceWithComments
-  mems <- many (objMember <* optional newline1)
+  mems <- many (whitespaceWithComments *> objMember)
+  whitespaceWithComments
   _ <- symbol "}"
   return (DObjectType l n mems)
 

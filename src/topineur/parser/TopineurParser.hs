@@ -14,15 +14,12 @@ import qualified Text.Parsec as P
 import Text.Parsec
   ( ParseError
     , eof
-    , optional
     , runParser
-    , sourceColumn
-    , sourceLine
     , try
     , (<?>)
     )
 
-import AST (CompileError(..), SourcePos(..), Loc)
+import AST (CompileError(..))
 import TopineurParserTypes
 import TopineurParserUtils
 import TopineurParserTopLevel
@@ -34,7 +31,7 @@ topineur = do
   whitespaceWithComments
   imps <- many (try importLine)
   whitespaceWithComments
-  ds <- many (decl <* optional newline1)
+  ds <- many (decl <* whitespaceWithComments)
   eof
   return (Topineur pkg imps ds)
 

@@ -1,0 +1,5 @@
+package main
+
+def main(): Int {
+    top 0
+}
