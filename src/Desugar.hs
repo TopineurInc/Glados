@@ -57,7 +57,7 @@ sexprToExpr = \case
     (names, vals) <- desugarBindings bindings
     vals' <- mapM sexprToExpr vals
     b <- sexprToExpr body
-    let defines = zipWith (\name val -> EDefine name val) names vals'
+    let defines = zipWith (\name val -> EDefine name val []) names vals'
     Right $ EList (defines ++ [b])
 
   SList (SAtom (ASymbol "begin") _ : exprs) _ -> do

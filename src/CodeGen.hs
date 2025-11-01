@@ -139,7 +139,7 @@ compileExpr (EIf cond thenE elseE) = do
   finalIdx <- gets (length . cgsInstructions)
   patchJump (endLabelIdx - 1) finalIdx
 
-compileExpr (ELambda params _retType body ann) = do
+compileExpr (ELambda params _retType body _) = do
   lambdaName <- freshName "lambda#"
   codeObj <- compileLambda lambdaName (map fst params) body
   modify $ \s -> s { cgsCodeObjects = Map.insert lambdaName codeObj (cgsCodeObjects s) }
@@ -177,7 +177,7 @@ compileExpr (EApp func args) =
     >> mapM_ compileExpr args
     >> emit (ICall (length args) "<lambda>")
 
-compileExpr (EDefine name expr ann) =
+compileExpr (EDefine name expr _) =
   case expr of
     ELambda params _retType body _ann -> do
       codeObj <- compileLambda name (map fst params) body
