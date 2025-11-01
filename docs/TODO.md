@@ -43,14 +43,17 @@
   - Add: `EWhile Expr Expr` (condition, body)
   - Add: `EFor Name Expr Expr Expr` (variable, start, end, body)
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - EWhile and EFor added to Expr, AlphaRename and ClosureConversion implemented
 
 - [x] **5. Add `ERange` expression**
   - Add: `ERange Expr Expr` for `start..end` syntax
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - ERange added to Expr, AlphaRename and ClosureConversion implemented
 
 - [x] **6. Add `EReturn` expression**
   - Add: `EReturn Expr` for explicit `top` keyword
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - EReturn added to Expr, AlphaRename and ClosureConversion implemented
 
 ### Phase 3: Operators
 
@@ -58,11 +61,13 @@
   - Add: `EBinOp BinOp Expr Expr`
   - Define: `BinOp = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Gt | Lte | Gte | And | Or | Concat`
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - EBinOp and BinOp added to AST (note: Mod not added but can be easily added), AlphaRename and ClosureConversion implemented
 
 - [x] **8. Add unary operators to `Expr`**
   - Add: `EUnOp UnOp Expr`
   - Define: `UnOp = Not | Neg`
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - EUnOp and UnOp added to AST, AlphaRename and ClosureConversion implemented
 
 ### Phase 4: Data Structures
 
@@ -70,20 +75,24 @@
   - Add: `ETuple [Expr]` for tuple creation
   - Add: `ETupleDestruct [Name] Expr Expr` for destructuring
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - ETuple and ETupleDestruct added to Expr, AlphaRename and ClosureConversion implemented
 
 - [x] **10. Add native list support**
   - Add: `EListLiteral [Expr] (Maybe Type)` distinct from `EList`
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - EListLiteral added to Expr, AlphaRename and ClosureConversion implemented
 
 - [x] **11. Add indexing support**
   - Add: `EIndex Expr Expr` for `list[index]` syntax
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - EIndex added to Expr, AlphaRename and ClosureConversion implemented
 
 ### Phase 5: Mutability
 
 - [x] **12. Add assignment expression**
   - Add: `EAssign Name Expr` for mutable variable reassignment
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - EAssign added to Expr, AlphaRename and ClosureConversion implemented
 
 ### Phase 6: Objects
 
@@ -92,14 +101,17 @@
   - Define: `Field = (Name, Type, Maybe Expr)` (name, type, default value)
   - Define: `Method = (Name, [(Name, Type)], Type, Expr)` (name, params, return type, body)
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - EObjectDecl, Field, and Method added to AST, AlphaRename and ClosureConversion implemented
 
 - [x] **14. Add object instantiation**
   - Add: `EObjectInst Name [(Name, Expr)]` for creating instances
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - EObjectInst added to Expr, AlphaRename and ClosureConversion implemented
 
 - [x] **15. Add member access**
   - Add: `EMemberAccess Expr Name` for field/method access
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - EMemberAccess added to Expr, AlphaRename and ClosureConversion implemented
 
 ### Phase 7: Annotations & Modules
 
@@ -107,11 +119,13 @@
   - Add: `Annotation = Cache | Custom String`
   - Add `[Annotation]` field to `EDefine` and `ELambda`
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - Annotation data type added, EDefine and ELambda now have [Annotation] parameter
 
 - [x] **17. Add module/package support**
   - Add: `EPackage Name` for package declarations
   - Add: `EImport Name` for imports
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - EPackage and EImport added to Expr, AlphaRename and ClosureConversion implemented
 
 ### Phase 8: Runtime Values
 
@@ -121,29 +135,35 @@
   - Add: `VTuple [Value]` for native tuples
   - Add: `VObject Name (Map Name Value)` for object instances
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - VUnit, VList, VTuple, and VObject added to Value data type with Eq and Show instances
 
 ### Phase 9: Bytecode Instructions
 
 - [x] **19. Add control flow instructions to `Instr`**
   - Add: `IWhile`, `IFor`, `IBreak`, `IContinue`
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - IWhile, IFor, IBreak, IContinue added to Instr data type
 
 - [x] **20. Add data structure instructions**
   - Add: `ITupleCreate Int`, `ITupleGet Int`
   - Add: `IListCreate Int`, `IListGet`, `IListSet`
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - ITupleCreate, ITupleGet, IListCreate, IListGet, IListSet added to Instr
 
 - [x] **21. Add object instructions**
   - Add: `ICreateObject Name`, `IGetMember Name`, `ISetMember Name`
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - IObjectCreate, IMemberGet, IMemberSet added to Instr (note: IObjectCreate instead of ICreateObject)
 
 - [x] **22. Add assignment instruction**
   - Add: `IAssign Int` for mutable variable update
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - IAssign added to Instr
 
 - [x] **23. Add range instruction**
   - Add: `IRangeCreate` for range iteration
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - IRangeCreate added to Instr
 
 ---
 

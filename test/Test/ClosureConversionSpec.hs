@@ -10,8 +10,8 @@ import ClosureConversion
 
 -- Helper pattern for Lisp-style lambda (without type annotations)
 pattern LispLambda :: [Name] -> Expr -> Expr
-pattern LispLambda params body <- ELambda (map fst -> params) Nothing body
-  where LispLambda params body = ELambda (map (\p -> (p, Nothing)) params) Nothing body
+pattern LispLambda params body <- ELambda (map fst -> params) Nothing body _
+  where LispLambda params body = ELambda (map (\p -> (p, Nothing)) params) Nothing body []
 
 tests :: Test
 tests = TestList
@@ -41,11 +41,11 @@ testClosureConversionLambda = TestList
 
 testClosureConversionDefine :: Test
 testClosureConversionDefine = TestList
-  [ "convert simple define" ~: closureConvert (EDefine "x" (EInt 42)) ~?= Right (EDefine "x" (EInt 42))
-  , "convert define with lambda" ~: closureConvert (EDefine "f" (LispLambda ["x"] (EVar "x"))) ~?= Right (EDefine "f" (LispLambda ["x"] (EVar "x")))
-  , "convert define with expression" ~: closureConvert (EDefine "result" (EApp (EVar "+") [EInt 1, EInt 2])) ~?= Right (EDefine "result" (EApp (EVar "+") [EInt 1, EInt 2]))
-  , "convert recursive define" ~: closureConvert (EDefine "fact" (LispLambda ["n"] (EApp (EVar "fact") [EVar "n"]))) ~?= Right (EDefine "fact" (LispLambda ["n"] (EApp (EVar "fact") [EVar "n"])))
-  , "convert multiple defines" ~: closureConvert (EList [EDefine "x" (EInt 1), EDefine "y" (EInt 2)]) ~?= Right (EList [EDefine "x" (EInt 1), EDefine "y" (EInt 2)])
+  [ "convert simple define" ~: closureConvert (EDefine "x" (EInt 42) []) ~?= Right (EDefine "x" (EInt 42) [])
+  , "convert define with lambda" ~: closureConvert (EDefine "f" (LispLambda ["x"] (EVar "x")) []) ~?= Right (EDefine "f" (LispLambda ["x"] (EVar "x")) [])
+  , "convert define with expression" ~: closureConvert (EDefine "result" (EApp (EVar "+") [EInt 1, EInt 2]) []) ~?= Right (EDefine "result" (EApp (EVar "+") [EInt 1, EInt 2]) [])
+  , "convert recursive define" ~: closureConvert (EDefine "fact" (LispLambda ["n"] (EApp (EVar "fact") [EVar "n"])) []) ~?= Right (EDefine "fact" (LispLambda ["n"] (EApp (EVar "fact") [EVar "n"])) [])
+  , "convert multiple defines" ~: closureConvert (EList [EDefine "x" (EInt 1) [], EDefine "y" (EInt 2) []]) ~?= Right (EList [EDefine "x" (EInt 1) [], EDefine "y" (EInt 2) []])
   ]
 
 testClosureConversionOther :: Test
@@ -53,6 +53,6 @@ testClosureConversionOther = TestList
   [ "convert if expression" ~: closureConvert (EIf (EBool True) (EInt 1) (EInt 2)) ~?= Right (EIf (EBool True) (EInt 1) (EInt 2))
   , "convert application" ~: closureConvert (EApp (EVar "f") [EInt 1]) ~?= Right (EApp (EVar "f") [EInt 1])
   , "convert list" ~: closureConvert (EList [EInt 1, EInt 2]) ~?= Right (EList [EInt 1, EInt 2])
-  , "convert nested structures" ~: closureConvert (EList [EDefine "f" (LispLambda ["x"] (EVar "x")), EApp (EVar "f") [EInt 42]]) ~?= Right (EList [EDefine "f" (LispLambda ["x"] (EVar "x")), EApp (EVar "f") [EInt 42]])
-  , "convert complex expression" ~: closureConvert (LispLambda ["x"] (EList [EDefine "y" (EVar "x"), EVar "y"])) ~?= Right (LispLambda ["x"] (EList [EDefine "y" (EVar "x"), EVar "y"]))
+  , "convert nested structures" ~: closureConvert (EList [EDefine "f" (LispLambda ["x"] (EVar "x")) [], EApp (EVar "f") [EInt 42]]) ~?= Right (EList [EDefine "f" (LispLambda ["x"] (EVar "x")) [], EApp (EVar "f") [EInt 42]])
+  , "convert complex expression" ~: closureConvert (LispLambda ["x"] (EList [EDefine "y" (EVar "x") [], EVar "y"])) ~?= Right (LispLambda ["x"] (EList [EDefine "y" (EVar "x") [], EVar "y"]))
   ]

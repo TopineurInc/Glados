@@ -20,6 +20,7 @@ module AST
   , UnOp(..)
   , Field(..)
   , Method(..)
+  , Annotation(..)
   , Expr(..)
   , ANF(..)
   , Constant(..)

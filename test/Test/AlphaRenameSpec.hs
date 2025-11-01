@@ -10,7 +10,7 @@ import AlphaRename
 
 -- Helper pattern for Lisp-style lambda (without type annotations)
 pattern LispLambda :: [Name] -> Expr -> Expr
-pattern LispLambda params body <- ELambda (map fst -> params) Nothing body
+pattern LispLambda params body <- ELambda (map fst -> params) Nothing body _
   where LispLambda params body = ELambda (map (\p -> (p, Nothing)) params) Nothing body []
 
 tests :: Test
@@ -58,48 +58,48 @@ testAlphaRenameLambda = TestList
 
 testAlphaRenameDefine :: Test
 testAlphaRenameDefine = TestList
-  [ "rename simple define" ~: case alphaRename (EDefine "x" (EInt 42)) of
-      Right (EDefine newName (EInt 42)) | newName /= "x" -> True
+  [ "rename simple define" ~: case alphaRename (EDefine "x" (EInt 42) []) of
+      Right (EDefine newName (EInt 42) []) | newName /= "x" -> True
       _ -> False
       ~? "Should rename define"
-  , "rename define with lambda" ~: case alphaRename (EDefine "f" (LispLambda ["x"] (EVar "x"))) of
-      Right (EDefine f' (LispLambda [x'] (EVar xVar))) | f' /= "f" && x' == xVar -> True
+  , "rename define with lambda" ~: case alphaRename (EDefine "f" (LispLambda ["x"] (EVar "x")) []) of
+      Right (EDefine f' (LispLambda [x'] (EVar xVar)) []) | f' /= "f" && x' == xVar -> True
       _ -> False
       ~? "Should rename define with lambda"
-  , "rename define with expression" ~: case alphaRename (EDefine "result" (EApp (EVar "+") [EInt 1, EInt 2])) of
-      Right (EDefine newName (EApp (EVar "+") [EInt 1, EInt 2])) | newName /= "result" -> True
+  , "rename define with expression" ~: case alphaRename (EDefine "result" (EApp (EVar "+") [EInt 1, EInt 2]) []) of
+      Right (EDefine newName (EApp (EVar "+") [EInt 1, EInt 2]) []) | newName /= "result" -> True
       _ -> False
       ~? "Should rename define with expr"
-  , "rename multiple defines" ~: case alphaRename (EList [EDefine "x" (EInt 1), EDefine "y" (EInt 2)]) of
-      Right (EList [EDefine x' (EInt 1), EDefine y' (EInt 2)]) | x' /= "x" && y' /= "y" && x' /= y' -> True
+  , "rename multiple defines" ~: case alphaRename (EList [EDefine "x" (EInt 1) [], EDefine "y" (EInt 2) []]) of
+      Right (EList [EDefine x' (EInt 1) [], EDefine y' (EInt 2) []]) | x' /= "x" && y' /= "y" && x' /= y' -> True
       _ -> False
       ~? "Should rename multiple defines"
-  , "rename define referencing previous" ~: case alphaRename (EList [EDefine "x" (EInt 1), EDefine "y" (EVar "x")]) of
-      Right (EList [EDefine x' (EInt 1), EDefine y' (EVar xRef)]) | x' == xRef && y' /= "y" -> True
+  , "rename define referencing previous" ~: case alphaRename (EList [EDefine "x" (EInt 1) [], EDefine "y" (EVar "x") []]) of
+      Right (EList [EDefine x' (EInt 1) [], EDefine y' (EVar xRef) []]) | x' == xRef && y' /= "y" -> True
       _ -> False
       ~? "Should rename with correct references"
   ]
 
 testAlphaRenameLetrec :: Test
 testAlphaRenameLetrec = TestList
-  [ "rename letrec with recursive function" ~: case alphaRename (EList [EDefine "fact" (LispLambda ["n"] (EApp (EVar "fact") [EVar "n"]))]) of
-      Right (EList [EDefine fact' (LispLambda [n'] (EApp (EVar factRef) [EVar nRef]))]) | fact' == factRef && n' == nRef -> True
+  [ "rename letrec with recursive function" ~: case alphaRename (EList [EDefine "fact" (LispLambda ["n"] (EApp (EVar "fact") [EVar "n"])) []]) of
+      Right (EList [EDefine fact' (LispLambda [n'] (EApp (EVar factRef) [EVar nRef])) []]) | fact' == factRef && n' == nRef -> True
       _ -> False
       ~? "Should handle recursive reference"
-  , "rename letrec with mutual recursion" ~: case alphaRename (EList [EDefine "even?" (LispLambda ["n"] (EApp (EVar "odd?") [EVar "n"])), EDefine "odd?" (LispLambda ["n"] (EApp (EVar "even?") [EVar "n"]))]) of
-      Right (EList [EDefine even' (LispLambda [n1] (EApp (EVar oddRef) [EVar n1Ref])), EDefine odd' (LispLambda [n2] (EApp (EVar evenRef) [EVar n2Ref]))]) | even' == evenRef && odd' == oddRef && n1 == n1Ref && n2 == n2Ref -> True
+  , "rename letrec with mutual recursion" ~: case alphaRename (EList [EDefine "even?" (LispLambda ["n"] (EApp (EVar "odd?") [EVar "n"])) [], EDefine "odd?" (LispLambda ["n"] (EApp (EVar "even?") [EVar "n"])) []]) of
+      Right (EList [EDefine even' (LispLambda [n1] (EApp (EVar oddRef) [EVar n1Ref])) [], EDefine odd' (LispLambda [n2] (EApp (EVar evenRef) [EVar n2Ref])) []]) | even' == evenRef && odd' == oddRef && n1 == n1Ref && n2 == n2Ref -> True
       _ -> False
       ~? "Should handle mutual recursion"
-  , "rename letrec with body using defines" ~: case alphaRename (EList [EDefine "f" (LispLambda [] (EInt 1)), EApp (EVar "f") []]) of
-      Right (EList [EDefine f' (LispLambda [] (EInt 1)), EApp (EVar fRef) []]) | f' == fRef -> True
+  , "rename letrec with body using defines" ~: case alphaRename (EList [EDefine "f" (LispLambda [] (EInt 1)) [], EApp (EVar "f") []]) of
+      Right (EList [EDefine f' (LispLambda [] (EInt 1)) [], EApp (EVar fRef) []]) | f' == fRef -> True
       _ -> False
       ~? "Should use renamed defines in body"
-  , "rename nested letrec" ~: case alphaRename (EList [EDefine "outer" (LispLambda [] (EList [EDefine "inner" (LispLambda [] (EInt 1)), EApp (EVar "inner") []]))]) of
+  , "rename nested letrec" ~: case alphaRename (EList [EDefine "outer" (LispLambda [] (EList [EDefine "inner" (LispLambda [] (EInt 1)) [], EApp (EVar "inner") []])) []]) of
       Right _ -> True
       _ -> False
       ~? "Should handle nested letrec"
-  , "rename letrec with multiple recursive calls" ~: case alphaRename (EList [EDefine "f" (LispLambda ["x"] (EApp (EVar "f") [EApp (EVar "f") [EVar "x"]]))]) of
-      Right (EList [EDefine f' (LispLambda [x'] (EApp (EVar fRef1) [EApp (EVar fRef2) [EVar xRef]]))]) | f' == fRef1 && f' == fRef2 && x' == xRef -> True
+  , "rename letrec with multiple recursive calls" ~: case alphaRename (EList [EDefine "f" (LispLambda ["x"] (EApp (EVar "f") [EApp (EVar "f") [EVar "x"]])) []]) of
+      Right (EList [EDefine f' (LispLambda [x'] (EApp (EVar fRef1) [EApp (EVar fRef2) [EVar xRef]])) []]) | f' == fRef1 && f' == fRef2 && x' == xRef -> True
       _ -> False
       ~? "Should handle multiple recursive calls"
   ]
