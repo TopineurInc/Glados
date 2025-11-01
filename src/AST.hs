@@ -72,6 +72,7 @@ data BinOp
   | Sub
   | Mul
   | Div
+  | Mod
   | And
   | Or
   | Eq

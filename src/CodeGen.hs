@@ -273,6 +273,7 @@ compileExpr (EBinOp op left right) = do
     Sub -> emit (IPrim "-")
     Mul -> emit (IPrim "*")
     Div -> emit (IPrim "div")
+    Mod -> emit (IPrim "mod")
     Lt -> emit (IPrim "<")
     Lte -> emit (IPrim "<=")
     Gt -> emit (IPrim ">")

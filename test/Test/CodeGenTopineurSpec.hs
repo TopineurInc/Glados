@@ -72,6 +72,11 @@ testCodeGenOperators = TestList
       Left _ -> False
       ~? "Should generate IPrim div for Div"
   
+  , "gen BinOp Mod" ~: case generateCode "test" (EBinOp Mod (EInt 10) (EInt 3)) of
+      Right code -> any (\instr -> case instr of IPrim "mod" -> True; _ -> False) (Vector.toList $ coInstrs code)
+      Left _ -> False
+      ~? "Should generate IPrim mod for Mod"
+  
   , "gen BinOp Lt" ~: case generateCode "test" (EBinOp Lt (EInt 1) (EInt 2)) of
       Right code -> any (\instr -> case instr of IPrim "<" -> True; _ -> False) (Vector.toList $ coInstrs code)
       Left _ -> False
@@ -131,6 +136,11 @@ testCodeGenOperators = TestList
       Right code -> length (filter (\instr -> case instr of IPrim _ -> True; _ -> False) (Vector.toList $ coInstrs code)) >= 2
       Left _ -> False
       ~? "Should handle nested operators"
+  
+  , "gen modulo for isEven check" ~: case generateCode "test" (EBinOp Eq (EBinOp Mod (EVar "n") (EInt 2)) (EInt 0)) of
+      Right code -> any (\instr -> case instr of IPrim "mod" -> True; _ -> False) (Vector.toList $ coInstrs code)
+      Left _ -> False
+      ~? "Should generate mod for n % 2 == 0 pattern"
   ]
 
 -- ======================

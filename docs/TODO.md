@@ -4,6 +4,10 @@
 
 **Reference**: `examples/all.top` demonstrates all Topineur language features.
 
+**Scope**: This TODO covers ONLY the AST structure, expressions, types, values, and instructions. Parser, VM execution, builtins, and type checking are separate concerns handled in other branches.
+
+**Branch**: `dev/top-ast` (AST-only modifications)
+
 ---
 
 ## Key Differences: Lisp vs Topineur
@@ -61,13 +65,13 @@
   - Add: `EBinOp BinOp Expr Expr`
   - Define: `BinOp = Add | Sub | Mul | Div | Mod | Eq | Neq | Lt | Gt | Lte | Gte | And | Or | Concat`
   - Files: `src/AST.hs`
-  - **Status**: COMPLETED - EBinOp and BinOp added to AST (note: Mod not added but can be easily added), AlphaRename and ClosureConversion implemented
+  - **Status**: COMPLETED - All binary operators implemented including Mod, AlphaRename and ClosureConversion implemented, CodeGen completed
 
 - [x] **8. Add unary operators to `Expr`**
   - Add: `EUnOp UnOp Expr`
   - Define: `UnOp = Not | Neg`
   - Files: `src/AST.hs`
-  - **Status**: COMPLETED - EUnOp and UnOp added to AST, AlphaRename and ClosureConversion implemented
+  - **Status**: COMPLETED - EUnOp and UnOp added to AST, AlphaRename and ClosureConversion implemented, CodeGen completed, tests included
 
 ### Phase 4: Data Structures
 
@@ -75,24 +79,24 @@
   - Add: `ETuple [Expr]` for tuple creation
   - Add: `ETupleDestruct [Name] Expr Expr` for destructuring
   - Files: `src/AST.hs`
-  - **Status**: COMPLETED - ETuple and ETupleDestruct added to Expr, AlphaRename and ClosureConversion implemented
+  - **Status**: COMPLETED - ETuple and ETupleDestruct added to Expr, AlphaRename and ClosureConversion implemented, CodeGen completed, 6 tests
 
 - [x] **10. Add native list support**
   - Add: `EListLiteral [Expr] (Maybe Type)` distinct from `EList`
   - Files: `src/AST.hs`
-  - **Status**: COMPLETED - EListLiteral added to Expr, AlphaRename and ClosureConversion implemented
+  - **Status**: COMPLETED - EListLiteral added to Expr, AlphaRename and ClosureConversion implemented, CodeGen completed, 5 tests
 
 - [x] **11. Add indexing support**
   - Add: `EIndex Expr Expr` for `list[index]` syntax
   - Files: `src/AST.hs`
-  - **Status**: COMPLETED - EIndex added to Expr, AlphaRename and ClosureConversion implemented
+  - **Status**: COMPLETED - EIndex added to Expr, AlphaRename and ClosureConversion implemented, CodeGen completed, tests included in tuples/lists
 
 ### Phase 5: Mutability
 
 - [x] **12. Add assignment expression**
   - Add: `EAssign Name Expr` for mutable variable reassignment
   - Files: `src/AST.hs`
-  - **Status**: COMPLETED - EAssign added to Expr, AlphaRename and ClosureConversion implemented
+  - **Status**: COMPLETED - EAssign added to Expr, AlphaRename and ClosureConversion implemented, CodeGen completed, 4 tests
 
 ### Phase 6: Objects
 
@@ -101,17 +105,17 @@
   - Define: `Field = (Name, Type, Maybe Expr)` (name, type, default value)
   - Define: `Method = (Name, [(Name, Type)], Type, Expr)` (name, params, return type, body)
   - Files: `src/AST.hs`
-  - **Status**: COMPLETED - EObjectDecl, Field, and Method added to AST, AlphaRename and ClosureConversion implemented
+  - **Status**: COMPLETED - EObjectDecl, Field, and Method added to AST, AlphaRename and ClosureConversion implemented, CodeGen completed, 5 tests
 
 - [x] **14. Add object instantiation**
   - Add: `EObjectInst Name [(Name, Expr)]` for creating instances
   - Files: `src/AST.hs`
-  - **Status**: COMPLETED - EObjectInst added to Expr, AlphaRename and ClosureConversion implemented
+  - **Status**: COMPLETED - EObjectInst added to Expr, AlphaRename and ClosureConversion implemented, CodeGen completed, tests included in objects
 
 - [x] **15. Add member access**
   - Add: `EMemberAccess Expr Name` for field/method access
   - Files: `src/AST.hs`
-  - **Status**: COMPLETED - EMemberAccess added to Expr, AlphaRename and ClosureConversion implemented
+  - **Status**: COMPLETED - EMemberAccess added to Expr, AlphaRename and ClosureConversion implemented, CodeGen completed, tests included in objects
 
 ### Phase 7: Annotations & Modules
 
@@ -119,13 +123,13 @@
   - Add: `Annotation = Cache | Custom String`
   - Add `[Annotation]` field to `EDefine` and `ELambda`
   - Files: `src/AST.hs`
-  - **Status**: COMPLETED - Annotation data type added, EDefine and ELambda now have [Annotation] parameter
+  - **Status**: COMPLETED - Annotation data type added, EDefine and ELambda now have [Annotation] parameter, AlphaRename and ClosureConversion implemented, CodeGen completed
 
 - [x] **17. Add module/package support**
   - Add: `EPackage Name` for package declarations
   - Add: `EImport Name` for imports
   - Files: `src/AST.hs`
-  - **Status**: COMPLETED - EPackage and EImport added to Expr, AlphaRename and ClosureConversion implemented
+  - **Status**: COMPLETED - EPackage and EImport added to Expr, AlphaRename and ClosureConversion implemented, CodeGen completed (no-ops), edge case tests
 
 ### Phase 8: Runtime Values
 
@@ -133,7 +137,7 @@
   - Add: `VUnit` for Unit type
   - Add: `VList [Value]` for native lists
   - Add: `VTuple [Value]` for native tuples
-  - Add: `VObject Name (Map Name Value)` for object instances
+  - Add: `VObject Name [(Name, Value)]` for object instances
   - Files: `src/AST.hs`
   - **Status**: COMPLETED - VUnit, VList, VTuple, and VObject added to Value data type with Eq and Show instances
 
@@ -151,7 +155,7 @@
   - **Status**: COMPLETED - ITupleCreate, ITupleGet, IListCreate, IListGet, IListSet added to Instr
 
 - [x] **21. Add object instructions**
-  - Add: `ICreateObject Name`, `IGetMember Name`, `ISetMember Name`
+  - Add: `IObjectCreate Name`, `IMemberGet Name`, `IMemberSet Name`
   - Files: `src/AST.hs`
   - **Status**: COMPLETED - IObjectCreate, IMemberGet, IMemberSet added to Instr (note: IObjectCreate instead of ICreateObject)
 
@@ -167,198 +171,46 @@
 
 ---
 
-## CodeGen Adaptations
+## CodeGen Adaptations (AST → Bytecode)
 
 - [x] **24. Implement codegen for loops**
   - Handle `EWhile`, `EFor`, `ERange` in `compileExpr`
-  - Emit appropriate loop instructions
+  - Emit appropriate loop instructions with jump patching
   - Files: `src/CodeGen.hs`
-  - **Status**: COMPLETED - Loop constructs compile to bytecode with proper jump patching
+  - **Status**: COMPLETED - Loop constructs compile to bytecode with proper jump patching, 6 tests
 
-- [x] **25. Implement codegen for operators**
+- [x] **25. Implement codegen for all operators**
   - Handle `EBinOp`, `EUnOp` in `compileExpr`
   - Files: `src/CodeGen.hs`
-  - **Status**: COMPLETED - All binary and unary operators map to primitives or instruction sequences
+  - **Status**: COMPLETED - All operators implemented (Add, Sub, Mul, Div, Mod, Lt, Lte, Gt, Gte, Eq, Neq, And, Or, Concat, Not, Neg), 18 tests (16 original + 2 for Mod)
 
 - [x] **26. Implement codegen for tuples**
   - Handle `ETuple`, `ETupleDestruct` in `compileExpr`
-  - Emit `ITupleCreate`, `ITupleGet`
+  - Emit `ITupleCreate`, `ITupleGet`, `IStore` for destructuring
   - Files: `src/CodeGen.hs`
-  - **Status**: COMPLETED - Tuple creation and destructuring implemented
+  - **Status**: COMPLETED - Tuple creation and destructuring implemented, 6 tests
 
 - [x] **27. Implement codegen for native lists**
   - Handle `EListLiteral`, `EIndex` in `compileExpr`
-  - Emit `IListCreate`, `IListGet`
+  - Emit `IListCreate`, `IListGet`, `ITupleGet` for static indices
   - Files: `src/CodeGen.hs`
-  - **Status**: COMPLETED - List literals and indexing implemented
+  - **Status**: COMPLETED - List literals and indexing implemented, 5 tests
 
 - [x] **28. Implement codegen for objects**
   - Handle `EObjectDecl`, `EObjectInst`, `EMemberAccess`
   - Emit object-related instructions
   - Handle default field values
   - Files: `src/CodeGen.hs`
-  - **Status**: COMPLETED - Object instantiation and member access implemented (declarations are no-ops)
+  - **Status**: COMPLETED - Object instantiation and member access implemented (declarations are no-ops), 5 tests
 
 - [x] **29. Implement codegen for assignment**
   - Handle `EAssign` in `compileExpr`
-  - Emit `IAssign` instruction
+  - Emit `IAssign` instruction, then reload value
   - Files: `src/CodeGen.hs`
-  - **Status**: COMPLETED - Assignment to local variables implemented
+  - **Status**: COMPLETED - Assignment to local variables implemented with value reload, 4 tests
 
 - [x] **30. Implement codegen for return**
   - Handle `EReturn` in `compileExpr`
-  - Respect `LanguageMode` (implicit vs explicit return)
+  - Emit `IReturn` instruction
   - Files: `src/CodeGen.hs`
-  - **Status**: COMPLETED - Explicit return statement implemented
-
----
-
-## VM Execution
-
-- [ ] **31. Implement VM execution for loops**
-  - Handle `IWhile`, `IFor` in `executeInstr`
-  - Files: `src/VM.hs`
-
-- [ ] **32. Implement VM execution for tuples**
-  - Handle `ITupleCreate`, `ITupleGet`
-  - Support `VTuple` values
-  - Files: `src/VM.hs`
-
-- [ ] **33. Implement VM execution for lists**
-  - Handle `IListCreate`, `IListGet`, `IListSet`
-  - Support `VList` values with bounds checking
-  - Files: `src/VM.hs`
-
-- [ ] **34. Implement VM execution for objects**
-  - Handle `ICreateObject`, `IGetMember`, `ISetMember`
-  - Support `VObject` values
-  - Files: `src/VM.hs`
-
-- [ ] **35. Implement VM execution for assignment**
-  - Handle `IAssign` instruction
-  - Update local slots
-  - Files: `src/VM.hs`
-
-- [ ] **36. Implement VM execution for ranges**
-  - Handle `IRangeCreate` instruction
-  - Files: `src/VM.hs`
-
----
-
-## Closure Conversion
-
-- [ ] **37. Adapt closure conversion for methods**
-  - Auto-capture `self` in method bodies
-  - Add `self` to free variables for methods
-  - Files: `src/ClosureConversion.hs`
-
----
-
-## Builtins
-
-- [ ] **38. Add Topineur-specific builtins**
-  - Add: `println`, `show` (type-to-string conversion)
-  - Add: `length`, `head`, `tail` (if not already present)
-  - Add: `map`, `filter`, `fold` for lists
-  - Add: `range` function
-  - Add: `float`, `int` (type conversions)
-  - Add: `sqrt`, `abs` (math functions)
-  - Files: `src/Builtins.hs`
-
----
-
-## Type Checker
-
-- [ ] **39. Create `src/TypeChecker.hs` module**
-  - Define: `type TypeEnv = Map Name Type`
-  - Implement: `typeCheck :: TypeEnv -> Expr -> Either CompileError Type`
-  - Validate type annotations
-  - Check function call compatibility
-  - Files: `src/TypeChecker.hs` (new file)
-
-- [ ] **40. Integrate type checker in compiler**
-  - Call type checker before codegen for Topineur mode
-  - Files: `src/Compiler.hs`
-
----
-
-## Compiler Configuration
-
-- [ ] **41. Add `LanguageMode` to `CompilerConfig`**
-  - Add: `data LanguageMode = Lisp | Topineur`
-  - Add field to `CompilerConfig`
-  - Files: `src/Compiler.hs`
-
-- [ ] **42. Adapt compilation based on mode**
-  - Lisp: implicit return, immutable
-  - Topineur: explicit `top`, mutable, type checking
-  - Files: `src/Compiler.hs`, `src/Desugar.hs`
-
----
-
-## Desugar & Compatibility
-
-- [ ] **43. Maintain Lisp compatibility in `Desugar.hs`**
-  - Ensure existing `sexprToExpr` still works
-  - Files: `src/Desugar.hs`
-
-- [ ] **44. Update `Show` instances**
-  - Add `Show` instances for new AST constructors
-  - Files: `src/AST.hs`
-
-- [ ] **45. Update `Eq` instances**
-  - Add `Eq` instances for new types (Type, BinOp, UnOp, etc.)
-  - Files: `src/AST.hs`
-
----
-
-## Testing
-
-- [ ] **46. Ensure all existing Lisp tests pass**
-  - Run: `stack test`
-  - Verify no regressions
-  - Files: `test/Test/*Spec.hs`
-
-- [ ] **47. Create basic Topineur unit tests**
-  - Create: `test/Test/TopineurSpec.hs`
-  - Test: types, tuples, lists, loops, objects, operators
-  - Files: `test/Test/TopineurSpec.hs` (new file)
-
----
-
-## Files Modified Summary
-
-**Core AST & Data Types:**
-- `src/AST.hs` — all new types, expressions, instructions, values
-
-**Compilation Pipeline:**
-- `src/Compiler.hs` — language mode, type checker integration
-- `src/Desugar.hs` — compatibility layer
-- `src/CodeGen.hs` — all new expression codegen
-- `src/ClosureConversion.hs` — method closure handling
-
-**Runtime:**
-- `src/VM.hs` — all new instruction execution
-- `src/Builtins.hs` — Topineur builtins
-
-**Type System:**
-- `src/TypeChecker.hs` — new module for type checking
-
-**Testing:**
-- `test/Test/TopineurSpec.hs` — new test file
-
----
-
-## Implementation Strategy
-
-**Priority 1** (Foundation):
-- Tasks 1-3, 18, 41-43, 46
-
-**Priority 2** (Basic Features):
-- Tasks 4-12, 19-23, 24-30
-
-**Priority 3** (Advanced Features):
-- Tasks 13-17, 31-37
-
-**Priority 4** (Polish):
-- Tasks 38-40, 44-45, 47
+  - **Status**: COMPLETED - Explicit return statement implemented, 3 tests
