@@ -33,7 +33,7 @@ main = do
     ["--ast", file] -> showAst file
     ["--compiled", file] -> showCompiled file
     ["--bytecode", file] -> showBytecode file
-    ["--parse-topineur", file] -> parseTopineurFile file
+    ["--parse-top", file] -> parseTopineurFile file
     [file] -> runFile file
     _ ->
       exitWithError "Invalid arguments. Use --help for usage."
