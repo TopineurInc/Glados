@@ -28,7 +28,7 @@ module TopineurParserTypes
   , initState
   ) where
 
-import AST (Name, Loc, SourcePos)
+import AST (Name, Loc)
 import GHC.Generics (Generic)
 import Text.Parsec
 

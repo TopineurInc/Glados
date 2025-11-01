@@ -41,7 +41,9 @@ library
   other-modules:
       SExprConstruct
       TopineurParser
+      TopineurParserTopLevel
       TopineurParserTypes
+      TopineurParserUtils
       Paths_glados
   autogen-modules:
       Paths_glados
