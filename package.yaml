@@ -38,10 +38,16 @@ ghc-options:
 - -Wredundant-constraints
 
 library:
-  source-dirs: src
+  source-dirs:
+    - src
+    - src/lisp
+    - src/lisp/parser
+    - src/topineur
+    - src/topineur/parser
   exposed-modules:
     - AST
     - SExprParser
+    - LispParserTypes
     - MacroExpander
     - Desugar
     - AlphaRename

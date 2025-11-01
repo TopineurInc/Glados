@@ -10,12 +10,8 @@
 module AST
   ( SourcePos(..)
   , Loc
-  , SExpr(..)
-  , Atom(..)
   , CompileError(..)
-  , sexprLoc
   , Name
-  , Expr(..)
   , ANF(..)
   , Constant(..)
   , Instr(..)
@@ -37,43 +33,12 @@ data SourcePos = SourcePos
 
 type Loc = Maybe SourcePos
 
-data SExpr
-  = SAtom Atom Loc
-  | SList [SExpr] Loc
-  deriving (Eq, Show, Generic)
-
-data Atom
-  = AInteger Integer
-  | AFloat Double
-  | ABool Bool
-  | ASymbol String
-  | AString String
-  deriving (Eq, Show, Generic)
-
 data CompileError
   = ParseError String Loc
   | SyntaxError String Loc
   deriving (Eq, Show, Generic)
 
-sexprLoc :: SExpr -> Loc
-sexprLoc (SAtom _ loc) = loc
-sexprLoc (SList _ loc) = loc
-
 type Name = String
-
-data Expr
-  = EInt Integer
-  | EFloat Double
-  | EBool Bool
-  | EString String
-  | EVar Name
-  | EList [Expr]
-  | ELambda [Name] Expr
-  | EDefine Name Expr
-  | EIf Expr Expr Expr
-  | EApp Expr [Expr]
-  | EQuote SExpr
-  deriving (Eq, Show, Generic)
 
 data ANF
   = AVar Name

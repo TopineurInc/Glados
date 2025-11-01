@@ -13,11 +13,11 @@ def main(): Int {
   println("fib(10) = " ++ show(f))
 
   while f < 100 do
-      f = f + 1
+    f = f + 1
   end
 
   for i in 0..f do
-      println(show(i))
+    println(show(i))
   end
 
   top 42

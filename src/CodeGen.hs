@@ -15,6 +15,7 @@ module CodeGen
   ) where
 
 import AST
+import LispParserTypes
 import Control.Monad.State
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector

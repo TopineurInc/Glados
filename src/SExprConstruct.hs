@@ -9,7 +9,7 @@ module SExprConstruct
     ( sourceFromSExprs
     ) where
 
-import AST
+import LispParserTypes
 
 sourceFromAtom :: Atom -> String
 sourceFromAtom (AInteger n) = show n

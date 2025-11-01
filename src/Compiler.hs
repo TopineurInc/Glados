@@ -14,6 +14,7 @@ module Compiler
   ) where
 
 import AST
+import LispParserTypes
 import SExprParser
 import MacroExpander
 import Desugar

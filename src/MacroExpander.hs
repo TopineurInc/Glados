@@ -13,6 +13,7 @@ module MacroExpander
 
 import AST
 import qualified Data.Map as Map
+import LispParserTypes
 
 type MacroEnv = Map.Map String (SExpr -> Either CompileError SExpr)
 

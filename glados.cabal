@@ -27,6 +27,7 @@ library
   exposed-modules:
       AST
       SExprParser
+      LispParserTypes
       MacroExpander
       Desugar
       AlphaRename
@@ -40,11 +41,16 @@ library
   other-modules:
       SExprConstruct
       TopineurParser
+      TopineurParserTypes
       Paths_glados
   autogen-modules:
       Paths_glados
   hs-source-dirs:
       src
+      src/lisp
+      src/lisp/parser
+      src/topineur
+      src/topineur/parser
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5

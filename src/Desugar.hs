@@ -13,6 +13,7 @@ module Desugar
   ) where
 
 import AST
+import LispParserTypes
 
 sexprToExpr :: SExpr -> Either CompileError Expr
 sexprToExpr = \case

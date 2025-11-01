@@ -1,11 +1,9 @@
 {-
 -- EPITECH PROJECT, 2025
--- glados
+-- G-FUN-500-LYN-5-1-glados-1
 -- File description:
--- TopineurParser
+-- src/topineur/parser/TopineurParser.hs
 -}
-
-{-# LANGUAGE DeriveGeneric #-}
 
 module TopineurParser
   ( parseTopineurSource
@@ -15,20 +13,17 @@ import Control.Applicative (many, empty)
 import Control.Monad (void, when)
 import Data.Char (isAlphaNum, isLetter, isAsciiUpper)
 import Data.List (intercalate)
-import GHC.Generics (Generic)
 import qualified Text.Parsec as P
 import Text.Parsec.Prim (getState, putState)
 import Text.Parsec
     ( (<|>)
       , ParseError
-      , Parsec
       , anyChar
       , between
       , char
       , choice
       , eof
       , getPosition
-      , lookAhead
       , many1
       , manyTill
       , newline
@@ -50,139 +45,11 @@ import Text.Parsec
       , (<?>)
       )
 
-data CompileError
-  = ParseError String Loc
-  | SyntaxError String Loc
-  deriving (Eq, Show, Generic)
-
-data SourcePos = SourcePos
-  { spLine :: Int
-  , spCol  :: Int
-  } deriving (Eq, Show, Ord, Generic)
-
-type Loc = SourcePos
-
-type Name = String
+import AST (CompileError(..), SourcePos(..), Loc, Name)
+import TopineurParserTypes
 
 toLoc :: P.SourcePos -> Loc
-toLoc p = SourcePos (sourceLine p) (sourceColumn p - 1)
-
-data Topineur = Topineur
-  { tPackage :: Name
-  , tImports :: [Name]
-  , tDecls   :: [Decl]
-  } deriving (Eq, Show, Generic)
-
-data Decl
-  = DLet Loc Pattern Expression
-  | DFunc Loc [Decorator] Name [Param] (Maybe TypeAnn) Block
-  | DObjectType Loc Name [ObjMember]
-  deriving (Eq, Show, Generic)
-
-data Decorator = Decorator Loc Name [Expression]
-  deriving (Eq, Show, Generic)
-
-data ObjMember
-  = OMField Loc Name TypeAnn (Maybe Expression)
-  | OMFunc Decl
-  deriving (Eq, Show, Generic)
-
-data Param
-  = PVar Loc Name TypeAnn
-  | PTuple Loc [Param]
-  deriving (Eq, Show, Generic)
-
-data Pattern
-  = PVarPat Loc Name (Maybe TypeAnn)
-  | PTuplePat Loc [Pattern]
-  deriving (Eq, Show, Generic)
-
-data Block = Block Loc [Stmt]
-  deriving (Eq, Show, Generic)
-
-data Stmt
-  = STop Loc Expression
-  | SLet Loc Pattern Expression
-  | SIf Loc Expression SimpleStmt (Maybe SimpleStmt)
-  | SWhile Loc Expression [Stmt]
-  | SFor Loc Name Range [Stmt]
-  | SAssign Loc LValue Expression
-  | SExpression Loc Expression
-  deriving (Eq, Show, Generic)
-
-data SimpleStmt
-  = SSLet Loc Pattern Expression
-  | SSAssign Loc LValue Expression
-  | SSTop Loc Expression
-  | SSExpression Loc Expression
-  deriving (Eq, Show, Generic)
-
-data LValue
-  = LVar Loc Name
-  | LMember Loc Expression Name
-  deriving (Eq, Show, Generic)
-
-data Range = Range Expression Expression
-  deriving (Eq, Show, Generic)
-
-data Expression
-  = EVar Loc Name
-  | ESelf Loc
-  | EInt Loc Integer
-  | EFloat Loc Double
-  | EString Loc String
-  | ETuple Loc [Expression]
-  | EArray Loc [Expression]
-  | EObject Loc Name [FieldAssign]
-  | ECall Loc Expression [Expression]
-  | EMethodCall Loc Expression Name [Expression]
-  | EMember Loc Expression Name
-  | EIf Loc Expression Expression (Maybe Expression)
-  | ELet Loc Name Expression Expression
-  | ELambda Loc [Param] (Maybe TypeAnn) Expression
-  | EBinOp Loc String Expression Expression
-  | EParens Loc Expression
-  deriving (Eq, Show, Generic)
-
-data FieldAssign = FieldAssign Loc (Either (Expression, Name) Name) Expression
-  deriving (Eq, Show, Generic)
-
-data TypeAnn
-  = TIdent Loc Name
-  | TUpperIdent Loc Name
-  | TGeneric Loc Name [TypeAnn]
-  | TTuple Loc [TypeAnn]
-  deriving (Eq, Show, Generic)
-
-locOfE :: Expression -> Loc
-locOfE e =
-  case e of
-    EVar l _ -> l
-    ESelf l -> l
-    EInt l _ -> l
-    EFloat l _ -> l
-    EString l _ -> l
-    ETuple l _ -> l
-    EArray l _ -> l
-    EObject l _ _ -> l
-    ECall l _ _ -> l
-    EMethodCall l _ _ _ -> l
-    EMember l _ _ -> l
-    EIf l _ _ _ -> l
-    ELet l _ _ _ -> l
-    ELambda l _ _ _ -> l
-    EBinOp l _ _ _ -> l
-    EParens l _ -> l
-
-data IndentState = IndentState
-  { isUnit   :: Maybe Int
-  , isStack  :: [Int]
-  } deriving (Show, Eq)
-
-type Parser a = Parsec String IndentState a
-
-initState :: IndentState
-initState = IndentState { isUnit = Nothing, isStack = [0] }
+toLoc p = Just (SourcePos (sourceLine p) (sourceColumn p - 1))
 
 noTabs :: Parser ()
 noTabs = do
@@ -428,27 +295,27 @@ basicTerm =
     , varOrUpper
     ]
 
-rangeBound :: Parser Expression
-rangeBound =
-  choice
-    [ do ESelf <$> selfKw
-    , try $ do
-        (l, i) <- intLit
-        return (EInt l i)
-    , try $ do
-        (l, d) <- floatLit
-        return (EFloat l d)
-    , try $ do (l, s) <- stringLit; return (EString l s)
-    , try tupleExpr
-    , try arrayExpr
-    , try objectLit
-    , try anonFun
-    , try parensExpr
-    , varOrUpper
-    ]
-
-singleTerm :: Parser Expression
-singleTerm = basicTerm >>= postfix
+-- rangeBound :: Parser Expression
+-- rangeBound =
+--   choice
+--     [ do ESelf <$> selfKw
+--     , try $ do
+--         (l, i) <- intLit
+--         return (EInt l i)
+--     , try $ do
+--         (l, d) <- floatLit
+--         return (EFloat l d)
+--     , try $ do (l, s) <- stringLit; return (EString l s)
+--     , try tupleExpr
+--     , try arrayExpr
+--     , try objectLit
+--     , try anonFun
+--     , try parensExpr
+--     , varOrUpper
+--     ]
+--
+-- singleTerm :: Parser Expression
+-- singleTerm = basicTerm >>= postfix
 
 term :: Parser Expression
 term = basicTerm >>= postfix
@@ -792,7 +659,10 @@ ifStmt = do
       ss <- withIndentedBlock simpleStmt
       case ss of
         [x] -> return x
-        _ -> let p = l in fail ("then-branch must contain exactly one simple statement at " ++ show (spLine p) ++ ":" ++ show (spCol p))
+        _ -> let msg = "then-branch must contain exactly one simple statement"
+                 in case l of
+                      Just p -> fail (msg ++ " at " ++ show (spLine p) ++ ":" ++ show (spCol p))
+                      Nothing -> fail msg
   mElse <-
     optionMaybe $ do
       _ <- try (newline1 >> return ()) <|> sc
@@ -801,7 +671,10 @@ ifStmt = do
         ss <- withIndentedBlock simpleStmt
         case ss of
           [x] -> return x
-          _ -> let p = l in fail ("else-branch must contain exactly one simple statement at " ++ show (spLine p) ++ ":" ++ show (spCol p))
+          _ -> let msg = "else-branch must contain exactly one simple statement"
+                   in case l of
+                        Just p -> fail (msg ++ " at " ++ show (spLine p) ++ ":" ++ show (spCol p))
+                        Nothing -> fail msg
   return (SIf l c sThen mElse)
   where
     inlineSimple = do
@@ -922,7 +795,10 @@ ifStmtML = do
       ss <- withIndentedBlock simpleStmtML
       case ss of
         [x] -> return x
-        _ -> let p = l in fail ("then-branch must contain exactly one simple statement at " ++ show (spLine p) ++ ":" ++ show (spCol p))
+        _ -> let msg = "then-branch must contain exactly one simple statement"
+                 in case l of
+                      Just p -> fail (msg ++ " at " ++ show (spLine p) ++ ":" ++ show (spCol p))
+                      Nothing -> fail msg
   mElse <-
     optionMaybe $ do
       _ <- try (newline1 >> return ()) <|> sc
@@ -931,7 +807,10 @@ ifStmtML = do
         ss <- withIndentedBlock simpleStmtML
         case ss of
           [x] -> return x
-          _ -> let p = l in fail ("else-branch must contain exactly one simple statement at " ++ show (spLine p) ++ ":" ++ show (spCol p))
+          _ -> let msg = "else-branch must contain exactly one simple statement"
+                   in case l of
+                        Just p -> fail (msg ++ " at " ++ show (spLine p) ++ ":" ++ show (spCol p))
+                        Nothing -> fail msg
   return (SIf l c sThen mElse)
   where
     inlineSimpleML = do
@@ -1090,7 +969,7 @@ parseTopineurSource src =
           loc =
             case findFirstPos pe of
               Just p -> toLoc p
-              Nothing -> SourcePos 0 0
+              Nothing -> Nothing
        in Left (ParseError msg loc)
     Right ast -> Right ast
 

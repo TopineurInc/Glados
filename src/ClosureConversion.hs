@@ -11,6 +11,7 @@ module ClosureConversion
   ) where
 
 import AST
+import LispParserTypes
 import qualified Data.Set as Set
 
 data ClosureInfo = ClosureInfo

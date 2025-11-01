@@ -14,6 +14,7 @@ module AlphaRename
   ) where
 
 import AST
+import LispParserTypes
 import Control.Monad (foldM)
 import Control.Monad.State
 import qualified Data.Map as Map

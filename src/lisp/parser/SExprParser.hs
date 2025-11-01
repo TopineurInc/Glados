@@ -22,14 +22,13 @@ import AST
 import Text.Parsec
 import Control.Monad (void)
 import Data.Char (isAlpha, isAlphaNum)
-
-type Parser = Parsec String ()
+import LispParserTypes
 
 parseComment :: Parser ()
 parseComment = void $ char ';' >> many (noneOf "\n\r") >> optional (oneOf "\n\r")
 
 optionalWhitespace :: Parser ()
-optionalWhitespace = void $ many $ (void (oneOf " \t\n\r") <|> parseComment)
+optionalWhitespace = void $ many (void (oneOf " \t\n\r") <|> parseComment)
 
 parseString :: Parser String
 parseString = between (char '"') (char '"') (many stringChar)
