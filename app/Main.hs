@@ -54,6 +54,16 @@ renderValue (VString s) = s
 renderValue (VClosure _ _) = "#<procedure>"
 renderValue (VBuiltin name _) = "#<builtin:" ++ name ++ ">"
 renderValue VUnit = "#<void>"
+renderValue (VList values) = "(" ++ unwords (map renderValue values) ++ ")"
+renderValue (VTuple values) = "#(" ++ unwords (map renderValue values) ++ ")"
+renderValue (VObject name fields) = 
+  "#<object:" ++ name ++ " {" ++ 
+  intercalate ", " (map (\(k, v) -> k ++ ": " ++ renderValue v) fields) ++ 
+  "}>"
+  where
+    intercalate _ [] = ""
+    intercalate _ [x] = x
+    intercalate sep (x:xs) = x ++ sep ++ intercalate sep xs
 
 runProgram :: String -> IO (Either String Value)
 runProgram source =
