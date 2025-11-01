@@ -52,6 +52,20 @@ disassembleInstr INop = "NOP"
 disassembleInstr (IMakeClosure name slots) = "MAKE_CLOSURE " ++ name ++ " " ++ show slots
 disassembleInstr (ILoadClosure idx) = "LOAD_CLOSURE " ++ show idx
 disassembleInstr (IStoreClosure idx) = "STORE_CLOSURE " ++ show idx
+disassembleInstr IWhile = "WHILE"
+disassembleInstr IFor = "FOR"
+disassembleInstr IBreak = "BREAK"
+disassembleInstr IContinue = "CONTINUE"
+disassembleInstr (ITupleCreate size) = "TUPLE_CREATE " ++ show size
+disassembleInstr (ITupleGet idx) = "TUPLE_GET " ++ show idx
+disassembleInstr (IListCreate size) = "LIST_CREATE " ++ show size
+disassembleInstr IListGet = "LIST_GET"
+disassembleInstr IListSet = "LIST_SET"
+disassembleInstr (IObjectCreate name) = "OBJECT_CREATE " ++ name
+disassembleInstr (IMemberGet name) = "MEMBER_GET " ++ name
+disassembleInstr (IMemberSet name) = "MEMBER_SET " ++ name
+disassembleInstr (IAssign slot) = "ASSIGN " ++ show slot
+disassembleInstr IRangeCreate = "RANGE_CREATE"
 
 showConstant :: Constant -> String
 showConstant (CInt n) = "INT " ++ show n

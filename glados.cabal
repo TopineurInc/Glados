@@ -81,7 +81,9 @@ test-suite glados-test
       Test.CodeGenSpec
       Test.CompilerSpec
       Test.DesugarSpec
+      Test.MacroExpanderSpec
       Test.SExprParserSpec
+      Test.TopineurASTSpec
       Test.VMSpec
   hs-source-dirs:
       test

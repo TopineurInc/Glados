@@ -13,6 +13,7 @@ import qualified Test.DesugarSpec as DesugarSpec
 import qualified Test.SExprParserSpec as SExprParserSpec
 import qualified Test.VMSpec as VMSpec
 import qualified Test.MacroExpanderSpec as MacroExpanderSpec
+import qualified Test.TopineurASTSpec as TopineurASTSpec
 
 allTests :: Test
 allTests = TestList
@@ -25,6 +26,7 @@ allTests = TestList
   , TestLabel "VM" VMSpec.tests
   , TestLabel "Builtins" BuiltinsSpec.tests
   , TestLabel "Compiler" CompilerSpec.tests
+  , TestLabel "Topineur AST (Phases 1-23)" TopineurASTSpec.tests
   ]
 
 main :: IO ()

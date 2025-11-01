@@ -216,3 +216,10 @@ showValue (VString s) = s
 showValue (VBuiltin name _) = "<builtin:" ++ name ++ ">"
 showValue (VClosure name _) = "<closure:" ++ name ++ ">"
 showValue VUnit = "#<void>"
+showValue (VList values) = "(" ++ unwords (map showValue values) ++ ")"
+showValue (VTuple values) = "#(" ++ unwords (map showValue values) ++ ")"
+showValue (VObject name fields) = "#<object:" ++ name ++ " " ++ showFields fields ++ ">"
+  where
+    showFields [] = ""
+    showFields [(k, v)] = k ++ ":" ++ showValue v
+    showFields ((k, v):rest) = k ++ ":" ++ showValue v ++ " " ++ showFields rest
