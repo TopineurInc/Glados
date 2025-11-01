@@ -20,6 +20,7 @@ import Compiler
 import Desugar
 import Disasm
 import SExprParser
+import TopineurParser
 import VM
 
 main :: IO ()
@@ -32,6 +33,7 @@ main = do
     ["--ast", file] -> showAst file
     ["--compiled", file] -> showCompiled file
     ["--bytecode", file] -> showBytecode file
+    ["--parse-topineur", file] -> parseTopineurFile file
     [file] -> runFile file
     _ ->
       exitWithError "Invalid arguments. Use --help for usage."
@@ -72,22 +74,24 @@ printHelp :: IO ()
 printHelp =
   mapM_
     putStrLn
-    [ "GLaDOS - A LISP compiler and VM"
+    [ "GLaDOS - A LISP and Topineur compiler and VM"
     , ""
     , "Usage:"
-    , "  ./glados [file]             Compile and run a LISP file"
-    , "  ./glados --disasm [file]    Disassemble a LISP file"
-    , "  ./glados --ast [file]       Show AST of a LISP file"
-    , "  ./glados --compiled [file]  Show compiled code of a LISP file"
-    , "  ./glados --bytecode [file]  Show bytecode instructions of a LISP file"
-    , "  ./glados                    Start REPL (interactive mode)"
-    , "  ./glados --help             Show this help message"
+    , "  ./glados [file]                 Compile and run a LISP file"
+    , "  ./glados --disasm [file]        Disassemble a LISP file"
+    , "  ./glados --ast [file]           Show AST of a LISP file"
+    , "  ./glados --compiled [file]      Show compiled code of a LISP file"
+    , "  ./glados --bytecode [file]      Show bytecode instructions of a LISP file"
+    , "  ./glados --parse-top [file]     Show parsed structure of a Topineur file"
+    , "  ./glados                        Start REPL (interactive mode)"
+    , "  ./glados --help                 Show this help message"
     , ""
     , "Examples:"
     , "  ./glados program.lisp"
     , "  ./glados --disasm program.lisp"
     , "  ./glados --ast program.lisp"
     , "  ./glados --compiled program.lisp"
+    , "  ./glados --parse-topineur program.top"
     ]
 
 runFile :: FilePath -> IO ()
@@ -175,6 +179,19 @@ showBytecode file = do
             putStrLn ("\n--- " ++ name ++ " ---")
               >> dumpBytecode obj)
           (Map.toList defs)
+        >> exitSuccess
+
+parseTopineurFile :: FilePath -> IO ()
+parseTopineurFile file = do
+  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
+  source <- case sourceOrErr of
+    Left _ -> exitWithError $ "Cannot open file: " ++ file
+    Right src -> return src
+  case parseTopineurSource source of
+    Left err -> exitWithError (formatCompileError err)
+    Right topineur ->
+      putStrLn "=== Topineur AST ==="
+        >> putStrLn (show topineur)
         >> exitSuccess
 
 dumpCodeInfo :: CodeObject -> IO ()

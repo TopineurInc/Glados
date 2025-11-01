@@ -38,9 +38,9 @@ library
       Compiler
       Disasm
       Lib
+      TopineurParser
   other-modules:
       SExprConstruct
-      TopineurParser
       TopineurParserExpressions
       TopineurParserPattern
       TopineurParserStatements
