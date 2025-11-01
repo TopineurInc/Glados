@@ -1,0 +1,500 @@
+package showcase
+
+|- ============================================================================
+|- TOPINEUR LANGUAGE - COMPLETE SHOWCASE
+|- ============================================================================
+|- Ce fichier démontre toutes les fonctionnalités du langage Topineur
+|- Créé par Claude pour illustrer la syntaxe complète
+|- (Basé sur les exemples fibonacci.top et objects.top existants)
+|- ============================================================================
+
+|- ----------------------------------------------------------------------------
+|- 1. TYPES PRIMITIFS
+|- ----------------------------------------------------------------------------
+
+|- Entiers
+let age: Int = 25
+let negative: Int = -42
+
+|- Flottants
+let pi: Float = 3.14159
+let temperature: Float = -273.15
+
+|- Booléens
+let isActive: Bool = true
+let hasError: Bool = false
+
+|- Chaînes de caractères
+let greeting: String = "Hello, Topineur!"
+let emptyString: String = ""
+
+|- ----------------------------------------------------------------------------
+|- 2. STRUCTURES DE CONTRÔLE
+|- ----------------------------------------------------------------------------
+
+|- If-then-else (inline)
+def max(a: Int, b: Int): Int {
+  if a > b then top a else top b
+}
+
+|- If-then-else (multi-lignes)
+def checkTemperature(temp: Float): String {
+  if temp < 0.0 then
+    top "Freezing"
+  else if temp < 20.0 then
+    top "Cold"
+  else if temp < 30.0 then
+    top "Warm"
+  else
+    top "Hot"
+}
+
+|- While loops
+def countDown(n: Int): Int {
+  let counter = n
+  while counter > 0 do
+    println("Countdown: " ++ show(counter))
+    counter = counter - 1
+  end
+  top 0
+}
+
+|- For loops avec ranges
+def printRange(start: Int, finish: Int): Unit {
+  for i in start..finish do
+    println(show(i))
+  end
+}
+
+|- ----------------------------------------------------------------------------
+|- 3. FONCTIONS
+|- ----------------------------------------------------------------------------
+
+|- Fonction simple
+def add(x: Int, y: Int): Int {
+  top x + y
+}
+
+|- Fonction sans paramètres
+def getVersion(): String {
+  top "Topineur v1.0"
+}
+
+|- Fonction avec cache (mémoization)
+@cache
+def fibonacci(n: Int): Int {
+  if n <= 1 then top n
+  else top fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+|- Fonction récursive
+def factorial(n: Int): Int {
+  if n <= 1 then top 1
+  else top n * factorial(n - 1)
+}
+
+|- Fonctions anonymes (lambdas)
+let double = fun (x: Int): Int -> x * 2
+let isEven = fun (n: Int): Bool -> n % 2 == 0
+
+|- ----------------------------------------------------------------------------
+|- 4. LISTES ET COLLECTIONS
+|- ----------------------------------------------------------------------------
+
+|- Listes typées
+let numbers: List[Int] = [1, 2, 3, 4, 5]
+let names: List[String] = ["Alice", "Bob", "Charlie"]
+let emptyList: List[Float] = []
+
+|- Opérations sur les listes
+def sumList(lst: List[Int]): Int {
+  top fold(lst, 0, fun (acc: Int, x: Int): Int -> acc + x)
+}
+
+def mapDouble(lst: List[Int]): List[Int] {
+  top map(lst, fun (x: Int): Int -> x * 2)
+}
+
+def filterPositive(lst: List[Int]): List[Int] {
+  top filter(lst, fun (x: Int): Bool -> x > 0)
+}
+
+|- ----------------------------------------------------------------------------
+|- 5. TUPLES
+|- ----------------------------------------------------------------------------
+
+|- Tuples de différentes tailles
+let pair: Tuple[Int, String] = (42, "answer")
+let triple: Tuple[Float, Float, Float] = (1.0, 2.0, 3.0)
+
+|- Déstructuration de tuples
+def swapPair(p: Tuple[Int, Int]): Tuple[Int, Int] {
+  let (a: Int, b: Int) = p
+  top (b, a)
+}
+
+def distance2D(p1: Tuple[Float, Float], p2: Tuple[Float, Float]): Float {
+  let (x1: Float, y1: Float) = p1
+  let (x2: Float, y2: Float) = p2
+  let dx = x2 - x1
+  let dy = y2 - y1
+  top sqrt(dx * dx + dy * dy)
+}
+
+|- ----------------------------------------------------------------------------
+|- 6. OBJETS ET TYPES
+|- ----------------------------------------------------------------------------
+
+|- Objet simple avec champs
+object type Person {
+  name: String
+  age: Int
+  email: String = "unknown@example.com"  |- Champ avec valeur par défaut
+
+  def greet(): String {
+    top "Hello, my name is " ++ self.name
+  }
+
+  def isAdult(): Bool {
+    top self.age >= 18
+  }
+
+  def celebrateBirthday(): Person {
+    top Person {
+      self.name = self.name,
+      self.age = self.age + 1,
+      self.email = self.email
+    }
+  }
+}
+
+|- Objet avec géométrie (inspiré de objects.top)
+object type Point {
+  x: Float
+  y: Float
+
+  def translate(dx: Float, dy: Float): Point {
+    top Point { self.x = self.x + dx, self.y = self.y + dy }
+  }
+
+  def distance(other: Point): Float {
+    let dx = self.x - other.x
+    let dy = self.y - other.y
+    top sqrt(dx * dx + dy * dy)
+  }
+
+  def toString(): String {
+    top "(" ++ show(self.x) ++ ", " ++ show(self.y) ++ ")"
+  }
+}
+
+object type Circle {
+  center: Point
+  radius: Float
+
+  def area(): Float {
+    top 3.14159 * self.radius * self.radius
+  }
+
+  def circumference(): Float {
+    top 2.0 * 3.14159 * self.radius
+  }
+
+  def contains(p: Point): Bool {
+    top self.center.distance(p) <= self.radius
+  }
+}
+
+object type Rectangle {
+  topLeft: Point
+  width: Float
+  height: Float
+
+  def area(): Float {
+    top self.width * self.height
+  }
+
+  def perimeter(): Float {
+    top 2.0 * (self.width + self.height)
+  }
+
+  def center(): Point {
+    top Point {
+      self.x = self.topLeft.x + self.width / 2.0,
+      self.y = self.topLeft.y + self.height / 2.0
+    }
+  }
+}
+
+object type Polygon {
+  vertices: List[Point] = []
+
+  def centroid(): Point {
+    let (sumX: Float, sumY: Float) = fold(self.vertices, (0.0, 0.0),
+      fun ((accX: Float, accY: Float), point: Point): Tuple[Float, Float] ->
+        (accX + point.x, accY + point.y))
+
+    let count = float(length(self.vertices))
+    top Point { self.x = sumX / count, self.y = sumY / count }
+  }
+
+  def addVertex(p: Point): Polygon {
+    top Polygon { self.vertices = self.vertices ++ [p] }
+  }
+}
+
+|- ----------------------------------------------------------------------------
+|- 7. PATTERN MATCHING ET OPTIONS
+|- ----------------------------------------------------------------------------
+
+|- Type Option (simulé avec objets)
+object type Some[T] {
+  value: T
+
+  def unwrap(): T {
+    top self.value
+  }
+}
+
+object type None {
+  def toString(): String {
+    top "None"
+  }
+}
+
+|- Fonction avec gestion d'erreurs
+def safeDivide(a: Float, b: Float): Float {
+  if b == 0.0 then
+    top 0.0  |- Ou gérer l'erreur autrement
+  else
+    top a / b
+}
+
+|- ----------------------------------------------------------------------------
+|- 8. OPÉRATEURS
+|- ----------------------------------------------------------------------------
+
+def demonstrateOperators(): Unit {
+  |- Arithmétiques
+  let sum = 10 + 5
+  let diff = 10 - 5
+  let prod = 10 * 5
+  let quot = 10 / 5
+  let modulo = 10 % 3
+
+  |- Comparaisons
+  let eq = 5 == 5
+  let neq = 5 != 3
+  let lt = 3 < 5
+  let gt = 5 > 3
+  let lte = 5 <= 5
+  let gte = 5 >= 5
+
+  |- Logiques
+  let andResult = true && false
+  let orResult = true || false
+  let notResult = !false
+
+  |- Concaténation de chaînes
+  let fullName = "John" ++ " " ++ "Doe"
+
+  top ()
+}
+
+|- ----------------------------------------------------------------------------
+|- 9. VARIABLES MUTABLES
+|- ----------------------------------------------------------------------------
+
+def demonstrateMutability(): Int {
+  let mutable = 0
+
+  |- Modification dans une boucle
+  for i in 1..10 do
+    mutable = mutable + i
+  end
+
+  |- Modification conditionnelle
+  if mutable > 50 then
+    mutable = mutable * 2
+  else
+    mutable = mutable + 10
+  end
+
+  top mutable
+}
+
+|- ----------------------------------------------------------------------------
+|- 10. FONCTIONS UTILITAIRES ET BUILT-INS
+|- ----------------------------------------------------------------------------
+
+def demonstrateBuiltins(): Unit {
+  |- Affichage
+  println("Standard output")
+
+  |- Conversions
+  let floatValue = float(42)
+  let intValue = int(3.14)
+  let stringValue = show(42)
+
+  |- Fonctions mathématiques (si disponibles)
+  let sqrtResult = sqrt(16.0)
+  let absValue = abs(-42)
+
+  |- Manipulation de listes
+  let len = length([1, 2, 3, 4, 5])
+  let headElem = head([1, 2, 3])
+  let tailList = tail([1, 2, 3])
+
+  top ()
+}
+
+|- ----------------------------------------------------------------------------
+|- 11. EXEMPLES COMPLEXES
+|- ----------------------------------------------------------------------------
+
+|- Tri rapide (quicksort)
+def quicksort(lst: List[Int]): List[Int] {
+  if length(lst) <= 1 then
+    top lst
+  else
+    let pivot = head(lst)
+    let rest = tail(lst)
+    let smaller = filter(rest, fun (x: Int): Bool -> x <= pivot)
+    let larger = filter(rest, fun (x: Int): Bool -> x > pivot)
+    top quicksort(smaller) ++ [pivot] ++ quicksort(larger)
+  end
+}
+
+|- Recherche binaire
+def binarySearch(lst: List[Int], target: Int, low: Int, high: Int): Int {
+  if low > high then
+    top -1
+  else
+    let mid = (low + high) / 2
+    let midVal = lst[mid]
+
+    if midVal == target then
+      top mid
+    else if midVal > target then
+      top binarySearch(lst, target, low, mid - 1)
+    else
+      top binarySearch(lst, target, mid + 1, high)
+    end
+  end
+}
+
+|- Génération de nombres premiers (Crible d'Ératosthène simplifié)
+def isPrime(n: Int): Bool {
+  if n <= 1 then
+    top false
+  else if n == 2 then
+    top true
+  else
+    let checkDivisor = fun (d: Int): Bool ->
+      if d * d > n then
+        true
+      else if n % d == 0 then
+        false
+      else
+        checkDivisor(d + 1)
+    top checkDivisor(2)
+  end
+}
+
+def primesUpTo(limit: Int): List[Int] {
+  let numbers = range(2, limit)
+  top filter(numbers, fun (n: Int): Bool -> isPrime(n))
+}
+
+|- Calcul de la suite de Collatz
+def collatzLength(n: Int): Int {
+  let count = 0
+  let current = n
+
+  while current != 1 do
+    if current % 2 == 0 then
+      current = current / 2
+    else
+      current = 3 * current + 1
+    end
+    count = count + 1
+  end
+
+  top count
+}
+
+|- ----------------------------------------------------------------------------
+|- 12. FONCTION PRINCIPALE AVEC DÉMONSTRATIONS
+|- ----------------------------------------------------------------------------
+
+def main(): Int {
+  println("=== TOPINEUR LANGUAGE SHOWCASE ===")
+  println("")
+
+  |- Test des fonctions de base
+  println("--- Basic Functions ---")
+  let sum = add(10, 32)
+  println("10 + 32 = " ++ show(sum))
+
+  let fib10 = fibonacci(10)
+  println("fibonacci(10) = " ++ show(fib10))
+
+  let fact5 = factorial(5)
+  println("factorial(5) = " ++ show(fact5))
+  println("")
+
+  |- Test des objets
+  println("--- Objects ---")
+  let alice = Person {
+    self.name = "Alice",
+    self.age = 30,
+    self.email = "alice@example.com"
+  }
+  println(alice.greet())
+
+  let p1 = Point { self.x = 0.0, self.y = 0.0 }
+  let p2 = Point { self.x = 3.0, self.y = 4.0 }
+  let dist = p1.distance(p2)
+  println("Distance between points: " ++ show(dist))
+
+  let circle = Circle {
+    self.center = Point { self.x = 0.0, self.y = 0.0 },
+    self.radius = 5.0
+  }
+  println("Circle area: " ++ show(circle.area()))
+  println("")
+
+  |- Test des listes
+  println("--- Lists ---")
+  let numbers = [5, 2, 8, 1, 9, 3, 7]
+  println("Original: " ++ show(numbers))
+  let sorted = quicksort(numbers)
+  println("Sorted: " ++ show(sorted))
+  println("")
+
+  |- Test des algorithmes
+  println("--- Algorithms ---")
+  let primes = primesUpTo(30)
+  println("Primes up to 30: " ++ show(primes))
+
+  let collatz27 = collatzLength(27)
+  println("Collatz length for 27: " ++ show(collatz27))
+  println("")
+
+  |- Test des polygones
+  println("--- Geometry ---")
+  let triangle = Polygon {
+    self.vertices = [
+      Point { self.x = 0.0, self.y = 0.0 },
+      Point { self.x = 4.0, self.y = 0.0 },
+      Point { self.x = 2.0, self.y = 3.0 }
+    ]
+  }
+  let center = triangle.centroid()
+  println("Triangle centroid: " ++ center.toString())
+
+  println("")
+  println("=== SHOWCASE COMPLETE ===")
+
+  top 0
+}
