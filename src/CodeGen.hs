@@ -65,7 +65,7 @@ generateCodeWithDefs name expr =
   in (mainCode, cgsCodeObjects finalState)
 
 getArity :: Expr -> Int
-getArity (ELambda params _) = length params
+getArity (ELambda params _ _) = length params
 getArity _ = 0
 
 emit :: Instr -> CodeGenM ()
@@ -111,6 +111,10 @@ compileExpr (EString s) = do
   idx <- addConst (CString s)
   emit (IConst idx)
 
+compileExpr EUnit = do
+  idx <- addConst (CInt 0)
+  emit (IConst idx)
+
 compileExpr (EVar name) = do
   mSlot <- getLocal name
   case mSlot of
@@ -135,9 +139,9 @@ compileExpr (EIf cond thenE elseE) = do
   finalIdx <- gets (length . cgsInstructions)
   patchJump (endLabelIdx - 1) finalIdx
 
-compileExpr (ELambda params body) = do
+compileExpr (ELambda params _retType body) = do
   lambdaName <- freshName "lambda#"
-  codeObj <- compileLambda lambdaName params body
+  codeObj <- compileLambda lambdaName (map fst params) body
   modify $ \s -> s { cgsCodeObjects = Map.insert lambdaName codeObj (cgsCodeObjects s) }
   idx <- addConst (CFuncRef lambdaName)
   emit (IConst idx)
@@ -175,8 +179,8 @@ compileExpr (EApp func args) =
 
 compileExpr (EDefine name expr) =
   case expr of
-    ELambda params body -> do
-      codeObj <- compileLambda name params body
+    ELambda params _retType body -> do
+      codeObj <- compileLambda name (map fst params) body
       modify $ \s -> s { cgsCodeObjects = Map.insert name codeObj (cgsCodeObjects s) }
       idx <- addConst (CFuncRef name)
       emit (IConst idx)

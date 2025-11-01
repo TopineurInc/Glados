@@ -189,7 +189,7 @@ builtinFormat :: [Value] -> IO Value
 builtinFormat (dest:VString fmt:args) =
   let formatted = processFormatString fmt args
   in case dest of
-       VBool True -> putStr formatted >> hFlush stdout >> return VVoid
+       VBool True -> putStr formatted >> hFlush stdout >> return VUnit
        VBool False -> return (VString formatted)
        _ -> error "Type error: format destination must be t or nil"
 builtinFormat _ = error "Type error: format expects (destination format-string ...)"
@@ -215,4 +215,4 @@ showValue (VBool False) = "#f"
 showValue (VString s) = s
 showValue (VBuiltin name _) = "<builtin:" ++ name ++ ">"
 showValue (VClosure name _) = "<closure:" ++ name ++ ">"
-showValue VVoid = "#<void>"
+showValue VUnit = "#<void>"

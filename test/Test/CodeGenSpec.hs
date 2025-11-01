@@ -1,3 +1,6 @@
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Test.CodeGenSpec (tests) where
 
 import Test.HUnit
@@ -6,6 +9,11 @@ import AST
 import CodeGen
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
+
+-- Helper pattern for Lisp-style lambda (without type annotations)
+pattern LispLambda :: [Name] -> Expr -> Expr
+pattern LispLambda params body <- ELambda (map fst -> params) Nothing body
+  where LispLambda params body = ELambda (map (\p -> (p, Nothing)) params) Nothing body
 
 tests :: Test
 tests = TestList
@@ -97,7 +105,7 @@ testCodeGenIf = TestList
       Right code -> any (\instr -> case instr of IJumpIfFalse _ -> True; _ -> False) (Vector.toList $ coInstrs code)
       Left _ -> False
       ~? "Should generate IJumpIfFalse"
-  , "gen if with var condition" ~: case generateCodeWithDefs "test" (EDefine "f" (ELambda ["x"] (EIf (EVar "x") (EInt 1) (EInt 0)))) of
+  , "gen if with var condition" ~: case generateCodeWithDefs "test" (EDefine "f" (LispLambda ["x"] (EIf (EVar "x") (EInt 1) (EInt 0)))) of
       (Right _, codeObjs) -> case Map.lookup "f" codeObjs of
         Just code -> any (\instr -> case instr of IJumpIfFalse _ -> True; _ -> False) (Vector.toList $ coInstrs code)
         Nothing -> False
@@ -123,19 +131,19 @@ testCodeGenDefine = TestList
       Right code -> any (\instr -> case instr of IStore _ -> True; _ -> False) (Vector.toList $ coInstrs code)
       Left _ -> False
       ~? "Should generate IStore"
-  , "gen define with lambda" ~: case generateCodeWithDefs "test" (EDefine "square" (ELambda ["x"] (EApp (EVar "*") [EVar "x", EVar "x"]))) of
+  , "gen define with lambda" ~: case generateCodeWithDefs "test" (EDefine "square" (LispLambda ["x"] (EApp (EVar "*") [EVar "x", EVar "x"]))) of
       (Right _, codeObjs) -> Map.member "square" codeObjs
       _ -> False
       ~? "Should generate code object for lambda"
-  , "gen multiple defines" ~: case generateCodeWithDefs "test" (EList [EDefine "f" (ELambda ["x"] (EVar "x")), EDefine "g" (ELambda ["y"] (EVar "y"))]) of
+  , "gen multiple defines" ~: case generateCodeWithDefs "test" (EList [EDefine "f" (LispLambda ["x"] (EVar "x")), EDefine "g" (LispLambda ["y"] (EVar "y"))]) of
       (Right _, codeObjs) -> Map.member "f" codeObjs && Map.member "g" codeObjs
       _ -> False
       ~? "Should generate multiple code objects"
-  , "gen recursive define" ~: case generateCodeWithDefs "test" (EDefine "fact" (ELambda ["n"] (EApp (EVar "fact") [EVar "n"]))) of
+  , "gen recursive define" ~: case generateCodeWithDefs "test" (EDefine "fact" (LispLambda ["n"] (EApp (EVar "fact") [EVar "n"]))) of
       (Right _, codeObjs) -> Map.member "fact" codeObjs
       _ -> False
       ~? "Should generate recursive function"
-  , "gen define arity" ~: case generateCodeWithDefs "test" (EDefine "add" (ELambda ["x", "y"] (EApp (EVar "+") [EVar "x", EVar "y"]))) of
+  , "gen define arity" ~: case generateCodeWithDefs "test" (EDefine "add" (LispLambda ["x", "y"] (EApp (EVar "+") [EVar "x", EVar "y"]))) of
       (Right _, codeObjs) -> case Map.lookup "add" codeObjs of
         Just code -> coArity code == 2
         Nothing -> False
@@ -145,29 +153,29 @@ testCodeGenDefine = TestList
 
 testCodeGenLambda :: Test
 testCodeGenLambda = TestList
-  [ "gen lambda with params" ~: case generateCodeWithDefs "test" (EDefine "f" (ELambda ["x", "y"] (EApp (EVar "+") [EVar "x", EVar "y"]))) of
+  [ "gen lambda with params" ~: case generateCodeWithDefs "test" (EDefine "f" (LispLambda ["x", "y"] (EApp (EVar "+") [EVar "x", EVar "y"]))) of
       (Right _, codeObjs) -> case Map.lookup "f" codeObjs of
         Just code -> coMaxLocals code >= 2
         Nothing -> False
       _ -> False
       ~? "Should allocate locals for params"
-  , "gen lambda with ILoad" ~: case generateCodeWithDefs "test" (EDefine "f" (ELambda ["x"] (EVar "x"))) of
+  , "gen lambda with ILoad" ~: case generateCodeWithDefs "test" (EDefine "f" (LispLambda ["x"] (EVar "x"))) of
       (Right _, codeObjs) -> case Map.lookup "f" codeObjs of
         Just code -> any (\instr -> case instr of ILoad _ -> True; _ -> False) (Vector.toList $ coInstrs code)
         Nothing -> False
       _ -> False
       ~? "Should generate ILoad for param"
-  , "gen lambda with IReturn" ~: case generateCodeWithDefs "test" (EDefine "f" (ELambda ["x"] (EVar "x"))) of
+  , "gen lambda with IReturn" ~: case generateCodeWithDefs "test" (EDefine "f" (LispLambda ["x"] (EVar "x"))) of
       (Right _, codeObjs) -> case Map.lookup "f" codeObjs of
         Just code -> any (\instr -> case instr of IReturn -> True; _ -> False) (Vector.toList $ coInstrs code)
         Nothing -> False
       _ -> False
       ~? "Should generate IReturn"
-  , "gen nested lambda" ~: case generateCodeWithDefs "test" (EDefine "make-adder" (ELambda ["x"] (ELambda ["y"] (EApp (EVar "+") [EVar "x", EVar "y"])))) of
+  , "gen nested lambda" ~: case generateCodeWithDefs "test" (EDefine "make-adder" (LispLambda ["x"] (LispLambda ["y"] (EApp (EVar "+") [EVar "x", EVar "y"])))) of
       (Right _, codeObjs) -> Map.size codeObjs >= 1
       _ -> False
       ~? "Should generate nested lambda"
-  , "gen lambda arity zero" ~: case generateCodeWithDefs "test" (EDefine "thunk" (ELambda [] (EInt 42))) of
+  , "gen lambda arity zero" ~: case generateCodeWithDefs "test" (EDefine "thunk" (LispLambda [] (EInt 42))) of
       (Right _, codeObjs) -> case Map.lookup "thunk" codeObjs of
         Just code -> coArity code == 0
         Nothing -> False

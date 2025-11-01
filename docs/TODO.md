@@ -21,18 +21,21 @@
 
 ### Phase 1: Type System & Core Extensions
 
-- [ ] **1. Add `Type` data type in `src/AST.hs`**
+- [x] **1. Add `Type` data type in `src/AST.hs`**
   - Add: `TInt | TFloat | TBool | TString | TUnit | TList Type | TTuple [Type] | TObject Name | TFun [Type] Type`
   - Files: `src/AST.hs`
+  - **Status**: COMPLETED - Type system added, exported, all tests pass
 
-- [ ] **2. Extend `Expr` with type annotations**
+- [x] **2. Extend `Expr` with type annotations**
   - Modify `ELambda` to include: `[(Name, Maybe Type)]` for params and `Maybe Type` for return
   - Modify `EDefine` similarly for function definitions
-  - Files: `src/AST.hs`
+  - Files: `src/AST.hs`, `src/Desugar.hs`, `src/CodeGen.hs`, `src/AlphaRename.hs`, `src/ClosureConversion.hs`
+  - **Status**: COMPLETED - ELambda now has `[(Name, Maybe Type)] (Maybe Type) Expr`, Lisp compatibility maintained via `LispLambda` pattern synonym in tests
 
-- [ ] **3. Add `EUnit` expression and `VUnit` value**
+- [x] **3. Add `EUnit` expression and `VUnit` value**
   - For Unit/void type support
-  - Files: `src/AST.hs`
+  - Files: `src/AST.hs`, `src/AlphaRename.hs`, `src/ClosureConversion.hs`, `src/CodeGen.hs`, `src/Builtins.hs`, `app/Main.hs`
+  - **Status**: COMPLETED - EUnit added to Expr, VVoid renamed to VUnit throughout codebase, all tests pass
 
 ### Phase 2: Control Flow
 

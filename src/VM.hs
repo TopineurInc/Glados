@@ -123,7 +123,7 @@ executeInstr vmState frame instr = case instr of
     (VBool False : stack') ->
       let frame' = frame { fStack = stack', fPC = target }
       in return $ Right (updateFrame vmState frame', Nothing)
-    (VVoid : stack') ->
+    (VUnit : stack') ->
       let frame' = frame { fStack = stack', fPC = target }
       in return $ Right (updateFrame vmState frame', Nothing)
     (_:stack') ->

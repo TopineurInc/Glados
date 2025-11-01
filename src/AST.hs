@@ -15,6 +15,7 @@ module AST
   , CompileError(..)
   , sexprLoc
   , Name
+  , Type(..)
   , Expr(..)
   , ANF(..)
   , Constant(..)
@@ -61,14 +62,27 @@ sexprLoc (SList _ loc) = loc
 
 type Name = String
 
+data Type
+  = TInt
+  | TFloat
+  | TBool
+  | TString
+  | TUnit
+  | TList Type
+  | TTuple [Type]
+  | TObject Name
+  | TFun [Type] Type
+  deriving (Eq, Show, Generic)
+
 data Expr
   = EInt Integer
   | EFloat Double
   | EBool Bool
   | EString String
   | EVar Name
+  | EUnit
   | EList [Expr]
-  | ELambda [Name] Expr
+  | ELambda [(Name, Maybe Type)] (Maybe Type) Expr
   | EDefine Name Expr
   | EIf Expr Expr Expr
   | EApp Expr [Expr]
@@ -127,7 +141,7 @@ data Value
   | VString String
   | VClosure Name [Value]
   | VBuiltin Name ([Value] -> IO Value)
-  | VVoid
+  | VUnit  -- Unit/void value (was VUnit)
 
 instance Eq Value where
   (VInt a) == (VInt b) = a == b
@@ -136,7 +150,7 @@ instance Eq Value where
   (VString a) == (VString b) = a == b
   (VClosure n1 env1) == (VClosure n2 env2) = n1 == n2 && env1 == env2
   (VBuiltin n1 _) == (VBuiltin n2 _) = n1 == n2
-  VVoid == VVoid = True
+  VUnit == VUnit = True
   _ == _ = False
 
 instance Show Value where
@@ -146,7 +160,7 @@ instance Show Value where
   show (VString s) = show s
   show (VClosure name env) = "VClosure " ++ name ++ " " ++ show env
   show (VBuiltin name _) = "VBuiltin " ++ name
-  show VVoid = "#<void>"
+  show VUnit = "#<void>"
 
 data Frame = Frame
   { fLocals :: Vector.Vector (Maybe Value)

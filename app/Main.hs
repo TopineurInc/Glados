@@ -53,7 +53,7 @@ renderValue (VBool False) = "#f"
 renderValue (VString s) = s
 renderValue (VClosure _ _) = "#<procedure>"
 renderValue (VBuiltin name _) = "#<builtin:" ++ name ++ ">"
-renderValue VVoid = "#<void>"
+renderValue VUnit = "#<void>"
 
 runProgram :: String -> IO (Either String Value)
 runProgram source =
@@ -99,7 +99,7 @@ runFile file = do
   result <- runProgram source
   case result of
     Left err -> exitWithError err
-    Right VVoid -> exitSuccess
+    Right VUnit -> exitSuccess
     Right val ->
       putStrLn (renderValue val)
         >> exitSuccess
@@ -219,7 +219,7 @@ replLoop = do
           result <- runProgram input
           case result of
             Left err -> putStrLn ("*** ERROR : " ++ err)
-            Right VVoid -> return ()
+            Right VUnit -> return ()
             Right val -> putStrLn (renderValue val)
           replLoop
 
@@ -240,5 +240,5 @@ runNonInteractive contents = do
   result <- runProgram contents
   case result of
     Left err -> exitWithError err
-    Right VVoid -> exitSuccess
+    Right VUnit -> exitSuccess
     Right val -> putStrLn (renderValue val) >> exitSuccess

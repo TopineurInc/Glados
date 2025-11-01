@@ -53,6 +53,7 @@ renameExpr _ (EInt n) = return $ EInt n
 renameExpr _ (EFloat n) = return $ EFloat n
 renameExpr _ (EBool b) = return $ EBool b
 renameExpr _ (EString s) = return $ EString s
+renameExpr _ EUnit = return EUnit
 
 renameExpr env (EVar name) =
   case Map.lookup name env of
@@ -89,11 +90,14 @@ renameExpr env (EList exprs)
       (expr', newEnv) <- renameExprWithEnv currentEnv expr
       return (expr' : acc, newEnv)
 
-renameExpr env (ELambda params body) = do
-  newParams <- mapM gensym params
-  let env' = Map.fromList (zip params newParams) `Map.union` env
+renameExpr env (ELambda params retType body) = do
+  let paramNames = map fst params
+  let paramTypes = map snd params
+  newParamNames <- mapM gensym paramNames
+  let env' = Map.fromList (zip paramNames newParamNames) `Map.union` env
   body' <- renameExpr env' body
-  return $ ELambda newParams body'
+  let newParams = zip newParamNames paramTypes
+  return $ ELambda newParams retType body'
 
 renameExpr env (EDefine name expr) = do
   newName <- gensym name

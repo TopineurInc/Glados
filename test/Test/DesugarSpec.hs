@@ -1,9 +1,17 @@
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Test.DesugarSpec (tests) where
 
 import Test.HUnit
 
 import AST
 import Desugar
+
+-- Helper pattern for Lisp-style lambda (without type annotations)
+pattern LispLambda :: [Name] -> Expr -> Expr
+pattern LispLambda params body <- ELambda (map fst -> params) Nothing body
+  where LispLambda params body = ELambda (map (\p -> (p, Nothing)) params) Nothing body
 
 tests :: Test
 tests = TestList
@@ -60,11 +68,11 @@ testDesugarDefine = TestList
       _ -> False
       ~? "Should desugar simple define"
   , "desugar define with lambda sugar" ~: case sexprToExpr (SList [SAtom (ASymbol "define") Nothing, SList [SAtom (ASymbol "square") Nothing, SAtom (ASymbol "x") Nothing] Nothing, SList [SAtom (ASymbol "*") Nothing, SAtom (ASymbol "x") Nothing, SAtom (ASymbol "x") Nothing] Nothing] Nothing) of
-      Right (EDefine "square" (ELambda ["x"] (EApp (EVar "*") [EVar "x", EVar "x"]))) -> True
+      Right (EDefine "square" (LispLambda ["x"] (EApp (EVar "*") [EVar "x", EVar "x"]))) -> True
       _ -> False
       ~? "Should desugar define with lambda"
   , "desugar define with multiple params" ~: case sexprToExpr (SList [SAtom (ASymbol "define") Nothing, SList [SAtom (ASymbol "add") Nothing, SAtom (ASymbol "x") Nothing, SAtom (ASymbol "y") Nothing] Nothing, SList [SAtom (ASymbol "+") Nothing, SAtom (ASymbol "x") Nothing, SAtom (ASymbol "y") Nothing] Nothing] Nothing) of
-      Right (EDefine "add" (ELambda ["x", "y"] (EApp (EVar "+") [EVar "x", EVar "y"]))) -> True
+      Right (EDefine "add" (LispLambda ["x", "y"] (EApp (EVar "+") [EVar "x", EVar "y"]))) -> True
       _ -> False
       ~? "Should desugar define with multiple params"
   , "desugar define with expression" ~: case sexprToExpr (SList [SAtom (ASymbol "define") Nothing, SAtom (ASymbol "result") Nothing, SList [SAtom (ASymbol "+") Nothing, SAtom (AInteger 1) Nothing, SAtom (AInteger 2) Nothing] Nothing] Nothing) of
@@ -72,7 +80,7 @@ testDesugarDefine = TestList
       _ -> False
       ~? "Should desugar define with expression"
   , "desugar define with lambda" ~: case sexprToExpr (SList [SAtom (ASymbol "define") Nothing, SAtom (ASymbol "f") Nothing, SList [SAtom (ASymbol "lambda") Nothing, SList [SAtom (ASymbol "x") Nothing] Nothing, SAtom (ASymbol "x") Nothing] Nothing] Nothing) of
-      Right (EDefine "f" (ELambda ["x"] (EVar "x"))) -> True
+      Right (EDefine "f" (LispLambda ["x"] (EVar "x"))) -> True
       _ -> False
       ~? "Should desugar define with explicit lambda"
   ]
@@ -80,23 +88,23 @@ testDesugarDefine = TestList
 testDesugarLambda :: Test
 testDesugarLambda = TestList
   [ "desugar simple lambda" ~: case sexprToExpr (SList [SAtom (ASymbol "lambda") Nothing, SList [SAtom (ASymbol "x") Nothing] Nothing, SAtom (ASymbol "x") Nothing] Nothing) of
-      Right (ELambda ["x"] (EVar "x")) -> True
+      Right (LispLambda ["x"] (EVar "x")) -> True
       _ -> False
       ~? "Should desugar lambda"
   , "desugar lambda with no params" ~: case sexprToExpr (SList [SAtom (ASymbol "lambda") Nothing, SList [] Nothing, SAtom (AInteger 42) Nothing] Nothing) of
-      Right (ELambda [] (EInt 42)) -> True
+      Right (LispLambda [] (EInt 42)) -> True
       _ -> False
       ~? "Should desugar lambda with no params"
   , "desugar lambda with multiple params" ~: case sexprToExpr (SList [SAtom (ASymbol "lambda") Nothing, SList [SAtom (ASymbol "x") Nothing, SAtom (ASymbol "y") Nothing, SAtom (ASymbol "z") Nothing] Nothing, SList [SAtom (ASymbol "+") Nothing, SAtom (ASymbol "x") Nothing, SList [SAtom (ASymbol "+") Nothing, SAtom (ASymbol "y") Nothing, SAtom (ASymbol "z") Nothing] Nothing] Nothing] Nothing) of
-      Right (ELambda ["x", "y", "z"] (EApp (EVar "+") [EVar "x", EApp (EVar "+") [EVar "y", EVar "z"]])) -> True
+      Right (LispLambda ["x", "y", "z"] (EApp (EVar "+") [EVar "x", EApp (EVar "+") [EVar "y", EVar "z"]])) -> True
       _ -> False
       ~? "Should desugar lambda with multiple params"
   , "desugar lambda with complex body" ~: case sexprToExpr (SList [SAtom (ASymbol "lambda") Nothing, SList [SAtom (ASymbol "x") Nothing] Nothing, SList [SAtom (ASymbol "if") Nothing, SAtom (ASymbol "x") Nothing, SAtom (AInteger 1) Nothing, SAtom (AInteger 0) Nothing] Nothing] Nothing) of
-      Right (ELambda ["x"] (EIf (EVar "x") (EInt 1) (EInt 0))) -> True
+      Right (LispLambda ["x"] (EIf (EVar "x") (EInt 1) (EInt 0))) -> True
       _ -> False
       ~? "Should desugar lambda with complex body"
   , "desugar nested lambda" ~: case sexprToExpr (SList [SAtom (ASymbol "lambda") Nothing, SList [SAtom (ASymbol "x") Nothing] Nothing, SList [SAtom (ASymbol "lambda") Nothing, SList [SAtom (ASymbol "y") Nothing] Nothing, SList [SAtom (ASymbol "+") Nothing, SAtom (ASymbol "x") Nothing, SAtom (ASymbol "y") Nothing] Nothing] Nothing] Nothing) of
-      Right (ELambda ["x"] (ELambda ["y"] (EApp (EVar "+") [EVar "x", EVar "y"]))) -> True
+      Right (LispLambda ["x"] (LispLambda ["y"] (EApp (EVar "+") [EVar "x", EVar "y"]))) -> True
       _ -> False
       ~? "Should desugar nested lambda"
   ]
@@ -104,19 +112,19 @@ testDesugarLambda = TestList
 testDesugarLet :: Test
 testDesugarLet = TestList
   [ "desugar simple let" ~: case sexprToExpr (SList [SAtom (ASymbol "let") Nothing, SList [SList [SAtom (ASymbol "x") Nothing, SAtom (AInteger 42) Nothing] Nothing] Nothing, SAtom (ASymbol "x") Nothing] Nothing) of
-      Right (EApp (ELambda ["x"] (EVar "x")) [EInt 42]) -> True
+      Right (EApp (LispLambda ["x"] (EVar "x")) [EInt 42]) -> True
       _ -> False
       ~? "Should desugar let to lambda application"
   , "desugar let with multiple bindings" ~: case sexprToExpr (SList [SAtom (ASymbol "let") Nothing, SList [SList [SAtom (ASymbol "x") Nothing, SAtom (AInteger 1) Nothing] Nothing, SList [SAtom (ASymbol "y") Nothing, SAtom (AInteger 2) Nothing] Nothing] Nothing, SList [SAtom (ASymbol "+") Nothing, SAtom (ASymbol "x") Nothing, SAtom (ASymbol "y") Nothing] Nothing] Nothing) of
-      Right (EApp (ELambda ["x", "y"] (EApp (EVar "+") [EVar "x", EVar "y"])) [EInt 1, EInt 2]) -> True
+      Right (EApp (LispLambda ["x", "y"] (EApp (EVar "+") [EVar "x", EVar "y"])) [EInt 1, EInt 2]) -> True
       _ -> False
       ~? "Should desugar let with multiple bindings"
   , "desugar let with complex value" ~: case sexprToExpr (SList [SAtom (ASymbol "let") Nothing, SList [SList [SAtom (ASymbol "x") Nothing, SList [SAtom (ASymbol "+") Nothing, SAtom (AInteger 1) Nothing, SAtom (AInteger 2) Nothing] Nothing] Nothing] Nothing, SAtom (ASymbol "x") Nothing] Nothing) of
-      Right (EApp (ELambda ["x"] (EVar "x")) [EApp (EVar "+") [EInt 1, EInt 2]]) -> True
+      Right (EApp (LispLambda ["x"] (EVar "x")) [EApp (EVar "+") [EInt 1, EInt 2]]) -> True
       _ -> False
       ~? "Should desugar let with complex value"
   , "desugar let with complex body" ~: case sexprToExpr (SList [SAtom (ASymbol "let") Nothing, SList [SList [SAtom (ASymbol "x") Nothing, SAtom (AInteger 5) Nothing] Nothing] Nothing, SList [SAtom (ASymbol "*") Nothing, SAtom (ASymbol "x") Nothing, SAtom (ASymbol "x") Nothing] Nothing] Nothing) of
-      Right (EApp (ELambda ["x"] (EApp (EVar "*") [EVar "x", EVar "x"])) [EInt 5]) -> True
+      Right (EApp (LispLambda ["x"] (EApp (EVar "*") [EVar "x", EVar "x"])) [EInt 5]) -> True
       _ -> False
       ~? "Should desugar let with complex body"
   , "desugar nested let" ~: case sexprToExpr (SList [SAtom (ASymbol "let") Nothing, SList [SList [SAtom (ASymbol "x") Nothing, SAtom (AInteger 1) Nothing] Nothing] Nothing, SList [SAtom (ASymbol "let") Nothing, SList [SList [SAtom (ASymbol "y") Nothing, SAtom (AInteger 2) Nothing] Nothing] Nothing, SList [SAtom (ASymbol "+") Nothing, SAtom (ASymbol "x") Nothing, SAtom (ASymbol "y") Nothing] Nothing] Nothing] Nothing) of
@@ -128,11 +136,11 @@ testDesugarLet = TestList
 testDesugarLetrec :: Test
 testDesugarLetrec = TestList
   [ "desugar simple letrec" ~: case sexprToExpr (SList [SAtom (ASymbol "letrec") Nothing, SList [SList [SAtom (ASymbol "f") Nothing, SList [SAtom (ASymbol "lambda") Nothing, SList [SAtom (ASymbol "x") Nothing] Nothing, SAtom (ASymbol "x") Nothing] Nothing] Nothing] Nothing, SAtom (ASymbol "f") Nothing] Nothing) of
-      Right (EList [EDefine "f" (ELambda ["x"] (EVar "x")), EVar "f"]) -> True
+      Right (EList [EDefine "f" (LispLambda ["x"] (EVar "x")), EVar "f"]) -> True
       _ -> False
       ~? "Should desugar letrec to defines"
   , "desugar letrec with multiple bindings" ~: case sexprToExpr (SList [SAtom (ASymbol "letrec") Nothing, SList [SList [SAtom (ASymbol "f") Nothing, SList [SAtom (ASymbol "lambda") Nothing, SList [] Nothing, SAtom (AInteger 1) Nothing] Nothing] Nothing, SList [SAtom (ASymbol "g") Nothing, SList [SAtom (ASymbol "lambda") Nothing, SList [] Nothing, SAtom (AInteger 2) Nothing] Nothing] Nothing] Nothing, SAtom (AInteger 0) Nothing] Nothing) of
-      Right (EList [EDefine "f" (ELambda [] (EInt 1)), EDefine "g" (ELambda [] (EInt 2)), EInt 0]) -> True
+      Right (EList [EDefine "f" (LispLambda [] (EInt 1)), EDefine "g" (LispLambda [] (EInt 2)), EInt 0]) -> True
       _ -> False
       ~? "Should desugar letrec with multiple bindings"
   , "desugar letrec with recursive reference" ~: case sexprToExpr (SList [SAtom (ASymbol "letrec") Nothing, SList [SList [SAtom (ASymbol "fact") Nothing, SList [SAtom (ASymbol "lambda") Nothing, SList [SAtom (ASymbol "n") Nothing] Nothing, SList [SAtom (ASymbol "if") Nothing, SList [SAtom (ASymbol "eq?") Nothing, SAtom (ASymbol "n") Nothing, SAtom (AInteger 0) Nothing] Nothing, SAtom (AInteger 1) Nothing, SList [SAtom (ASymbol "*") Nothing, SAtom (ASymbol "n") Nothing, SList [SAtom (ASymbol "fact") Nothing, SAtom (ASymbol "n") Nothing] Nothing] Nothing] Nothing] Nothing] Nothing] Nothing, SAtom (ASymbol "fact") Nothing] Nothing) of
@@ -172,7 +180,7 @@ testDesugarApplication = TestList
       _ -> False
       ~? "Should desugar application with symbol func"
   , "desugar application with lambda func" ~: case sexprToExpr (SList [SList [SAtom (ASymbol "lambda") Nothing, SList [SAtom (ASymbol "x") Nothing] Nothing, SAtom (ASymbol "x") Nothing] Nothing, SAtom (AInteger 42) Nothing] Nothing) of
-      Right (EApp (ELambda ["x"] (EVar "x")) [EInt 42]) -> True
+      Right (EApp (LispLambda ["x"] (EVar "x")) [EInt 42]) -> True
       _ -> False
       ~? "Should desugar application with lambda func"
   , "desugar application with no args" ~: case sexprToExpr (SList [SAtom (ASymbol "foo") Nothing] Nothing) of
@@ -188,7 +196,7 @@ testDesugarApplication = TestList
       _ -> False
       ~? "Should desugar nested application"
   , "desugar lambda application" ~: case sexprToExpr (SList [SList [SAtom (ASymbol "lambda") Nothing, SList [SAtom (ASymbol "x") Nothing] Nothing, SAtom (ASymbol "x") Nothing] Nothing, SAtom (AInteger 42) Nothing] Nothing) of
-      Right (EApp (ELambda ["x"] (EVar "x")) [EInt 42]) -> True
+      Right (EApp (LispLambda ["x"] (EVar "x")) [EInt 42]) -> True
       _ -> False
       ~? "Should desugar lambda application"
   ]

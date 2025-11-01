@@ -28,18 +28,20 @@ convertExpr _ e@(EInt _) = e
 convertExpr _ e@(EFloat _) = e
 convertExpr _ e@(EBool _) = e
 convertExpr _ e@(EString _) = e
+convertExpr _ e@EUnit = e
 convertExpr _ e@(EVar _) = e
 convertExpr _ e@(EQuote _) = e
 
 convertExpr env (EList exprs) =
   EList (map (convertExpr env) exprs)
 
-convertExpr env (ELambda params body) =
-  let env' = env `Set.union` Set.fromList params
+convertExpr env (ELambda params retType body) =
+  let paramNames = map fst params
+      env' = env `Set.union` Set.fromList paramNames
       body' = convertExpr env' body
       -- Note: free variables analysis done but not yet used in current implementation
-      _free = getFreeVars (Set.fromList params) body'
-  in ELambda params body'
+      _free = getFreeVars (Set.fromList paramNames) body'
+  in ELambda params retType body'
 
 convertExpr env (EDefine name expr) =
   let env' = Set.insert name env
@@ -59,13 +61,15 @@ getFreeVars _ (EInt _) = Set.empty
 getFreeVars _ (EFloat _) = Set.empty
 getFreeVars _ (EBool _) = Set.empty
 getFreeVars _ (EString _) = Set.empty
+getFreeVars _ EUnit = Set.empty
 getFreeVars _ (EQuote _) = Set.empty
 
 getFreeVars bound (EList exprs) =
   Set.unions (map (getFreeVars bound) exprs)
 
-getFreeVars bound (ELambda params body) =
-  let bound' = bound `Set.union` Set.fromList params
+getFreeVars bound (ELambda params _retType body) =
+  let paramNames = map fst params
+      bound' = bound `Set.union` Set.fromList paramNames
   in getFreeVars bound' body
 
 getFreeVars bound (EDefine name expr) =
