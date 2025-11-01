@@ -41,6 +41,10 @@ library
   other-modules:
       SExprConstruct
       TopineurParser
+      TopineurParserExpressions
+      TopineurParserPattern
+      TopineurParserStatements
+      TopineurParserSymbols
       TopineurParserTopLevel
       TopineurParserTypes
       TopineurParserUtils

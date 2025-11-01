@@ -13,8 +13,11 @@ module TopineurParserUtils
   , newline1
   , toLoc
   , withIndentedBlock
+  , withIndentedBlockML
+  , parseIndentedLineML
   ) where
 
+import Control.Applicative (empty)
 import Control.Monad (void, when)
 import qualified Text.Parsec as P
 import Text.Parsec
@@ -137,46 +140,35 @@ parseIndentedLine targetCol p = do
     , return x
     ]
 
-{- OLD VERSION
+parseIndentedLineML :: Int -> Parser a -> Parser a
+parseIndentedLineML targetCol p = do
+  x <- p
+  choice
+    [ try $ do
+        _ <- newline
+        n <- length <$> many (char ' ')
+        scML
+        if n == targetCol
+          then return x
+          else fail "__DEDENT__"
+    , return x
+    ]
 
-withIndentedBlock :: Parser a -> Parser [a]
-withIndentedBlock p = do
+withIndentedBlockML :: Parser a -> Parser [a]
+withIndentedBlockML p = do
   st <- getState
-  let baseCol = case isStack st of
-                  (top:_) -> top
-                  [] -> 0
-  _ <- many1 (char '\n')
-  col <- countSpacesAtLineStart
-  unit <- case isUnit st of
-    Nothing ->
-      if col - baseCol == 2 || col - baseCol == 4
-        then do
-          putState st { isUnit = Just (col - baseCol), isStack = col : isStack st }
-          return (col - baseCol)
-        else do
-          pos <- getPosition
-          failAt pos
-            "Indentation must be 2 or 4 spaces and consistent across the file."
-    Just u -> return u
-  when (col - baseCol /= unit && col - baseCol /= unit * 2) $ do
-    pos <- getPosition
-    failAt pos ("Expected indentation of exactly " ++ show unit ++ " or " ++ show (unit * 2) ++ " spaces.")
-  many1 (indentedLine col p)
-  where
-    countSpacesAtLineStart = do
-      n <- length <$> many (char ' ')
-      return n
-    indentedLine targetCol p' = do
-      x <- p'
-      choice
-        [ try $ do
-            _ <- newline
-            n <- length <$> many (char ' ')
-            sc
-            if n == targetCol
-              then return x
-              else fail "__DEDENT__"
-        , return x
-        ]
--}
-
+  let baseCol = getBaseIndentCol st
+  _ <- parseBlockNewlines
+  col <- parseIndentation
+  unit <- getOrSetIndentUnit st baseCol col
+  ensureIndentIsValid baseCol col unit
+  first <- p
+  rest <- many $ try $ do
+    _ <- char '\n'
+    n <- length <$> many (char ' ')
+    if n == col
+      then do
+        scML
+        p
+      else empty
+  return (first : rest)
