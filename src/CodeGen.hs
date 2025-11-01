@@ -16,6 +16,7 @@ module CodeGen
 
 import AST
 import Control.Monad.State
+import Control.Monad (forM_)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 
@@ -204,6 +205,157 @@ compileExpr (EList exprs) = case exprs of
       >> compileExpr (EList es)
 
 compileExpr (EQuote _) = return ()
+
+-- Control Flow: Loops
+compileExpr (EWhile cond body) = do
+  loopStart <- gets (length . cgsInstructions)
+  compileExpr cond
+  emit (IJumpIfFalse 0)
+  exitJumpIdx <- gets (length . cgsInstructions)
+  
+  compileExpr body
+  emit IPop
+  
+  emit (IJump loopStart)
+  
+  exitIdx <- gets (length . cgsInstructions)
+  patchJump (exitJumpIdx - 1) exitIdx
+  
+  -- Push unit value as while result
+  idx <- addConst (CInt 0)
+  emit (IConst idx)
+
+compileExpr (EFor var start end body) = do
+  compileExpr start
+  iterSlot <- allocLocal var
+  emit (IStore iterSlot)
+  
+  loopStart <- gets (length . cgsInstructions)
+  emit (ILoad iterSlot)
+  compileExpr end
+  emit (IPrim "<")
+  emit (IJumpIfFalse 0)
+  exitJumpIdx <- gets (length . cgsInstructions)
+  
+  compileExpr body
+  emit IPop
+  
+  emit (ILoad iterSlot)
+  idx <- addConst (CInt 1)
+  emit (IConst idx)
+  emit (IPrim "+")
+  emit (IStore iterSlot)
+  
+  emit (IJump loopStart)
+  
+  exitIdx <- gets (length . cgsInstructions)
+  patchJump (exitJumpIdx - 1) exitIdx
+  
+  -- Push unit value as for result
+  unitIdx <- addConst (CInt 0)
+  emit (IConst unitIdx)
+
+compileExpr (ERange start end) = do
+  compileExpr start
+  compileExpr end
+  emit IRangeCreate
+
+compileExpr (EReturn expr) = do
+  compileExpr expr
+  emit IReturn
+
+-- Operators
+compileExpr (EBinOp op left right) = do
+  compileExpr left
+  compileExpr right
+  case op of
+    Add -> emit (IPrim "+")
+    Sub -> emit (IPrim "-")
+    Mul -> emit (IPrim "*")
+    Div -> emit (IPrim "div")
+    Lt -> emit (IPrim "<")
+    Lte -> emit (IPrim "<=")
+    Gt -> emit (IPrim ">")
+    Gte -> emit (IPrim ">=")
+    Eq -> emit (IPrim "eq?")
+    Neq -> do
+      emit (IPrim "eq?")
+      emit (IPrim "not")
+    And -> emit (IPrim "and")
+    Or -> emit (IPrim "or")
+    Concat -> emit (IPrim "string-append")
+
+compileExpr (EUnOp op expr) = do
+  case op of
+    Not -> do
+      compileExpr expr
+      emit (IPrim "not")
+    Neg -> do
+      idx <- addConst (CInt 0)
+      emit (IConst idx)
+      compileExpr expr
+      emit (IPrim "-")
+
+-- Tuples
+compileExpr (ETuple exprs) = do
+  mapM_ compileExpr exprs
+  emit (ITupleCreate (length exprs))
+
+compileExpr (ETupleDestruct names tupleExpr body) = do
+  compileExpr tupleExpr
+  slots <- mapM allocLocal names
+  forM_ (zip slots [0..]) $ \(slot, idx) -> do
+    emit (ITupleGet idx)
+    emit (IStore slot)
+  compileExpr body
+
+compileExpr (EIndex tuple (EInt n)) = do
+  compileExpr tuple
+  emit (ITupleGet (fromInteger n))
+
+compileExpr (EIndex expr idx) = do
+  compileExpr expr
+  compileExpr idx
+  emit IListGet
+
+-- Lists
+compileExpr (EListLiteral exprs _type) = do
+  mapM_ compileExpr exprs
+  emit (IListCreate (length exprs))
+
+-- Objects
+compileExpr (EObjectDecl _name _fields _methods) = do
+  -- For now, object declarations just push a unit value
+  -- The actual object type system will be handled by the type checker
+  -- and objects are instantiated with EObjectInst
+  idx <- addConst (CInt 0)
+  emit (IConst idx)
+
+compileExpr (EObjectInst typeName fieldInits) = do
+  forM_ fieldInits $ \(_fieldName, expr) -> compileExpr expr
+  emit (IObjectCreate typeName)
+
+compileExpr (EMemberAccess obj memberName) = do
+  compileExpr obj
+  emit (IMemberGet memberName)
+
+-- Assignment
+compileExpr (EAssign name expr) = do
+  compileExpr expr
+  mSlot <- getLocal name
+  case mSlot of
+    Just slot -> emit (IAssign slot)
+    Nothing -> error $ "Assignment to undefined variable: " ++ name
+  compileExpr (EVar name)
+
+-- Package and Import (no-ops for now)
+compileExpr (EPackage _name) = do
+  idx <- addConst (CInt 0)
+  emit (IConst idx)
+
+compileExpr (EImport _name) = do
+  idx <- addConst (CInt 0)
+  emit (IConst idx)
 
 patchJump :: Int -> Int -> CodeGenM ()
 patchJump instrIdx target = do

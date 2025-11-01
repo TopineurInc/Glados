@@ -79,6 +79,7 @@ test-suite glados-test
       Test.BuiltinsSpec
       Test.ClosureConversionSpec
       Test.CodeGenSpec
+      Test.CodeGenTopineurSpec
       Test.CompilerSpec
       Test.DesugarSpec
       Test.MacroExpanderSpec

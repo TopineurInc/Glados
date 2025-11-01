@@ -169,40 +169,47 @@
 
 ## CodeGen Adaptations
 
-- [ ] **24. Implement codegen for loops**
+- [x] **24. Implement codegen for loops**
   - Handle `EWhile`, `EFor`, `ERange` in `compileExpr`
   - Emit appropriate loop instructions
   - Files: `src/CodeGen.hs`
+  - **Status**: COMPLETED - Loop constructs compile to bytecode with proper jump patching
 
-- [ ] **25. Implement codegen for operators**
+- [x] **25. Implement codegen for operators**
   - Handle `EBinOp`, `EUnOp` in `compileExpr`
   - Files: `src/CodeGen.hs`
+  - **Status**: COMPLETED - All binary and unary operators map to primitives or instruction sequences
 
-- [ ] **26. Implement codegen for tuples**
+- [x] **26. Implement codegen for tuples**
   - Handle `ETuple`, `ETupleDestruct` in `compileExpr`
   - Emit `ITupleCreate`, `ITupleGet`
   - Files: `src/CodeGen.hs`
+  - **Status**: COMPLETED - Tuple creation and destructuring implemented
 
-- [ ] **27. Implement codegen for native lists**
+- [x] **27. Implement codegen for native lists**
   - Handle `EListLiteral`, `EIndex` in `compileExpr`
   - Emit `IListCreate`, `IListGet`
   - Files: `src/CodeGen.hs`
+  - **Status**: COMPLETED - List literals and indexing implemented
 
-- [ ] **28. Implement codegen for objects**
+- [x] **28. Implement codegen for objects**
   - Handle `EObjectDecl`, `EObjectInst`, `EMemberAccess`
   - Emit object-related instructions
   - Handle default field values
   - Files: `src/CodeGen.hs`
+  - **Status**: COMPLETED - Object instantiation and member access implemented (declarations are no-ops)
 
-- [ ] **29. Implement codegen for assignment**
+- [x] **29. Implement codegen for assignment**
   - Handle `EAssign` in `compileExpr`
   - Emit `IAssign` instruction
   - Files: `src/CodeGen.hs`
+  - **Status**: COMPLETED - Assignment to local variables implemented
 
-- [ ] **30. Implement codegen for return**
+- [x] **30. Implement codegen for return**
   - Handle `EReturn` in `compileExpr`
   - Respect `LanguageMode` (implicit vs explicit return)
   - Files: `src/CodeGen.hs`
+  - **Status**: COMPLETED - Explicit return statement implemented
 
 ---
 

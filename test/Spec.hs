@@ -8,6 +8,7 @@ import qualified Test.AlphaRenameSpec as AlphaRenameSpec
 import qualified Test.BuiltinsSpec as BuiltinsSpec
 import qualified Test.ClosureConversionSpec as ClosureConversionSpec
 import qualified Test.CodeGenSpec as CodeGenSpec
+import qualified Test.CodeGenTopineurSpec as CodeGenTopineurSpec
 import qualified Test.CompilerSpec as CompilerSpec
 import qualified Test.DesugarSpec as DesugarSpec
 import qualified Test.SExprParserSpec as SExprParserSpec
@@ -23,6 +24,7 @@ allTests = TestList
   , TestLabel "Alpha Rename" AlphaRenameSpec.tests
   , TestLabel "Closure Conversion" ClosureConversionSpec.tests
   , TestLabel "CodeGen" CodeGenSpec.tests
+  , TestLabel "CodeGen Topineur (Tasks 24-30)" CodeGenTopineurSpec.tests
   , TestLabel "VM" VMSpec.tests
   , TestLabel "Builtins" BuiltinsSpec.tests
   , TestLabel "Compiler" CompilerSpec.tests
