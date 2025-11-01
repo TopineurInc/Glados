@@ -117,7 +117,7 @@ compileTopLevel config sexpr = do
   expr <- sexprToExpr expanded
 
   case expr of
-    EDefine name body -> do
+    EDefine name body _ -> do
       renamed <- alphaRename body
 
       converted <- closureConvert renamed

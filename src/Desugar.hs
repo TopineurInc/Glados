@@ -32,12 +32,12 @@ sexprToExpr = \case
 
   SList [SAtom (ASymbol "define") _, SAtom (ASymbol name) _, expr] _ -> do
     e <- sexprToExpr expr
-    Right $ EDefine name e
+    Right $ EDefine name e []
 
   SList [SAtom (ASymbol "define") _, SList (SAtom (ASymbol name) _ : args) _, body] _loc -> do
     params <- mapM extractParam args
     b <- sexprToExpr body
-    Right $ EDefine name (ELambda (map (\p -> (p, Nothing)) params) Nothing b)
+    Right $ EDefine name (ELambda (map (\p -> (p, Nothing)) params) Nothing b []) []
 
   SList (SAtom (ASymbol "define") _ : _) loc ->
     Left $ SyntaxError "Invalid define form" loc
@@ -45,13 +45,13 @@ sexprToExpr = \case
   SList [SAtom (ASymbol "lambda") _, SList args _, body] _loc -> do
     params <- mapM extractParam args
     b <- sexprToExpr body
-    Right $ ELambda (map (\p -> (p, Nothing)) params) Nothing b
+    Right $ ELambda (map (\p -> (p, Nothing)) params) Nothing b []
 
   SList [SAtom (ASymbol "let") _, SList bindings _, body] _loc -> do
     (names, vals) <- desugarBindings bindings
     b <- sexprToExpr body
     vals' <- mapM sexprToExpr vals
-    Right $ EApp (ELambda (map (\n -> (n, Nothing)) names) Nothing b) vals'
+    Right $ EApp (ELambda (map (\n -> (n, Nothing)) names) Nothing b []) vals'
 
   SList [SAtom (ASymbol "letrec") _, SList bindings _, body] _loc -> do
     (names, vals) <- desugarBindings bindings

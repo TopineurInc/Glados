@@ -74,15 +74,17 @@ renameExpr env (EList exprs)
   where
     (defines, rest) = span isDefine exprs
 
-    isDefine (EDefine _ _) = True
+    isDefine (EDefine {}) = True
     isDefine _ = False
 
-    getDefineName (EDefine name _) = name
+    getDefineName (EDefine name _ _) = name
     getDefineName _ = error "Not a define"
 
-    renameDefineWith _oldEnv newEnv (EDefine name expr) =
+    renameDefineWith _oldEnv newEnv (EDefine name expr anns) =
       case Map.lookup name newEnv of
-        Just newName -> renameExpr newEnv expr >>= return . EDefine newName
+        Just newName -> do
+          expr' <- renameExpr newEnv expr
+          return $ EDefine newName expr' anns
         Nothing -> error "Name not in new env"
     renameDefineWith _ _ _ = error "Not a define"
 
@@ -90,19 +92,19 @@ renameExpr env (EList exprs)
       (expr', newEnv) <- renameExprWithEnv currentEnv expr
       return (expr' : acc, newEnv)
 
-renameExpr env (ELambda params retType body) = do
+renameExpr env (ELambda params retType body anns) = do
   let paramNames = map fst params
   let paramTypes = map snd params
   newParamNames <- mapM gensym paramNames
   let env' = Map.fromList (zip paramNames newParamNames) `Map.union` env
   body' <- renameExpr env' body
   let newParams = zip newParamNames paramTypes
-  return $ ELambda newParams retType body'
+  return $ ELambda newParams retType body' anns
 
-renameExpr env (EDefine name expr) = do
+renameExpr env (EDefine name expr anns) = do
   newName <- gensym name
   expr' <- renameExpr env expr
-  return $ EDefine newName expr'
+  return $ EDefine newName expr' anns
 
 renameExpr env (EIf cond thenE elseE) = do
   cond' <- renameExpr env cond
@@ -117,12 +119,113 @@ renameExpr env (EApp func args) = do
 
 renameExpr _ (EQuote sexpr) = return $ EQuote sexpr
 
+renameExpr env (EWhile cond body) = do
+  cond' <- renameExpr env cond
+  body' <- renameExpr env body
+  return $ EWhile cond' body'
+
+renameExpr env (EFor var start end body) = do
+  newVar <- gensym var
+  let env' = Map.insert var newVar env
+  start' <- renameExpr env start
+  end' <- renameExpr env end
+  body' <- renameExpr env' body
+  return $ EFor newVar start' end' body'
+
+renameExpr env (ERange start end) = do
+  start' <- renameExpr env start
+  end' <- renameExpr env end
+  return $ ERange start' end'
+
+renameExpr env (EReturn expr) = do
+  expr' <- renameExpr env expr
+  return $ EReturn expr'
+
+renameExpr env (EBinOp op left right) = do
+  left' <- renameExpr env left
+  right' <- renameExpr env right
+  return $ EBinOp op left' right'
+
+renameExpr env (EUnOp op expr) = do
+  expr' <- renameExpr env expr
+  return $ EUnOp op expr'
+
+renameExpr env (ETuple exprs) = do
+  exprs' <- mapM (renameExpr env) exprs
+  return $ ETuple exprs'
+
+renameExpr env (ETupleDestruct names expr body) = do
+  newNames <- mapM gensym names
+  let env' = Map.fromList (zip names newNames) `Map.union` env
+  expr' <- renameExpr env expr
+  body' <- renameExpr env' body
+  return $ ETupleDestruct newNames expr' body'
+
+renameExpr env (EListLiteral exprs ty) = do
+  exprs' <- mapM (renameExpr env) exprs
+  return $ EListLiteral exprs' ty
+
+renameExpr env (EIndex container index) = do
+  container' <- renameExpr env container
+  index' <- renameExpr env index
+  return $ EIndex container' index'
+
+renameExpr env (EAssign name expr) = do
+  expr' <- renameExpr env expr
+  case Map.lookup name env of
+    Just newName -> return $ EAssign newName expr'
+    Nothing -> addFreeVar name >> return (EAssign name expr')
+
+renameExpr env (EObjectDecl name fields methods) = do
+  newName <- gensym name
+  fields' <- mapM (renameField env) fields
+  methods' <- mapM (renameMethod env) methods
+  return $ EObjectDecl newName fields' methods'
+  where
+    renameField env' (Field fname ftype mdefault) = do
+      newFname <- gensym fname
+      mdefault' <- case mdefault of
+        Just defExpr -> Just <$> renameExpr env' defExpr
+        Nothing -> return Nothing
+      return $ Field newFname ftype mdefault'
+    renameMethod env' (Method mname params retType body) = do
+      newMname <- gensym mname
+      let paramNames = map fst params
+      let paramTypes = map snd params
+      newParamNames <- mapM gensym paramNames
+      let env'' = Map.fromList (zip paramNames newParamNames) `Map.union` env'
+      body' <- renameExpr env'' body
+      let newParams = zip newParamNames paramTypes
+      return $ Method newMname newParams retType body'
+
+renameExpr env (EObjectInst name fieldInits) = do
+  case Map.lookup name env of
+    Just newName -> do
+      fieldInits' <- mapM renameFieldInit fieldInits
+      return $ EObjectInst newName fieldInits'
+    Nothing -> do
+      addFreeVar name
+      fieldInits' <- mapM renameFieldInit fieldInits
+      return $ EObjectInst name fieldInits'
+  where
+    renameFieldInit (fname, expr) = do
+      expr' <- renameExpr env expr
+      return (fname, expr')
+
+renameExpr env (EMemberAccess obj member) = do
+  obj' <- renameExpr env obj
+  return $ EMemberAccess obj' member
+
+renameExpr _ (EPackage name) = return $ EPackage name
+
+renameExpr _ (EImport name) = return $ EImport name
+
 renameExprWithEnv :: Env -> Expr -> RenameM (Expr, Env)
-renameExprWithEnv env (EDefine name expr) = do
+renameExprWithEnv env (EDefine name expr ann) = do
   newName <- gensym name
   let env' = Map.insert name newName env
   expr' <- renameExpr env expr
-  return (EDefine newName expr', env')
+  return (EDefine newName expr' ann, env')
 renameExprWithEnv env expr = do
   expr' <- renameExpr env expr
   return (expr', env)
