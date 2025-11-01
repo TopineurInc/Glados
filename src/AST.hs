@@ -16,6 +16,10 @@ module AST
   , sexprLoc
   , Name
   , Type(..)
+  , BinOp(..)
+  , UnOp(..)
+  , Field(..)
+  , Method(..)
   , Expr(..)
   , ANF(..)
   , Constant(..)
@@ -62,6 +66,27 @@ sexprLoc (SList _ loc) = loc
 
 type Name = String
 
+data BinOp
+  = Add
+  | Sub
+  | Mul
+  | Div
+  | And
+  | Or
+  | Eq
+  | Neq
+  | Lt
+  | Lte
+  | Gt
+  | Gte
+  | Concat
+  deriving (Eq, Show, Generic)
+
+data UnOp
+  = Neg
+  | Not
+  deriving (Eq, Show, Generic)
+
 data Type
   = TInt
   | TFloat
@@ -74,6 +99,16 @@ data Type
   | TFun [Type] Type
   deriving (Eq, Show, Generic)
 
+data Field = Field Name Type (Maybe Expr) deriving (Eq, Show, Generic)
+
+data Method = Method Name [(Name, Maybe Type)] Type Expr deriving (Eq, Show, Generic)
+
+data Annotation
+  = Cache 
+  | Custom String
+  deriving (Eq, Show, Generic)
+
+
 data Expr
   = EInt Integer
   | EFloat Double
@@ -82,11 +117,27 @@ data Expr
   | EVar Name
   | EUnit
   | EList [Expr]
-  | ELambda [(Name, Maybe Type)] (Maybe Type) Expr
-  | EDefine Name Expr
+  | ELambda [(Name, Maybe Type)] (Maybe Type) Expr [Annotation]
+  | EDefine Name Expr [Annotation]
   | EIf Expr Expr Expr
   | EApp Expr [Expr]
   | EQuote SExpr
+  | EWhile Expr Expr
+  | EFor Name Expr Expr Expr
+  | ERange Expr Expr
+  | EReturn Expr
+  | EBinOp BinOp Expr Expr
+  | EUnOp UnOp Expr
+  | ETuple [Expr]
+  | ETupleDestruct [Name] Expr Expr
+  | EListLiteral [Expr] (Maybe Type)
+  | EIndex Expr Expr
+  | EAssign Name Expr
+  | EObjectDecl Name [Field] [Method]
+  | EObjectInst Name [(Name, Expr)]
+  | EMemberAccess Expr Name
+  | EPackage Name
+  | EImport Name
   deriving (Eq, Show, Generic)
 
 data ANF
@@ -123,6 +174,20 @@ data Instr
   | IMakeClosure Name [Int]
   | ILoadClosure Int
   | IStoreClosure Int
+  | IWhile
+  | IFor
+  | IBreak
+  | IContinue
+  | ITupleCreate Int
+  | ITupleGet Int
+  | IListCreate Int
+  | IListGet
+  | IListSet
+  | IObjectCreate Name
+  | IMemberGet Name
+  | IMemberSet Name
+  | IAssign Int
+  | IRangeCreate
   deriving (Eq, Show, Generic)
 
 data CodeObject = CodeObject
@@ -141,7 +206,10 @@ data Value
   | VString String
   | VClosure Name [Value]
   | VBuiltin Name ([Value] -> IO Value)
-  | VUnit  -- Unit/void value (was VUnit)
+  | VUnit
+  | VList [Value]
+  | VTuple [Value]
+  | VObject Name [(Name, Value)]
 
 instance Eq Value where
   (VInt a) == (VInt b) = a == b
@@ -161,6 +229,9 @@ instance Show Value where
   show (VClosure name env) = "VClosure " ++ name ++ " " ++ show env
   show (VBuiltin name _) = "VBuiltin " ++ name
   show VUnit = "#<void>"
+  show (VList vals) = "[" ++ unwords (map show vals) ++ "]"
+  show (VTuple vals) = "(" ++ unwords (map show vals) ++ ")"
+  show (VObject name fields) = "VObject " ++ name ++ " " ++ show fields
 
 data Frame = Frame
   { fLocals :: Vector.Vector (Maybe Value)
