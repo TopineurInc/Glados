@@ -5,7 +5,7 @@ package main
 
 def testBadCondition(x: Int): Int {
   if 42 then top 1
-  else then top 2
+  else top 2
 }
 
 def main(): Int {

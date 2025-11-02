@@ -39,7 +39,7 @@ defaultConfig :: CompilerConfig
 defaultConfig = CompilerConfig
   { cfgTCO = True
   , cfgDebug = False
-  , cfgTypeCheck = False  -- Disabled by default for backward compatibility
+  , cfgTypeCheck = True
   , cfgMacroEnv = defaultMacroEnv
   }
 
@@ -61,7 +61,7 @@ compile config source = do
 
       -- Optional type checking
       if cfgTypeCheck config
-        then case typeCheck emptyTypeEnv converted of
+        then case typeCheckProgram converted of
           Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
           Right _ -> return ()
         else return ()
@@ -87,7 +87,7 @@ compileWithDefs config source = do
 
       -- Optional type checking
       if cfgTypeCheck config
-        then case typeCheck emptyTypeEnv converted of
+        then case typeCheckProgram converted of
           Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
           Right _ -> return ()
         else return ()
@@ -156,17 +156,18 @@ compileTopineur config source = do
   topineur <- parseTopineurSource source
   expr <- topineurToAst topineur
 
+  -- Type check the entire program before extraction
+  if cfgTypeCheck config
+    then case typeCheckProgram expr of
+      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+      Right _ -> return ()
+    else return ()
+
   (defs, mainExpr) <- extractTopineurProgram expr
 
   renamed <- alphaRename mainExpr
 
   converted <- closureConvert renamed
-
-  if cfgTypeCheck config
-    then case typeCheck emptyTypeEnv converted of
-      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
-      Right _ -> return ()
-    else return ()
 
   let (mainCodeE, _defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE
@@ -180,18 +181,18 @@ compileTopineurWithDefs config source = do
   topineur <- parseTopineurSource source
   expr <- topineurToAst topineur
 
+  -- Type check the entire program before extraction
+  if cfgTypeCheck config
+    then case typeCheckProgram expr of
+      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+      Right _ -> return ()
+    else return ()
+
   (defs, mainExpr) <- extractTopineurProgram expr
 
   renamed <- alphaRename mainExpr
 
   converted <- closureConvert renamed
-
-  -- Optional type checking
-  if cfgTypeCheck config
-    then case typeCheck emptyTypeEnv converted of
-      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
-      Right _ -> return ()
-    else return ()
 
   let (mainCodeE, defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE
