@@ -193,6 +193,7 @@ data Instr
   | IMemberGet Name
   | IMemberSet Name
   | IAssign Int
+  | IAssignGlobal Name
   | IRangeCreate
   deriving (Eq, Show, Generic)
 

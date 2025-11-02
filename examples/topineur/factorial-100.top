@@ -16,7 +16,7 @@ def factorialIter(n: Int): Int {
 }
 
 def main(): Int {
-  let n = 10
+  let n = 100
   let recResult = factorial(n)
   let iterResult = factorialIter(n)
 

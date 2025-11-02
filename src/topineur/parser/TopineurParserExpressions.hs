@@ -28,6 +28,7 @@ import Text.Parsec
   , sepBy
   , optionMaybe
   , sepBy1
+  , lookAhead
   , (<|>)
   )
 
@@ -48,17 +49,31 @@ stringLit = lexeme $ do
 intLit :: Parser (Loc, Integer)
 intLit = lexeme $ do
   pos <- getPosition
+  sign <- optionMaybe $ do
+    _ <- char '-'
+    _ <- lookAhead (oneOf "0123456789")
+    return ()
   ds <- many1 (oneOf "0123456789")
   notFollowedBy (try $ char '.' >> oneOf "0123456789")
-  return (toLoc pos, read ds)
+  let num = read ds
+  return (toLoc pos, case sign of
+    Nothing -> num
+    Just _  -> -num)
 
 floatLit :: Parser (Loc, Double)
 floatLit = lexeme $ do
   pos <- getPosition
+  sign <- optionMaybe $ do
+    _ <- char '-'
+    _ <- lookAhead (oneOf "0123456789")
+    return ()
   a <- many1 (oneOf "0123456789")
   _ <- char '.'
   b <- many1 (oneOf "0123456789")
-  return (toLoc pos, read (a ++ "." ++ b))
+  let num = read (a ++ "." ++ b)
+  return (toLoc pos, case sign of
+    Nothing -> num
+    Just _  -> -num)
 
 
 expr :: Parser Expression
@@ -74,6 +89,12 @@ basicTerm =
     , try $ do
         (l, d) <- floatLit
         return (EFloat l d)
+    , try $ do
+        l <- keyword "true"
+        return (EBool l True)
+    , try $ do
+        l <- keyword "false"
+        return (EBool l False)
     , try $ do (l, s) <- stringLit; return (EString l s)
     , try tupleExpr
     , try arrayExpr
@@ -160,6 +181,12 @@ basicTermML =
     , try $ do
         (l, d) <- floatLit
         return (EFloat l d)
+    , try $ do
+        l <- keywordML "true"
+        return (EBool l True)
+    , try $ do
+        l <- keywordML "false"
+        return (EBool l False)
     , try $ do (l, s) <- stringLit; return (EString l s)
     , try tupleExprML
     , try arrayExprML

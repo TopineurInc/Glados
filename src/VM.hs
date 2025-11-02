@@ -5,8 +5,6 @@
 -- VM
 -}
 
-{-# LANGUAGE LambdaCase #-}
-
 module VM
   ( runVM
   , execVM
@@ -76,7 +74,13 @@ executeInstr vmState frame instr = case instr of
       else
         let constValue = consts Vector.! idx
             val = case constValue of
-              CFuncRef name -> maybe (constantToValue constValue) id (Map.lookup name (vBuiltins vmState))
+              CFuncRef name ->
+                case Map.lookup name (vBuiltins vmState) of
+                  Just builtin -> builtin
+                  Nothing ->
+                    case Map.lookup name (vGlobals vmState) of
+                      Just global -> global
+                      Nothing -> constantToValue constValue
               _ -> constantToValue constValue
             frame' = frame { fStack = val : fStack frame, fPC = fPC frame + 1 }
         in return $ Right (updateFrame vmState frame', Nothing)
@@ -244,14 +248,6 @@ executeInstr vmState frame instr = case instr of
       in return $ Right (updateFrame vmState frame', Nothing)
     _ -> return $ Left $ TypeError "Expected value and object on stack"
 
-  IAssign slot -> case fStack frame of
-    [] -> return $ Left StackUnderflow
-    (val:_) ->
-      let locals = fLocals frame
-          locals' = locals Vector.// [(slot, Just val)]
-          frame' = frame { fLocals = locals', fPC = fPC frame + 1 }
-      in return $ Right (updateFrame vmState frame', Nothing)
-
   IRangeCreate -> case fStack frame of
     (VInt end : VInt start : stack') ->
       let range = [start .. end]
@@ -267,6 +263,23 @@ executeInstr vmState frame instr = case instr of
   IBreak -> return $ Left $ InvalidInstruction "IBreak not yet implemented"
   
   IContinue -> return $ Left $ InvalidInstruction "IContinue not yet implemented"
+
+  IAssign slot -> case fStack frame of
+    [] -> return $ Left StackUnderflow
+    (val:stack') ->
+      let locals = fLocals frame
+          locals' = locals Vector.// [(slot, Just val)]
+          frame' = frame { fStack = stack', fLocals = locals', fPC = fPC frame + 1 }
+      in return $ Right (updateFrame vmState frame', Nothing)
+
+  IAssignGlobal name -> case fStack frame of
+    [] -> return $ Left StackUnderflow
+    (val:stack') ->
+      let frame' = frame { fStack = stack', fPC = fPC frame + 1 }
+          vmState' = vmState { vGlobals = Map.insert name val (vGlobals vmState) }
+      in return $ Right (updateFrame vmState' frame', Nothing)
+
+  _ -> return $ Left $ InvalidInstruction "Instruction not implemented"
 
 builtinArity :: String -> Int
 builtinArity op = case op of

@@ -158,6 +158,8 @@ expressionToExpr = \case
 
   T.EFloat _ f -> Right $ EFloat f
 
+  T.EBool _ b -> Right $ EBool b
+
   T.EString _ s -> Right $ EString s
 
   T.ETuple _ exprs -> do
@@ -194,8 +196,8 @@ expressionToExpr = \case
       Nothing -> Right EUnit
     Right $ EIf cond' then' else'
 
-  T.ELet _ name init body -> do
-    init' <- expressionToExpr init
+  T.ELet _ name initExpr body -> do
+    init' <- expressionToExpr initExpr
     body' <- expressionToExpr body
     Right $ EApp (ELambda [(name, Nothing)] Nothing body' []) [init']
 

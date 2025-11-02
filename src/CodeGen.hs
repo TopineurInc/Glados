@@ -236,7 +236,7 @@ compileExpr (EFor var start end body) = do
   loopStart <- gets (length . cgsInstructions)
   emit (ILoad iterSlot)
   compileExpr end
-  emit (IPrim "<")
+  emit (IPrim "<=")
   emit (IJumpIfFalse 0)
   exitJumpIdx <- gets (length . cgsInstructions)
 
@@ -349,7 +349,7 @@ compileExpr (EAssign name expr) = do
   mSlot <- getLocal name
   case mSlot of
     Just slot -> emit (IAssign slot)
-    Nothing -> error $ "Assignment to undefined variable: " ++ name
+    Nothing -> emit (IAssignGlobal name)
   compileExpr (EVar name)
 
 -- Package and Import (no-ops for now)

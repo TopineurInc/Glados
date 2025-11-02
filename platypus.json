@@ -80,7 +80,7 @@
                     },
                     {
                         "name": "Fibonacci",
-                        "command": "./glados --parse-top examples/topineur/fibonacci.top",
+                        "command": "./glados --parse-top examples/topineur/fibonacci-5.top",
                         "output": "*",
                         "return": 0
                     },

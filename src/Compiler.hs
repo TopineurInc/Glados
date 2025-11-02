@@ -162,7 +162,6 @@ compileTopineur config source = do
 
   converted <- closureConvert renamed
 
-  -- Optional type checking
   if cfgTypeCheck config
     then case typeCheck emptyTypeEnv converted of
       Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
@@ -172,7 +171,7 @@ compileTopineur config source = do
   let (mainCodeE, _defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE
 
-  _ <- mapM (compileDefinition config) defs
+  _defsCodeObjects <- mapM (compileDefinition config) defs
 
   Right mainCode
 
@@ -215,6 +214,7 @@ extractTopineurProgram (EList exprs) = do
               case body of
                 ELambda _ _ lambdaBody _ -> lambdaBody
                 _ -> body
+            Just _ -> EUnit
             Nothing -> EUnit
             _ -> EUnit  -- Handle other expression types
        in Right (otherDefs, mainExpr)
@@ -246,4 +246,5 @@ compileDefinition _config (EDefine name body _) = do
       converted <- closureConvert renamed
       code <- generateCode name converted
       Right (name, code)
-compileDefinition _ _ = Left $ SyntaxError "Expected definition" Nothing
+      
+compileDefinition _ _expr = Left $ SyntaxError "Expected definition" Nothing

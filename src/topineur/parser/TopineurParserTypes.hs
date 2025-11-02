@@ -87,6 +87,7 @@ data Expression
   | ESelf Loc
   | EInt Loc Integer
   | EFloat Loc Double
+  | EBool Loc Bool
   | EString Loc String
   | ETuple Loc [Expression]
   | EArray Loc [Expression]
@@ -118,6 +119,7 @@ locOfE e =
     ESelf l -> l
     EInt l _ -> l
     EFloat l _ -> l
+    EBool l _ -> l
     EString l _ -> l
     ETuple l _ -> l
     EArray l _ -> l
