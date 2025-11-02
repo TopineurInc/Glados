@@ -4,8 +4,8 @@ package main
 |- We're using an Int (42) as the condition instead of a boolean expression
 
 def testBadCondition(x: Int): Int {
-  if 42 then top 1
-  else then top 2
+  if "hell" then top 1
+  else top 2
 }
 
 def main(): Int {
