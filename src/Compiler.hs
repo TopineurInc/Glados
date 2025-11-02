@@ -22,6 +22,7 @@ import Desugar
 import AlphaRename
 import ClosureConversion
 import CodeGen
+import TypeChecker
 import TopineurParser
 import TopineurToAst
 import qualified Data.Map as Map
@@ -30,6 +31,7 @@ import Data.Map (Map)
 data CompilerConfig = CompilerConfig
   { cfgTCO :: Bool
   , cfgDebug :: Bool
+  , cfgTypeCheck :: Bool
   , cfgMacroEnv :: MacroEnv
   }
 
@@ -37,6 +39,7 @@ defaultConfig :: CompilerConfig
 defaultConfig = CompilerConfig
   { cfgTCO = True
   , cfgDebug = False
+  , cfgTypeCheck = False  -- Disabled by default for backward compatibility
   , cfgMacroEnv = defaultMacroEnv
   }
 
@@ -56,6 +59,13 @@ compile config source = do
 
       converted <- closureConvert renamed
 
+      -- Optional type checking
+      if cfgTypeCheck config
+        then case typeCheck emptyTypeEnv converted of
+          Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+          Right _ -> return ()
+        else return ()
+
       let (mainCodeE, _) = generateCodeWithDefs "main" converted
       mainCodeE
 
@@ -74,6 +84,13 @@ compileWithDefs config source = do
       renamed <- alphaRename expr
 
       converted <- closureConvert renamed
+
+      -- Optional type checking
+      if cfgTypeCheck config
+        then case typeCheck emptyTypeEnv converted of
+          Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+          Right _ -> return ()
+        else return ()
 
       let (mainCodeE, defs) = generateCodeWithDefs "main" converted
       mainCode <- mainCodeE
@@ -145,6 +162,12 @@ compileTopineur config source = do
 
   converted <- closureConvert renamed
 
+  if cfgTypeCheck config
+    then case typeCheck emptyTypeEnv converted of
+      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+      Right _ -> return ()
+    else return ()
+
   let (mainCodeE, _defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE
 
@@ -162,6 +185,13 @@ compileTopineurWithDefs config source = do
   renamed <- alphaRename mainExpr
 
   converted <- closureConvert renamed
+
+  -- Optional type checking
+  if cfgTypeCheck config
+    then case typeCheck emptyTypeEnv converted of
+      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+      Right _ -> return ()
+    else return ()
 
   let (mainCodeE, defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE
@@ -186,6 +216,7 @@ extractTopineurProgram (EList exprs) = do
                 _ -> body
             Just _ -> EUnit
             Nothing -> EUnit
+            _ -> EUnit  -- Handle other expression types
        in Right (otherDefs, mainExpr)
   where
     isPackageOrImport EPackage{} = True
@@ -215,4 +246,5 @@ compileDefinition _config (EDefine name body _) = do
       converted <- closureConvert renamed
       code <- generateCode name converted
       Right (name, code)
+      
 compileDefinition _ _expr = Left $ SyntaxError "Expected definition" Nothing

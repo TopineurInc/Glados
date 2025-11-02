@@ -80,6 +80,7 @@ data Type
   | TBool
   | TString
   | TUnit
+  | TVar String
   | TList Type
   | TTuple [Type]
   | TObject Name

@@ -1,0 +1,13 @@
+package main
+
+|- This test should fail type checking because we pass a String to a function
+|- that expects an Int parameter
+
+def double(x: Int): Int {
+  top x * 2
+}
+
+def main(): Int {
+  println(show(double("not a number")))
+  top 0
+}
