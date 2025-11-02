@@ -24,12 +24,12 @@ topineurToAst (T.Topineur pkg imps decls) = do
 
 declToExpr :: T.Decl -> Either CompileError Expr
 declToExpr = \case
-  T.DLet loc pat expr -> do
+  T.DLet _loc pat expr -> do
     name <- patternToName pat
     expr' <- expressionToExpr expr
     Right $ EDefine name expr' []
 
-  T.DFunc loc decorators name params retType block -> do
+  T.DFunc _loc decorators name params retType block -> do
     params' <- mapM paramToTuple params
     retType' <- mapM typeAnnToType retType
     body <- blockToExpr block
@@ -37,14 +37,14 @@ declToExpr = \case
     where
       decorators' = map decoratorToAnnotation decorators
 
-  T.DObjectType loc name members -> do
+  T.DObjectType _loc name members -> do
     (fields, methods) <- partitionMembers members
     fields' <- mapM memberFieldToField fields
     methods' <- mapM memberMethodToMethod methods
     Right $ EObjectDecl name fields' methods'
 
 decoratorToAnnotation :: T.Decorator -> Annotation
-decoratorToAnnotation (T.Decorator _ name args) =
+decoratorToAnnotation (T.Decorator _ name _args) =
   case name of
     "cache" -> Cache
     other -> Custom other
@@ -90,7 +90,7 @@ paramToTypeAnn (T.PTuple loc params) = do
 patternToName :: T.Pattern -> Either CompileError Name
 patternToName = \case
   T.PVarPat _ name _ -> Right name
-  T.PTuplePat _ pats ->
+  T.PTuplePat _ _pats ->
     Left $ SyntaxError "Tuple pattern destructuring not yet fully supported" Nothing
 
 blockToExpr :: T.Block -> Either CompileError Expr
@@ -105,12 +105,12 @@ stmtToExpr :: T.Stmt -> Either CompileError Expr
 stmtToExpr = \case
   T.STop _ expr -> expressionToExpr expr
 
-  T.SLet loc pat expr -> do
+  T.SLet _loc pat expr -> do
     name <- patternToName pat
     expr' <- expressionToExpr expr
     Right $ EDefine name expr' []
 
-  T.SIf loc cond thenStmt elseStmt -> do
+  T.SIf _loc cond thenStmt elseStmt -> do
     cond' <- expressionToExpr cond
     then' <- stmtToExpr thenStmt
     else' <- case elseStmt of
@@ -118,24 +118,24 @@ stmtToExpr = \case
       Nothing -> Right EUnit
     Right $ EIf cond' then' else'
 
-  T.SWhile loc cond stmts -> do
+  T.SWhile _loc cond stmts -> do
     cond' <- expressionToExpr cond
-    body <- blockToExpr (T.Block loc stmts)
+    body <- blockToExpr (T.Block _loc stmts)
     Right $ EWhile cond' body
 
-  T.SFor loc var range stmts -> do
+  T.SFor _loc var range stmts -> do
     range' <- rangeToExpr range
-    body <- blockToExpr (T.Block loc stmts)
+    body <- blockToExpr (T.Block _loc stmts)
     case range' of
       ERange start end -> Right $ EFor var start end body
       _ -> Left $ SyntaxError "Invalid range expression" Nothing
 
-  T.SAssign loc lval expr -> do
+  T.SAssign _loc lval expr -> do
     expr' <- expressionToExpr expr
     name <- lvalueToName lval
     Right $ EAssign name expr'
 
-  T.SExpression loc expr -> expressionToExpr expr
+  T.SExpression _loc expr -> expressionToExpr expr
 
 rangeToExpr :: T.Range -> Either CompileError Expr
 rangeToExpr (T.Range start end) = do
@@ -146,7 +146,7 @@ rangeToExpr (T.Range start end) = do
 lvalueToName :: T.LValue -> Either CompileError Name
 lvalueToName = \case
   T.LVar _ name -> Right name
-  T.LMember _ expr name -> Right name
+  T.LMember _ _expr name -> Right name
 
 expressionToExpr :: T.Expression -> Either CompileError Expr
 expressionToExpr = \case
@@ -214,7 +214,7 @@ expressionToExpr = \case
   T.EParens _ expr -> expressionToExpr expr
 
 fieldAssignToPair :: T.FieldAssign -> Either CompileError (Name, Expr)
-fieldAssignToPair (T.FieldAssign _ (Left (expr, name)) _) =
+fieldAssignToPair (T.FieldAssign _ (Left (_expr, _name)) _) =
   Left $ SyntaxError "Bitfield assignment not yet supported" Nothing
 fieldAssignToPair (T.FieldAssign _ (Right name) expr) = do
   expr' <- expressionToExpr expr
@@ -240,9 +240,9 @@ stringToBinOp = \case
 
 typeAnnToType :: T.TypeAnn -> Either CompileError Type
 typeAnnToType = \case
-  T.TIdent _ name -> typeNameToType name
-  T.TUpperIdent _ name -> Right $ TObject name
-  T.TGeneric _ name args -> do
+  T.TIdent _loc name -> typeNameToType name
+  T.TUpperIdent _loc name -> Right $ TObject name
+  T.TGeneric _loc name args -> do
     args' <- mapM typeAnnToType args
     case name of
       "List" -> case args' of
@@ -250,7 +250,7 @@ typeAnnToType = \case
         _ -> Left $ SyntaxError "List type requires one type argument" Nothing
       "Tuple" -> Right $ TTuple args'
       _ -> Right $ TObject name
-  T.TTuple _ types -> do
+  T.TTuple _loc types -> do
     types' <- mapM typeAnnToType types
     Right $ TTuple types'
 

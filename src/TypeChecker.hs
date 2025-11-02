@@ -106,10 +106,6 @@ applySubst s (TList t) = TList (applySubst s t)
 applySubst s (TTuple ts) = TTuple (map (applySubst s) ts)
 applySubst _ (TObject name) = TObject name
 
--- Apply substitution to type environment
-applySubstEnv :: Subst -> TypeEnv -> TypeEnv
-applySubstEnv s = Map.map (applySubst s)
-
 -- Get free type variables in a type
 ftv :: Type -> Set.Set String
 ftv TInt = Set.empty
@@ -148,14 +144,14 @@ unify t1 t2 = do
           zipWithM_ unify params1 params2
           unify ret1 ret2
       | otherwise = throwError $ ArityMismatch (length params1) (length params2)
-    unify' (TList t1) (TList t2) = unify t1 t2
+    unify' (TList ta) (TList tb) = unify ta tb
     unify' (TTuple ts1) (TTuple ts2)
       | length ts1 == length ts2 = zipWithM_ unify ts1 ts2
       | otherwise = throwError $ UnificationError (TTuple ts1) (TTuple ts2)
     unify' (TObject n1) (TObject n2)
       | n1 == n2 = return ()
       | otherwise = throwError $ UnificationError (TObject n1) (TObject n2)
-    unify' t1 t2 = throwError $ UnificationError t1 t2
+    unify' ta tb = throwError $ UnificationError ta tb
 
     varBind :: String -> Type -> TI ()
     varBind name t
