@@ -9,7 +9,7 @@ def factorial(n: Int): Int {
 |- Iterative factorial function using a for loop
 def factorialIter(n: Int): Int {
   let result = 1
-  for i in 1..n do
+  for i in 1..(n + 1) do
     result = result * i
   end
   top result
