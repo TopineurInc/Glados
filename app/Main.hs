@@ -11,7 +11,7 @@ import Control.Exception (IOException, SomeException, try)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 import System.Environment (getArgs)
-import System.Exit (ExitCode (ExitFailure), exitSuccess, exitWith)
+import System.Exit (ExitCode (ExitFailure, ExitSuccess), exitSuccess, exitWith)
 import System.IO (hFlush, hIsTerminalDevice, hPutStrLn, isEOF, stderr, stdin, stdout)
 import Data.Char (isSpace)
 
@@ -129,13 +129,23 @@ runFile file = do
   source <- case sourceOrErr of
     Left _ -> exitWithError $ "Cannot open file: " ++ file
     Right src -> return src
+  let isTopineur = takeExtension file == ".top"
   result <- runProgramWithSource source file
   case result of
     Left err -> exitWithError err
-    Right VUnit -> exitSuccess
     Right val ->
-      putStrLn (renderValue val)
-        >> exitSuccess
+      if isTopineur
+        then exitWith (valueToExitCode val)
+        else case val of
+          VUnit -> exitSuccess
+          _ -> putStrLn (renderValue val) >> exitSuccess
+
+valueToExitCode :: Value -> ExitCode
+valueToExitCode (VInt n)
+  | n == 0 = ExitSuccess
+  | otherwise = ExitFailure (fromInteger n)
+valueToExitCode VUnit = ExitSuccess
+valueToExitCode _ = ExitSuccess  -- Default to success for other types
 
 disasmFile :: FilePath -> IO ()
 disasmFile file = do

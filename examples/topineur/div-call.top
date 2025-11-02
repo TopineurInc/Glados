@@ -1,0 +1,6 @@
+package main
+
+def main(): Int {
+  println("4 / 2 = " ++ show(4 / 2))
+  top 0
+}

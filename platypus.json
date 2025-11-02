@@ -86,7 +86,7 @@
                     },
                     {
                         "name": "Iterative and Recursive Factorial",
-                        "command": "./glados --parse-top examples/topineur/factorial.top",
+                        "command": "./glados --parse-top examples/topineur/factorial-5.top",
                         "output": "*",
                         "return": 0
                     },
@@ -147,7 +147,7 @@
                         "return": 84
                     }
                 ],
-                "Functional-Tests": [
+                "Lisp-Functional-Tests": [
                     {
                         "name": "Hello world",
                         "command": "./glados examples/lisp/hello.lisp",
@@ -292,7 +292,104 @@
                         "output": "2\n",
                         "return": 0
                     }
-
+                ],
+                "Topineur-Functional-Tests": [
+                    {
+                        "name": "Hello world",
+                        "command": "./glados examples/topineur/simple-main.top",
+                        "output": "Hello, world!\n",
+                        "return": 42
+                    },
+                    {
+                        "name": "Add",
+                        "command": "./glados examples/topineur/add.top",
+                        "output": "7\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Variable assignment",
+                        "command": "./glados examples/topineur/assign.top",
+                        "output": "28\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Factorial 5",
+                        "command": "./glados examples/topineur/factorial-5.top",
+                        "output": "recursive factorial = 120\niterative factorial = 120\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Factorial 10",
+                        "command": "./glados examples/topineur/factorial-10.top",
+                        "output": "recursive factorial = 3628800\niterative factorial = 3628800\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Factorial 100",
+                        "command": "./glados examples/topineur/factorial-100.top",
+                        "output": "recursive factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000\niterative factorial = 93326215443944152681699238856266700490715968264381621468592963895217599993229915608941463976156518286253697920827223758251185210916864000000000000000000000000\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Simple div call",
+                        "command": "./glados examples/topineur/div-call.top",
+                        "output": "4 / 2 = 2\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Function with params",
+                        "command": "./glados examples/topineur/function.top",
+                        "output": "42\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "If 1",
+                        "command": "./glados examples/topineur/if1.top",
+                        "output": "True\nFalse\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "If 2",
+                        "command": "./glados examples/topineur/if2.top",
+                        "output": "More\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Show Builtin",
+                        "command": "./glados examples/topineur/show-builtin.top",
+                        "output": "Hello42 6.9.false\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Superior",
+                        "command": "./glados examples/topineur/superior.top",
+                        "output": "True\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Fibonacci 5",
+                        "command": "./glados examples/topineur/fibonacci-5.top",
+                        "output": "fib(5) = 5\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Fibonacci 10",
+                        "command": "./glados examples/topineur/fibonacci-10.top",
+                        "output": "fib(10) = 55\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Fibonacci 100",
+                        "command": "./glados examples/topineur/fibonacci-100.top",
+                        "output": "fib(100) = 354224848179261915075\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "ID",
+                        "command": "./glados examples/topineur/id.top",
+                        "output": "hello\n",
+                        "return": 0
+                    }
                 ]
             }
         ]

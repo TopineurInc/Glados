@@ -1,0 +1,10 @@
+package main
+
+let result = 3 + 4
+
+def main(): Int {
+  result = result * 4
+  println(show(result))
+
+  top 0
+}

@@ -151,7 +151,9 @@ builtinArity op = case op of
   "mod" -> 2
   "eq?" -> 2
   "<" -> 2
+  "<=" -> 2
   ">" -> 2
+  ">=" -> 2
   "print" -> 1
   "println" -> 1
   "display" -> 1
@@ -165,6 +167,7 @@ builtinArity op = case op of
   "not" -> 1
   "and" -> 2
   "or" -> 2
+  "show" -> 1
   _ -> 2
 
 executePrim :: VMState -> Frame -> String -> IO (Either VMError (VMState, Maybe Value))

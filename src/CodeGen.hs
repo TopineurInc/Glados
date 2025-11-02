@@ -12,6 +12,8 @@ module CodeGen
   , generateCodeWithDefs
   , CodeGenState(..)
   , emptyCodeGenState
+  , runCodeGen
+  , compileLambda
   ) where
 
 import AST
@@ -171,6 +173,7 @@ compileExpr (EApp (EVar funcName) args) =
       "not" -> emit (IPrim "not")
       "and" -> emit (IPrim "and")
       "or" -> emit (IPrim "or")
+      "show" -> emit (IPrim "show")
       _ -> emit (ICall (length args) funcName)
 
 compileExpr (EApp func args) =

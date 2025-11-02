@@ -9,7 +9,7 @@ def fib(n: Int): Int {
 }
 
 def main(): Int {
-  let f = fib(10)
-  println("fib(10) = " ++ show(f))
-  top 42
+  let f: Int = fib(100)
+  println("fib(100) = " ++ show(f))
+  top 0
 }

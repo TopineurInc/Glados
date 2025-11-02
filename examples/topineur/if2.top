@@ -1,0 +1,11 @@
+package main
+
+let ok: Int = 20
+
+def main(): Int {
+
+  if 10 < ok then println("More")
+  else println("Less")
+
+  top 0
+}

@@ -1,0 +1,15 @@
+package main
+
+|- Naive recursive Fibonacci for quick experiments
+
+@cache
+def fib(n: Int): Int {
+  if n <= 1 then top n |- Ifs can also be of multiple lines with one more indentation after then (same for else)
+  else top fib(n - 1) + fib(n - 2) |- Else is optional
+}
+
+def main(): Int {
+  let f: Int = fib(5)
+  println("fib(5) = " ++ show(f))
+  top 0
+}

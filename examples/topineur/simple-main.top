@@ -1,6 +1,6 @@
 package main
 
 def main(): Int {
-    println("Hello world")
+    println("Hello, world" ++ "!")
     top 42
 }

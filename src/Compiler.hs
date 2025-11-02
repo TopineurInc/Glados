@@ -26,6 +26,7 @@ import TopineurParser
 import TopineurToAst
 import qualified Data.Map as Map
 import Data.Map (Map)
+import qualified Data.Vector as Vector
 
 data CompilerConfig = CompilerConfig
   { cfgTCO :: Bool
@@ -203,8 +204,18 @@ extractTopineurProgram expr = Right ([], expr)
 
 compileDefinition :: CompilerConfig -> Expr -> Either CompileError (Name, CodeObject)
 compileDefinition config (EDefine name body _) = do
-  renamed <- alphaRename body
-  converted <- closureConvert renamed
-  code <- generateCode name converted
-  Right (name, code)
+  case body of
+    ELambda params _retType lambdaBody _ann -> do
+      renamed <- alphaRename lambdaBody
+      converted <- closureConvert renamed
+      -- Use compileLambda to properly compile the function with parameters
+      let paramNames = map fst params
+          initialState = emptyCodeGenState
+          (codeObj, finalState) = runCodeGen (compileLambda name paramNames converted) initialState
+      Right (name, codeObj)
+    _ -> do
+      renamed <- alphaRename body
+      converted <- closureConvert renamed
+      code <- generateCode name converted
+      Right (name, code)
 compileDefinition _ expr = Left $ SyntaxError "Expected definition" Nothing

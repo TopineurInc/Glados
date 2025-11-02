@@ -1,0 +1,9 @@
+package main
+
+def main(): Int {
+  if true then println("True")
+  else then println("False")
+  if false then println("True")
+  else then println("False")
+  top 0
+}

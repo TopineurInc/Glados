@@ -14,7 +14,9 @@ module Builtins
   , builtinMod
   , builtinEq
   , builtinLt
+  , builtinLte
   , builtinGt
+  , builtinGte
   , builtinPrint
   , builtinPrintln
   , builtinDisplay
@@ -29,6 +31,7 @@ module Builtins
   , builtinAnd
   , builtinOr
   , builtinFormat
+  , builtinShow
   ) where
 
 import AST
@@ -47,7 +50,9 @@ builtins = Map.fromList
   , ("mod", VBuiltin "mod" builtinMod)
   , ("eq?", VBuiltin "eq?" builtinEq)
   , ("<", VBuiltin "<" builtinLt)
+  , ("<=", VBuiltin "<=" builtinLte)
   , (">", VBuiltin ">" builtinGt)
+  , (">=", VBuiltin ">=" builtinGte)
   , ("print", VBuiltin "print" builtinPrint)
   , ("println", VBuiltin "println" builtinPrintln)
   , ("display", VBuiltin "display" builtinDisplay)
@@ -62,6 +67,7 @@ builtins = Map.fromList
   , ("and", VBuiltin "and" builtinAnd)
   , ("or", VBuiltin "or" builtinOr)
   , ("format", VBuiltin "format" builtinFormat)
+  , ("show", VBuiltin "show" builtinShow)
   ]
 
 builtinAdd :: [Value] -> IO Value
@@ -119,6 +125,20 @@ builtinGt [VFloat a, VFloat b] = return $ VBool (a > b)
 builtinGt [VInt a, VFloat b] = return $ VBool (fromInteger a > b)
 builtinGt [VFloat a, VInt b] = return $ VBool (a > fromInteger b)
 builtinGt _ = error "Type error: > expects two numbers"
+
+builtinLte :: [Value] -> IO Value
+builtinLte [VInt a, VInt b] = return $ VBool (a <= b)
+builtinLte [VFloat a, VFloat b] = return $ VBool (a <= b)
+builtinLte [VInt a, VFloat b] = return $ VBool (fromInteger a <= b)
+builtinLte [VFloat a, VInt b] = return $ VBool (a <= fromInteger b)
+builtinLte _ = error "Type error: <= expects two numbers"
+
+builtinGte :: [Value] -> IO Value
+builtinGte [VInt a, VInt b] = return $ VBool (a >= b)
+builtinGte [VFloat a, VFloat b] = return $ VBool (a >= b)
+builtinGte [VInt a, VFloat b] = return $ VBool (fromInteger a >= b)
+builtinGte [VFloat a, VInt b] = return $ VBool (a >= fromInteger b)
+builtinGte _ = error "Type error: >= expects two numbers"
 
 builtinPrint :: [Value] -> IO Value
 builtinPrint [val] =
@@ -201,6 +221,10 @@ builtinFormat (dest:VString fmt:args) =
        VBool False -> return (VString formatted)
        _ -> error "Type error: format destination must be t or nil"
 builtinFormat _ = error "Type error: format expects (destination format-string ...)"
+
+builtinShow :: [Value] -> IO Value
+builtinShow [val] = return $ VString (showValue val)
+builtinShow _ = error "Type error: show expects one argument"
 
 processFormatString :: String -> [Value] -> String
 processFormatString [] _ = []

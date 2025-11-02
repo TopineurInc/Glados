@@ -1,0 +1,10 @@
+package main
+
+def id(a: String): String {
+  top a
+}
+
+def main(): Int {
+  println(id("hello"))
+  top 0
+}

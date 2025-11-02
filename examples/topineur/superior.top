@@ -1,0 +1,13 @@
+package main
+
+def superior(a: Int, b: Int): Bool {
+  if a == b then top false
+  else if a < b then top false
+  else top true
+}
+
+def main(): Int {
+  if superior(10, -2) then println("True")
+  else println("False")
+  top 0
+}

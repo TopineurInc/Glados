@@ -1,0 +1,10 @@
+package main
+
+def add(a: Int, b: Int): Int {
+  top a + b
+}
+
+def main(): Int {
+  println(show(add(21, 42 / 2)))
+  top 0
+}

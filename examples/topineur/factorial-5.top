@@ -20,7 +20,7 @@ def main(): Int {
   let recResult = factorial(n)
   let iterResult = factorialIter(n)
   |- Both should return the same result (120 for n=5)
-  println("recursive factorial (5) = " ++ show(recResult))
-  println("iterative factorial (5) = " ++ show(iterResult))
+  println("recursive factorial = " ++ show(recResult))
+  println("iterative factorial = " ++ show(iterResult))
   top 0
 }
