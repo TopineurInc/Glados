@@ -22,6 +22,7 @@ import Desugar
 import AlphaRename
 import ClosureConversion
 import CodeGen
+import TypeChecker
 import TopineurParser
 import TopineurToAst
 import qualified Data.Map as Map
@@ -31,6 +32,7 @@ import qualified Data.Vector as Vector
 data CompilerConfig = CompilerConfig
   { cfgTCO :: Bool
   , cfgDebug :: Bool
+  , cfgTypeCheck :: Bool
   , cfgMacroEnv :: MacroEnv
   }
 
@@ -38,6 +40,7 @@ defaultConfig :: CompilerConfig
 defaultConfig = CompilerConfig
   { cfgTCO = True
   , cfgDebug = False
+  , cfgTypeCheck = False  -- Disabled by default for backward compatibility
   , cfgMacroEnv = defaultMacroEnv
   }
 
@@ -57,6 +60,13 @@ compile config source = do
 
       converted <- closureConvert renamed
 
+      -- Optional type checking
+      if cfgTypeCheck config
+        then case typeCheck emptyTypeEnv converted of
+          Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+          Right _ -> return ()
+        else return ()
+
       let (mainCodeE, _) = generateCodeWithDefs "main" converted
       mainCodeE
 
@@ -75,6 +85,13 @@ compileWithDefs config source = do
       renamed <- alphaRename expr
 
       converted <- closureConvert renamed
+
+      -- Optional type checking
+      if cfgTypeCheck config
+        then case typeCheck emptyTypeEnv converted of
+          Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+          Right _ -> return ()
+        else return ()
 
       let (mainCodeE, defs) = generateCodeWithDefs "main" converted
       mainCode <- mainCodeE
@@ -146,6 +163,13 @@ compileTopineur config source = do
 
   converted <- closureConvert renamed
 
+  -- Optional type checking
+  if cfgTypeCheck config
+    then case typeCheck emptyTypeEnv converted of
+      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+      Right _ -> return ()
+    else return ()
+
   let (mainCodeE, defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE
 
@@ -164,6 +188,13 @@ compileTopineurWithDefs config source = do
   renamed <- alphaRename mainExpr
 
   converted <- closureConvert renamed
+
+  -- Optional type checking
+  if cfgTypeCheck config
+    then case typeCheck emptyTypeEnv converted of
+      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+      Right _ -> return ()
+    else return ()
 
   let (mainCodeE, defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE
