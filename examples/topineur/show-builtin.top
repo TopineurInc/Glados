@@ -2,12 +2,7 @@ package main
 
 def main(): Int {
 
-  println("Hello"
-    ++ show(42)
-    ++ " "
-    ++ show(6.9)
-    ++ show(".")
-    ++ show(false))
+  println("Hello" ++ show(42) ++ " " ++ show(6.9) ++ show(".") ++ show(false))
 
   top 0
 }
