@@ -2,8 +2,8 @@ package main
 
 def main(): Int {
   if true then println("True")
-  else then println("False")
+  else println("False")
   if false then println("True")
-  else then println("False")
+  else println("False")
   top 0
 }
