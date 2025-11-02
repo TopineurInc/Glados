@@ -11,7 +11,7 @@ module TopineurParserTopLevel
   , decl
   ) where
 
-import Control.Applicative (many, (*>), (<*))
+import Control.Applicative (many)
 import Data.List (intercalate)
 import Text.Parsec
     ( (<|>)

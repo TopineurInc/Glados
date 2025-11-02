@@ -18,7 +18,6 @@ module TopineurParserTypes
   , Pattern(..)
   , Block(..)
   , Stmt(..)
-  , SimpleStmt(..)
   , LValue(..)
   , Range(..)
   , Expression(..)
@@ -68,19 +67,11 @@ data Block = Block Loc [Stmt]
 data Stmt
   = STop Loc Expression
   | SLet Loc Pattern Expression
-  | SIf Loc Expression SimpleStmt (Maybe SimpleStmt)
+  | SIf Loc Expression Stmt (Maybe Stmt)
   | SWhile Loc Expression [Stmt]
   | SFor Loc Name Range [Stmt]
   | SAssign Loc LValue Expression
   | SExpression Loc Expression
-  deriving (Eq, Show, Generic)
-
--- TODO: Remove SimpleStmt, there should only be Stmt
-data SimpleStmt
-  = SSLet Loc Pattern Expression
-  | SSAssign Loc LValue Expression
-  | SSTop Loc Expression
-  | SSExpression Loc Expression
   deriving (Eq, Show, Generic)
 
 data LValue

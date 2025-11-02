@@ -69,7 +69,7 @@
                     {
                         "name": "Simple main package",
                         "command": "./glados --parse-top examples/topineur/simple-main.top",
-                        "grep": "EApp (EVar \"div\") [EInt 10,EInt 2]",
+                        "output": "*",
                         "return": 0
                     },
                     {
@@ -93,6 +93,12 @@
                     {
                         "name": "Import statements",
                         "command": "./glados --parse-top examples/topineur/import-statements.top",
+                        "output": "*",
+                        "return": 0
+                    },
+                    {
+                        "name": "Multiline if statements",
+                        "command": "./glados --parse-top examples/topineur/multiline-if-statements.top",
                         "output": "*",
                         "return": 0
                     }

@@ -32,11 +32,11 @@ ifStmt = do
   c <- expr
   _ <- keyword "then"
   sThen <-
-    try inlineSimple <|> do
-      ss <- withIndentedBlock simpleStmt
+    try inlineStmt <|> do
+      ss <- withIndentedBlock stmt
       case ss of
         [x] -> return x
-        _ -> let msg = "then-branch must contain exactly one simple statement"
+        _ -> let msg = "then-branch must contain exactly one statement"
                  in case l of
                       Just p -> fail (msg ++ " at " ++ show (spLine p) ++ ":" ++ show (spCol p))
                       Nothing -> fail msg
@@ -44,19 +44,19 @@ ifStmt = do
     optionMaybe $ do
       _ <- try (void newline1) <|> sc
       _ <- keyword "else"
-      try inlineSimple <|> do
-        ss <- withIndentedBlock simpleStmt
+      try inlineStmt <|> do
+        ss <- withIndentedBlock stmt
         case ss of
           [x] -> return x
-          _ -> let msg = "else-branch must contain exactly one simple statement"
+          _ -> let msg = "else-branch must contain exactly one statement"
                    in case l of
                         Just p -> fail (msg ++ " at " ++ show (spLine p) ++ ":" ++ show (spCol p))
                         Nothing -> fail msg
   return (SIf l c sThen mElse)
   where
-    inlineSimple = do
+    inlineStmt = do
       sc
-      simpleStmt
+      stmt
 
 whileStmt :: Parser Stmt
 whileStmt = do
@@ -163,11 +163,11 @@ ifStmtML = do
   c <- exprML
   _ <- keywordML "then"
   sThen <-
-    try inlineSimpleML <|> do
-      ss <- withIndentedBlock simpleStmtML
+    try inlineStmtML <|> do
+      ss <- withIndentedBlock stmtML
       case ss of
         [x] -> return x
-        _ -> let msg = "then-branch must contain exactly one simple statement"
+        _ -> let msg = "then-branch must contain exactly one statement"
                  in case l of
                       Just p -> fail (msg ++ " at " ++ show (spLine p) ++ ":" ++ show (spCol p))
                       Nothing -> fail msg
@@ -175,19 +175,19 @@ ifStmtML = do
     optionMaybe $ do
       _ <- try (void newline1) <|> sc
       _ <- keywordML "else"
-      try inlineSimpleML <|> do
-        ss <- withIndentedBlock simpleStmtML
+      try inlineStmtML <|> do
+        ss <- withIndentedBlock stmtML
         case ss of
           [x] -> return x
-          _ -> let msg = "else-branch must contain exactly one simple statement"
+          _ -> let msg = "else-branch must contain exactly one statement"
                    in case l of
                         Just p -> fail (msg ++ " at " ++ show (spLine p) ++ ":" ++ show (spCol p))
                         Nothing -> fail msg
   return (SIf l c sThen mElse)
   where
-    inlineSimpleML = do
+    inlineStmtML = do
       sc
-      simpleStmtML
+      stmtML
 
 whileStmtML :: Parser Stmt
 whileStmtML = do
@@ -213,43 +213,3 @@ forStmtML = do
       _ <- string "end"
       return (SFor l n (Range a b) body)
     _ -> fail "Expected range expression with '..'"
-
-simpleStmt :: Parser SimpleStmt
-simpleStmt =
-  choice
-    [ try $ do
-        l <- keyword "top"
-        SSTop l <$> expr
-    , try $ do
-        l <- keyword "let"
-        pat <- patternP
-        _ <- symbol "="
-        SSLet l pat <$> expr
-    , try $ do
-        (lv, l) <- lvalue
-        _ <- symbol "="
-        SSAssign l lv <$> expr
-    , do
-        e <- expr
-        return (SSExpression (locOfE e) e)
-    ]
-
-simpleStmtML :: Parser SimpleStmt
-simpleStmtML =
-  choice
-    [ try $ do
-        l <- keywordML "top"
-        SSTop l <$> exprML
-    , try $ do
-        l <- keywordML "let"
-        pat <- patternP
-        _ <- symbolML "="
-        SSLet l pat <$> exprML
-    , try $ do
-        (lv, l) <- lvalueML
-        _ <- symbolML "="
-        SSAssign l lv <$> exprML
-    , do
-        e <- exprML
-        return (SSExpression (locOfE e) e)
-    ]
