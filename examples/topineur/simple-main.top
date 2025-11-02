@@ -1,5 +1,6 @@
 package main
 
 def main(): Int {
-    top 0
+    println("Hello world")
+    top 42
 }

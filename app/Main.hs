@@ -22,6 +22,7 @@ import Disasm
 import SExprParser
 import TopineurParser
 import VM
+import System.FilePath (takeExtension)
 
 main :: IO ()
 main = do
@@ -58,9 +59,9 @@ renderValue (VBuiltin name _) = "#<builtin:" ++ name ++ ">"
 renderValue VUnit = "#<void>"
 renderValue (VList values) = "(" ++ unwords (map renderValue values) ++ ")"
 renderValue (VTuple values) = "#(" ++ unwords (map renderValue values) ++ ")"
-renderValue (VObject name fields) = 
-  "#<object:" ++ name ++ " {" ++ 
-  intercalate ", " (map (\(k, v) -> k ++ ": " ++ renderValue v) fields) ++ 
+renderValue (VObject name fields) =
+  "#<object:" ++ name ++ " {" ++
+  intercalate ", " (map (\(k, v) -> k ++ ": " ++ renderValue v) fields) ++
   "}>"
   where
     intercalate _ [] = ""
@@ -79,6 +80,24 @@ runProgram source =
         Left ex -> return $ Left $ "Runtime error: " ++ show ex
         Right (Left err) -> return $ Left $ "Runtime error: " ++ show err
         Right (Right val) -> return $ Right val
+
+runProgramWithSource :: String -> String -> IO (Either String Value)
+runProgramWithSource source filePath =
+  let isTopineur = takeExtension filePath == ".top"
+      compileFunc = if isTopineur 
+                    then compileTopineurWithDefs defaultConfig source
+                    else compileWithDefs defaultConfig source
+  in
+    case compileFunc of
+      Left err -> return $ Left (formatCompileError err)
+      Right (code, defs) -> do
+        let allCodeObjects = Map.insert "main" code defs
+            vmState = initVMState { vCodeObjects = allCodeObjects }
+        execResult <- try (execVM vmState code) :: IO (Either SomeException (Either VMError Value))
+        case execResult of
+          Left ex -> return $ Left $ "Runtime error: " ++ show ex
+          Right (Left err) -> return $ Left $ "Runtime error: " ++ show err
+          Right (Right val) -> return $ Right val
 
 printHelp :: IO ()
 printHelp =
@@ -110,7 +129,7 @@ runFile file = do
   source <- case sourceOrErr of
     Left _ -> exitWithError $ "Cannot open file: " ++ file
     Right src -> return src
-  result <- runProgram source
+  result <- runProgramWithSource source file
   case result of
     Left err -> exitWithError err
     Right VUnit -> exitSuccess
@@ -124,7 +143,11 @@ disasmFile file = do
   source <- case sourceOrErr of
     Left _ -> exitWithError $ "Cannot open file: " ++ file
     Right src -> return src
-  case compileWithDefs defaultConfig source of
+  let isTopineur = takeExtension file == ".top"
+      compileFunc = if isTopineur
+                    then compileTopineurWithDefs defaultConfig source
+                    else compileWithDefs defaultConfig source
+  case compileFunc of
     Left err -> exitWithError (formatCompileError err)
     Right (code, defs) ->
       putStrLn "=== Main Code ==="
@@ -159,7 +182,11 @@ showCompiled file = do
   source <- case sourceOrErr of
     Left _ -> exitWithError $ "Cannot open file: " ++ file
     Right src -> return src
-  case compileWithDefs defaultConfig source of
+  let isTopineur = takeExtension file == ".top"
+      compileFunc = if isTopineur
+                    then compileTopineurWithDefs defaultConfig source
+                    else compileWithDefs defaultConfig source
+  case compileFunc of
     Left err -> exitWithError (formatCompileError err)
     Right (code, defs) ->
       putStrLn "=== Main Code ==="
@@ -178,7 +205,11 @@ showBytecode file = do
   source <- case sourceOrErr of
     Left _ -> exitWithError $ "Cannot open file: " ++ file
     Right src -> return src
-  case compileWithDefs defaultConfig source of
+  let isTopineur = takeExtension file == ".top"
+      compileFunc = if isTopineur
+                    then compileTopineurWithDefs defaultConfig source
+                    else compileWithDefs defaultConfig source
+  case compileFunc of
     Left err -> exitWithError (formatCompileError err)
     Right (code, defs) ->
       putStrLn "=== Main Bytecode ==="

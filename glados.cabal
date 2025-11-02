@@ -40,6 +40,7 @@ library
       TopineurParser
   other-modules:
       SExprConstruct
+      TopineurToAst
       TopineurParserExpressions
       TopineurParserPattern
       TopineurParserStatements
@@ -60,6 +61,7 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
+    , filepath
     , mtl
     , parsec
     , vector
@@ -77,6 +79,7 @@ executable glados-exe
   build-depends:
       base >=4.7 && <5
     , containers
+    , filepath
     , glados
     , mtl
     , parsec
@@ -102,6 +105,7 @@ test-suite glados-test
       HUnit
     , base >=4.7 && <5
     , containers
+    , filepath
     , glados
     , mtl
     , parsec

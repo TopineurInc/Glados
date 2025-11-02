@@ -25,6 +25,7 @@ dependencies:
 - vector
 - mtl
 - parsec
+- filepath
 
 ghc-options:
 - -Wall

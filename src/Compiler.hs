@@ -9,6 +9,8 @@ module Compiler
   ( compile
   , compileWithDefs
   , compileProgram
+  , compileTopineur
+  , compileTopineurWithDefs
   , CompilerConfig(..)
   , defaultConfig
   ) where
@@ -20,11 +22,13 @@ import Desugar
 import AlphaRename
 import ClosureConversion
 import CodeGen
+import TopineurParser
+import TopineurToAst
 import qualified Data.Map as Map
 import Data.Map (Map)
 
 data CompilerConfig = CompilerConfig
-  { cfgTCO :: Bool  -- Tail call optimization enabled
+  { cfgTCO :: Bool
   , cfgDebug :: Bool
   , cfgMacroEnv :: MacroEnv
   }
@@ -129,3 +133,78 @@ compileTopLevel config sexpr = do
 
 parseMultipleSExprs :: String -> Either CompileError [SExpr]
 parseMultipleSExprs = parseFromString
+
+compileTopineur :: CompilerConfig -> String -> Either CompileError CodeObject
+compileTopineur config source = do
+  topineur <- parseTopineurSource source
+  expr <- topineurToAst topineur
+
+  (defs, mainExpr) <- extractTopineurProgram expr
+
+  renamed <- alphaRename mainExpr
+
+  converted <- closureConvert renamed
+
+  let (mainCodeE, defsCode) = generateCodeWithDefs "main" converted
+  mainCode <- mainCodeE
+
+  defsCodeObjects <- mapM (compileDefinition config) defs
+
+  let allDefs = Map.union (Map.fromList defsCodeObjects) defsCode
+  Right mainCode
+
+compileTopineurWithDefs :: CompilerConfig -> String -> Either CompileError (CodeObject, Map Name CodeObject)
+compileTopineurWithDefs config source = do
+  topineur <- parseTopineurSource source
+  expr <- topineurToAst topineur
+
+  (defs, mainExpr) <- extractTopineurProgram expr
+
+  renamed <- alphaRename mainExpr
+
+  converted <- closureConvert renamed
+
+  let (mainCodeE, defsCode) = generateCodeWithDefs "main" converted
+  mainCode <- mainCodeE
+
+  defsCodeObjects <- mapM (compileDefinition config) defs
+
+  let allDefs = Map.union (Map.fromList defsCodeObjects) defsCode
+  Right (mainCode, allDefs)
+
+extractTopineurProgram :: Expr -> Either CompileError ([Expr], Expr)
+extractTopineurProgram (EList exprs) = do
+  case exprs of
+    [] -> Left $ SyntaxError "Empty Topineur program" Nothing
+    _ ->
+      let (packageAndImports, defs) = span isPackageOrImport exprs
+          mainDef = findMainDef defs
+          otherDefs = filter (not . isMainDef) defs
+          mainExpr = case mainDef of
+            Just (EDefine _ body _) ->
+              case body of
+                ELambda _ _ lambdaBody _ -> lambdaBody
+                _ -> body
+            Nothing -> EUnit
+       in Right (otherDefs, mainExpr)
+  where
+    isPackageOrImport EPackage{} = True
+    isPackageOrImport EImport{} = True
+    isPackageOrImport _ = False
+    isDefineExpr EDefine{} = True
+    isDefineExpr _ = False
+    findMainDef = foldr findOne Nothing
+      where
+        findOne (EDefine "main" body anns) _ = Just (EDefine "main" body anns)
+        findOne _ acc = acc
+    isMainDef (EDefine "main" _ _) = True
+    isMainDef _ = False
+extractTopineurProgram expr = Right ([], expr)
+
+compileDefinition :: CompilerConfig -> Expr -> Either CompileError (Name, CodeObject)
+compileDefinition config (EDefine name body _) = do
+  renamed <- alphaRename body
+  converted <- closureConvert renamed
+  code <- generateCode name converted
+  Right (name, code)
+compileDefinition _ expr = Left $ SyntaxError "Expected definition" Nothing

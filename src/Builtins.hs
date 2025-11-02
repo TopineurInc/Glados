@@ -16,6 +16,7 @@ module Builtins
   , builtinLt
   , builtinGt
   , builtinPrint
+  , builtinPrintln
   , builtinDisplay
   , builtinInput
   , builtinReadLine
@@ -48,6 +49,7 @@ builtins = Map.fromList
   , ("<", VBuiltin "<" builtinLt)
   , (">", VBuiltin ">" builtinGt)
   , ("print", VBuiltin "print" builtinPrint)
+  , ("println", VBuiltin "println" builtinPrintln)
   , ("display", VBuiltin "display" builtinDisplay)
   , ("input", VBuiltin "input" builtinInput)
   , ("read-line", VBuiltin "read-line" builtinReadLine)
@@ -122,6 +124,12 @@ builtinPrint :: [Value] -> IO Value
 builtinPrint [val] =
   putStrLn (showValue val) >> return val
 builtinPrint _ = error "Type error: print expects one argument"
+
+builtinPrintln :: [Value] -> IO Value
+builtinPrintln [val] = do
+  putStrLn (showValue val)
+  return VUnit
+builtinPrintln _ = error "Type error: println expects one argument"
 
 builtinDisplay :: [Value] -> IO Value
 builtinDisplay [val] =

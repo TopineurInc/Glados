@@ -153,6 +153,7 @@ builtinArity op = case op of
   "<" -> 2
   ">" -> 2
   "print" -> 1
+  "println" -> 1
   "display" -> 1
   "input" -> 0
   "read-line" -> 0
