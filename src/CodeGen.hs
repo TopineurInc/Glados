@@ -236,7 +236,7 @@ compileExpr (EFor var start end body) = do
   loopStart <- gets (length . cgsInstructions)
   emit (ILoad iterSlot)
   compileExpr end
-  emit (IPrim "<")
+  emit (IPrim "<=")
   emit (IJumpIfFalse 0)
   exitJumpIdx <- gets (length . cgsInstructions)
 
