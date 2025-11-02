@@ -349,7 +349,7 @@ compileExpr (EAssign name expr) = do
   mSlot <- getLocal name
   case mSlot of
     Just slot -> emit (IAssign slot)
-    Nothing -> error $ "Assignment to undefined variable: " ++ name
+    Nothing -> emit (IAssignGlobal name)
   compileExpr (EVar name)
 
 -- Package and Import (no-ops for now)

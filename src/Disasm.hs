@@ -65,6 +65,7 @@ disassembleInstr (IObjectCreate name) = "OBJECT_CREATE " ++ name
 disassembleInstr (IMemberGet name) = "MEMBER_GET " ++ name
 disassembleInstr (IMemberSet name) = "MEMBER_SET " ++ name
 disassembleInstr (IAssign slot) = "ASSIGN " ++ show slot
+disassembleInstr (IAssignGlobal name) = "ASSIGN_GLOBAL " ++ name
 disassembleInstr IRangeCreate = "RANGE_CREATE"
 
 showConstant :: Constant -> String

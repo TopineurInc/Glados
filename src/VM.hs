@@ -144,6 +144,21 @@ executeInstr vmState frame instr = case instr of
     let frame' = frame { fPC = fPC frame + 1 }
     in return $ Right (updateFrame vmState frame', Nothing)
 
+  IAssign slot -> case fStack frame of
+    [] -> return $ Left StackUnderflow
+    (val:stack') ->
+      let locals = fLocals frame
+          locals' = locals Vector.// [(slot, Just val)]
+          frame' = frame { fStack = stack', fLocals = locals', fPC = fPC frame + 1 }
+      in return $ Right (updateFrame vmState frame', Nothing)
+
+  IAssignGlobal name -> case fStack frame of
+    [] -> return $ Left StackUnderflow
+    (val:stack') ->
+      let frame' = frame { fStack = stack', fPC = fPC frame + 1 }
+          vmState' = vmState { vGlobals = Map.insert name val (vGlobals vmState) }
+      in return $ Right (updateFrame vmState' frame', Nothing)
+
   _ -> return $ Left $ InvalidInstruction "Instruction not implemented"
 
 builtinArity :: String -> Int
