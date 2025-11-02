@@ -38,6 +38,7 @@ library
       Disasm
       Lib
       TopineurParser
+      TypeChecker
   other-modules:
       SExprConstruct
       TopineurToAst
