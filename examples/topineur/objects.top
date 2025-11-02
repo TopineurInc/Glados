@@ -1,0 +1,33 @@
+package polygon
+
+object type Point {
+  x: Float
+  y: Float
+
+  def translate(dx: Float, dy: Float): Point {
+    top Point { self.x = self.x + dx, self.y = self.y + dy }
+  }
+}
+
+object type Polygon {
+  vertices: List[Point] = []
+
+  def centroid(): Point {
+    let (sumX: Float, sumY: Float) = fold(self.vertices, (0.0, 0.0),
+      fun ((accX: Float, accY: Float), point: Point): Tuple[Float, Float] ->
+        (accX + point.x, accY + point.y))
+
+    let count = float(length(vertices))
+    top Point { self.x = sumX / count, self.y = sumY / count }
+  }
+}
+
+let triangle = Polygon {
+  vertices = [
+    Point { x = 0.0, y = 0.0 },
+    Point { x = 1.0, y = 0.0 },
+    Point { x = 0.0, y = 1.0 }
+  ]
+}
+
+let center = triangle.centroid()

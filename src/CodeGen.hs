@@ -212,15 +212,15 @@ compileExpr (EWhile cond body) = do
   compileExpr cond
   emit (IJumpIfFalse 0)
   exitJumpIdx <- gets (length . cgsInstructions)
-  
+
   compileExpr body
   emit IPop
-  
+
   emit (IJump loopStart)
-  
+
   exitIdx <- gets (length . cgsInstructions)
   patchJump (exitJumpIdx - 1) exitIdx
-  
+
   -- Push unit value as while result
   idx <- addConst (CInt 0)
   emit (IConst idx)
@@ -229,28 +229,28 @@ compileExpr (EFor var start end body) = do
   compileExpr start
   iterSlot <- allocLocal var
   emit (IStore iterSlot)
-  
+
   loopStart <- gets (length . cgsInstructions)
   emit (ILoad iterSlot)
   compileExpr end
   emit (IPrim "<")
   emit (IJumpIfFalse 0)
   exitJumpIdx <- gets (length . cgsInstructions)
-  
+
   compileExpr body
   emit IPop
-  
+
   emit (ILoad iterSlot)
   idx <- addConst (CInt 1)
   emit (IConst idx)
   emit (IPrim "+")
   emit (IStore iterSlot)
-  
+
   emit (IJump loopStart)
-  
+
   exitIdx <- gets (length . cgsInstructions)
   patchJump (exitJumpIdx - 1) exitIdx
-  
+
   -- Push unit value as for result
   unitIdx <- addConst (CInt 0)
   emit (IConst unitIdx)

@@ -10,10 +10,7 @@
 module AST
   ( SourcePos(..)
   , Loc
-  , SExpr(..)
-  , Atom(..)
   , CompileError(..)
-  , sexprLoc
   , Name
   , Type(..)
   , BinOp(..)
@@ -29,12 +26,17 @@ module AST
   , Value(..)
   , Frame(..)
   , VMState(..)
+  , Atom(..)
+  , SExpr(..)
   , Label
+  , Parser
+  , sexprLoc
   ) where
 
 import GHC.Generics (Generic)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
+import Text.Parsec (Parsec)
 
 data SourcePos = SourcePos
   { spLine :: Int
@@ -43,27 +45,10 @@ data SourcePos = SourcePos
 
 type Loc = Maybe SourcePos
 
-data SExpr
-  = SAtom Atom Loc
-  | SList [SExpr] Loc
-  deriving (Eq, Show, Generic)
-
-data Atom
-  = AInteger Integer
-  | AFloat Double
-  | ABool Bool
-  | ASymbol String
-  | AString String
-  deriving (Eq, Show, Generic)
-
 data CompileError
   = ParseError String Loc
   | SyntaxError String Loc
   deriving (Eq, Show, Generic)
-
-sexprLoc :: SExpr -> Loc
-sexprLoc (SAtom _ loc) = loc
-sexprLoc (SList _ loc) = loc
 
 type Name = String
 
@@ -106,10 +91,26 @@ data Field = Field Name Type (Maybe Expr) deriving (Eq, Show, Generic)
 data Method = Method Name [(Name, Maybe Type)] Type Expr deriving (Eq, Show, Generic)
 
 data Annotation
-  = Cache 
+  = Cache
   | Custom String
   deriving (Eq, Show, Generic)
 
+data SExpr
+  = SAtom Atom Loc
+  | SList [SExpr] Loc
+  deriving (Eq, Show, Generic)
+
+data Atom
+  = AInteger Integer
+  | AFloat Double
+  | ABool Bool
+  | ASymbol String
+  | AString String
+  deriving (Eq, Show, Generic)
+
+sexprLoc :: SExpr -> Loc
+sexprLoc (SAtom _ loc) = loc
+sexprLoc (SList _ loc) = loc
 
 data Expr
   = EInt Integer
@@ -141,6 +142,8 @@ data Expr
   | EPackage Name
   | EImport Name
   deriving (Eq, Show, Generic)
+
+type Parser = Parsec String ()
 
 data ANF
   = AVar Name

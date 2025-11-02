@@ -1,0 +1,26 @@
+package main
+
+|- Recursive factorial function
+def factorial(n: Int): Int {
+  if n <= 1 then top 1
+  else top n * factorial(n - 1)
+}
+
+|- Iterative factorial function using a for loop
+def factorialIter(n: Int): Int {
+  let result = 1
+  for i in 1..n do
+    result = result * i
+  end
+  top result
+}
+
+def main(): Int {
+  let n = 5
+  let recResult = factorial(n)
+  let iterResult = factorialIter(n)
+  |- Both should return the same result (120 for n=5)
+  println("recursive factorial (5) = " ++ show(recResult))
+  println("iterative factorial (5) = " ++ show(iterResult))
+  top 0
+}

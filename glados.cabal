@@ -37,13 +37,25 @@ library
       Compiler
       Disasm
       Lib
+      TopineurParser
   other-modules:
       SExprConstruct
+      TopineurParserExpressions
+      TopineurParserPattern
+      TopineurParserStatements
+      TopineurParserSymbols
+      TopineurParserTopLevel
+      TopineurParserTypes
+      TopineurParserUtils
       Paths_glados
   autogen-modules:
       Paths_glados
   hs-source-dirs:
       src
+      src/lisp
+      src/lisp/parser
+      src/topineur
+      src/topineur/parser
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
@@ -79,12 +91,9 @@ test-suite glados-test
       Test.BuiltinsSpec
       Test.ClosureConversionSpec
       Test.CodeGenSpec
-      Test.CodeGenTopineurSpec
       Test.CompilerSpec
       Test.DesugarSpec
-      Test.MacroExpanderSpec
       Test.SExprParserSpec
-      Test.TopineurASTSpec
       Test.VMSpec
   hs-source-dirs:
       test

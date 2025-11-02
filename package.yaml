@@ -38,7 +38,12 @@ ghc-options:
 - -Wredundant-constraints
 
 library:
-  source-dirs: src
+  source-dirs:
+    - src
+    - src/lisp
+    - src/lisp/parser
+    - src/topineur
+    - src/topineur/parser
   exposed-modules:
     - AST
     - SExprParser
@@ -52,6 +57,7 @@ library:
     - Compiler
     - Disasm
     - Lib
+    - TopineurParser
 
 executables:
   glados-exe:

@@ -1,0 +1,19 @@
+package main
+
+def main(): Int {
+  |- This should work
+  if Int("5") == 5 then
+    println("Type conversion")
+    println("Type conversion")
+  else |- This should not happen
+    println("This is shit")
+    println("This is shit")
+
+  |- This should work too, but they're the same statements, there's just one
+  if Int("5") == 5 then println("Yes")
+  else println("This is still shit")
+
+  println("hello")
+
+  top 0
+}
