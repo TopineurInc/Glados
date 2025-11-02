@@ -1,0 +1,6 @@
+package main
+
+def main(): Int {
+  println(show(false))
+  top 0
+}

@@ -74,6 +74,12 @@ basicTerm =
     , try $ do
         (l, d) <- floatLit
         return (EFloat l d)
+    , try $ do
+        l <- keyword "true"
+        return (EBool l True)
+    , try $ do
+        l <- keyword "false"
+        return (EBool l False)
     , try $ do (l, s) <- stringLit; return (EString l s)
     , try tupleExpr
     , try arrayExpr
@@ -160,6 +166,12 @@ basicTermML =
     , try $ do
         (l, d) <- floatLit
         return (EFloat l d)
+    , try $ do
+        l <- keywordML "true"
+        return (EBool l True)
+    , try $ do
+        l <- keywordML "false"
+        return (EBool l False)
     , try $ do (l, s) <- stringLit; return (EString l s)
     , try tupleExprML
     , try arrayExprML

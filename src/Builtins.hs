@@ -223,7 +223,7 @@ builtinFormat (dest:VString fmt:args) =
 builtinFormat _ = error "Type error: format expects (destination format-string ...)"
 
 builtinShow :: [Value] -> IO Value
-builtinShow [val] = return $ VString (showValue val)
+builtinShow [val] = return $ VString $ topineurShow val
 builtinShow _ = error "Type error: show expects one argument"
 
 processFormatString :: String -> [Value] -> String
@@ -255,3 +255,20 @@ showValue (VObject name fields) = "#<object:" ++ name ++ " " ++ showFields field
     showFields [] = ""
     showFields [(k, v)] = k ++ ":" ++ showValue v
     showFields ((k, v):rest) = k ++ ":" ++ showValue v ++ " " ++ showFields rest
+
+topineurShow :: Value -> String
+topineurShow (VInt n) = show n
+topineurShow (VFloat n) = show n
+topineurShow (VBool True) = "true"
+topineurShow (VBool False) = "false"
+topineurShow (VString s) = s
+topineurShow (VBuiltin name _) = "<builtin:" ++ name ++ ">"
+topineurShow (VClosure name _) = "<closure:" ++ name ++ ">"
+topineurShow VUnit = "#<void>"
+topineurShow (VList values) = "(" ++ unwords (map topineurShow values) ++ ")"
+topineurShow (VTuple values) = "#(" ++ unwords (map topineurShow values) ++ ")"
+topineurShow (VObject name fields) = "#<object:" ++ name ++ " " ++ showFields fields ++ ">"
+  where
+    showFields [] = ""
+    showFields [(k, v)] = k ++ ":" ++ topineurShow v
+    showFields ((k, v):rest) = k ++ ":" ++ topineurShow v ++ " " ++ showFields rest

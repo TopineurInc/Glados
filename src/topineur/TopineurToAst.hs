@@ -158,6 +158,8 @@ expressionToExpr = \case
 
   T.EFloat _ f -> Right $ EFloat f
 
+  T.EBool _ b -> Right $ EBool b
+
   T.EString _ s -> Right $ EString s
 
   T.ETuple _ exprs -> do
