@@ -26,7 +26,6 @@ import TopineurParser
 import TopineurToAst
 import qualified Data.Map as Map
 import Data.Map (Map)
-import qualified Data.Vector as Vector
 
 data CompilerConfig = CompilerConfig
   { cfgTCO :: Bool
@@ -146,12 +145,11 @@ compileTopineur config source = do
 
   converted <- closureConvert renamed
 
-  let (mainCodeE, defsCode) = generateCodeWithDefs "main" converted
+  let (mainCodeE, _defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE
 
-  defsCodeObjects <- mapM (compileDefinition config) defs
+  _defsCodeObjects <- mapM (compileDefinition config) defs
 
-  let allDefs = Map.union (Map.fromList defsCodeObjects) defsCode
   Right mainCode
 
 compileTopineurWithDefs :: CompilerConfig -> String -> Either CompileError (CodeObject, Map Name CodeObject)
@@ -178,7 +176,7 @@ extractTopineurProgram (EList exprs) = do
   case exprs of
     [] -> Left $ SyntaxError "Empty Topineur program" Nothing
     _ ->
-      let (packageAndImports, defs) = span isPackageOrImport exprs
+      let (_packageAndImports, defs) = span isPackageOrImport exprs
           mainDef = findMainDef defs
           otherDefs = filter (not . isMainDef) defs
           mainExpr = case mainDef of
@@ -186,14 +184,13 @@ extractTopineurProgram (EList exprs) = do
               case body of
                 ELambda _ _ lambdaBody _ -> lambdaBody
                 _ -> body
+            Just _ -> EUnit
             Nothing -> EUnit
        in Right (otherDefs, mainExpr)
   where
     isPackageOrImport EPackage{} = True
     isPackageOrImport EImport{} = True
     isPackageOrImport _ = False
-    isDefineExpr EDefine{} = True
-    isDefineExpr _ = False
     findMainDef = foldr findOne Nothing
       where
         findOne (EDefine "main" body anns) _ = Just (EDefine "main" body anns)
@@ -203,7 +200,7 @@ extractTopineurProgram (EList exprs) = do
 extractTopineurProgram expr = Right ([], expr)
 
 compileDefinition :: CompilerConfig -> Expr -> Either CompileError (Name, CodeObject)
-compileDefinition config (EDefine name body _) = do
+compileDefinition _config (EDefine name body _) = do
   case body of
     ELambda params _retType lambdaBody _ann -> do
       renamed <- alphaRename lambdaBody
@@ -211,11 +208,11 @@ compileDefinition config (EDefine name body _) = do
       -- Use compileLambda to properly compile the function with parameters
       let paramNames = map fst params
           initialState = emptyCodeGenState
-          (codeObj, finalState) = runCodeGen (compileLambda name paramNames converted) initialState
+          (codeObj, _finalState) = runCodeGen (compileLambda name paramNames converted) initialState
       Right (name, codeObj)
     _ -> do
       renamed <- alphaRename body
       converted <- closureConvert renamed
       code <- generateCode name converted
       Right (name, code)
-compileDefinition _ expr = Left $ SyntaxError "Expected definition" Nothing
+compileDefinition _ _expr = Left $ SyntaxError "Expected definition" Nothing
