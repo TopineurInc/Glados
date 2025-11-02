@@ -5,8 +5,6 @@
 -- VM
 -}
 
-{-# LANGUAGE LambdaCase #-}
-
 module VM
   ( runVM
   , execVM
@@ -76,7 +74,13 @@ executeInstr vmState frame instr = case instr of
       else
         let constValue = consts Vector.! idx
             val = case constValue of
-              CFuncRef name -> maybe (constantToValue constValue) id (Map.lookup name (vBuiltins vmState))
+              CFuncRef name ->
+                case Map.lookup name (vBuiltins vmState) of
+                  Just builtin -> builtin
+                  Nothing ->
+                    case Map.lookup name (vGlobals vmState) of
+                      Just global -> global
+                      Nothing -> constantToValue constValue
               _ -> constantToValue constValue
             frame' = frame { fStack = val : fStack frame, fPC = fPC frame + 1 }
         in return $ Right (updateFrame vmState frame', Nothing)

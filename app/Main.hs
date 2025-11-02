@@ -8,6 +8,7 @@
 module Main (main) where
 
 import Control.Exception (IOException, SomeException, try)
+import Control.Monad (foldM)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 import System.Environment (getArgs)
@@ -74,17 +75,33 @@ runProgram source =
     Left err -> return $ Left (formatCompileError err)
     Right (code, defs) -> do
       let allCodeObjects = Map.insert "main" code defs
-          vmState = initVMState { vCodeObjects = allCodeObjects }
+          initialVmState = initVMState { vCodeObjects = allCodeObjects }
+      vmState <- initializeGlobals initialVmState defs
       execResult <- try (execVM vmState code) :: IO (Either SomeException (Either VMError Value))
       case execResult of
         Left ex -> return $ Left $ "Runtime error: " ++ show ex
         Right (Left err) -> return $ Left $ "Runtime error: " ++ show err
         Right (Right val) -> return $ Right val
 
+initializeGlobals :: VMState -> Map.Map Name CodeObject -> IO VMState
+initializeGlobals vmState defs =
+  foldM
+    (\state (name, codeObj) ->
+      if coArity codeObj == 0
+        then do
+          result <- execVM state codeObj
+          case result of
+            Right val ->
+              return $ state { vGlobals = Map.insert name val (vGlobals state) }
+            Left _err -> return state
+        else return state)
+    vmState
+    (Map.toList defs)
+
 runProgramWithSource :: String -> String -> IO (Either String Value)
 runProgramWithSource source filePath =
   let isTopineur = takeExtension filePath == ".top"
-      compileFunc = if isTopineur 
+      compileFunc = if isTopineur
                     then compileTopineurWithDefs defaultConfig source
                     else compileWithDefs defaultConfig source
   in
@@ -92,7 +109,8 @@ runProgramWithSource source filePath =
       Left err -> return $ Left (formatCompileError err)
       Right (code, defs) -> do
         let allCodeObjects = Map.insert "main" code defs
-            vmState = initVMState { vCodeObjects = allCodeObjects }
+            initialVmState = initVMState { vCodeObjects = allCodeObjects }
+        vmState <- initializeGlobals initialVmState defs
         execResult <- try (execVM vmState code) :: IO (Either SomeException (Either VMError Value))
         case execResult of
           Left ex -> return $ Left $ "Runtime error: " ++ show ex
