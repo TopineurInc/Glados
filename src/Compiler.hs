@@ -11,6 +11,7 @@ module Compiler
   , compileProgram
   , compileTopineur
   , compileTopineurWithDefs
+  , compileTopineurFile
   , CompilerConfig(..)
   , defaultConfig
   ) where
@@ -27,12 +28,23 @@ import TopineurParser
 import TopineurToAst
 import qualified Data.Map as Map
 import Data.Map (Map)
+import Data.Maybe (mapMaybe)
+import Control.Monad (when)
+import Control.Monad.Except (ExceptT, runExceptT, throwError)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.State.Strict (StateT, evalStateT, get, put)
+import Control.Monad.Trans.Class (lift)
+import Data.Foldable (foldl')
+import qualified Data.Set as Set
+import System.Directory (canonicalizePath, doesFileExist)
+import System.FilePath (takeDirectory, (</>), joinPath)
 
 data CompilerConfig = CompilerConfig
   { cfgTCO :: Bool
   , cfgDebug :: Bool
   , cfgTypeCheck :: Bool
   , cfgMacroEnv :: MacroEnv
+  , cfgModulePaths :: [FilePath]
   }
 
 defaultConfig :: CompilerConfig
@@ -41,6 +53,7 @@ defaultConfig = CompilerConfig
   , cfgDebug = False
   , cfgTypeCheck = False  -- Disabled by default for backward compatibility
   , cfgMacroEnv = defaultMacroEnv
+  , cfgModulePaths = ["stdlib"]
   }
 
 compile :: CompilerConfig -> String -> Either CompileError CodeObject
@@ -156,7 +169,7 @@ compileTopineur config source = do
   topineur <- parseTopineurSource source
   expr <- topineurToAst topineur
 
-  (defs, mainExpr) <- extractTopineurProgram expr
+  (_imports, defs, mainExpr) <- extractTopineurProgram expr
 
   renamed <- alphaRename mainExpr
 
@@ -180,7 +193,7 @@ compileTopineurWithDefs config source = do
   topineur <- parseTopineurSource source
   expr <- topineurToAst topineur
 
-  (defs, mainExpr) <- extractTopineurProgram expr
+  (_imports, defs, mainExpr) <- extractTopineurProgram expr
 
   renamed <- alphaRename mainExpr
 
@@ -201,12 +214,13 @@ compileTopineurWithDefs config source = do
   let allDefs = Map.union (Map.fromList defsCodeObjects) defsCode
   Right (mainCode, allDefs)
 
-extractTopineurProgram :: Expr -> Either CompileError ([Expr], Expr)
+extractTopineurProgram :: Expr -> Either CompileError ([Name], [Expr], Expr)
 extractTopineurProgram (EList exprs) = do
   case exprs of
     [] -> Left $ SyntaxError "Empty Topineur program" Nothing
     _ ->
-      let (_packageAndImports, defs) = span isPackageOrImport exprs
+      let (pkgAndImports, defs) = span isPackageOrImport exprs
+          imports = mapMaybe extractImport pkgAndImports
           mainDef = findMainDef defs
           otherDefs = filter (not . isMainDef) defs
           mainExpr = case mainDef of
@@ -216,19 +230,20 @@ extractTopineurProgram (EList exprs) = do
                 _ -> body
             Just _ -> EUnit
             Nothing -> EUnit
-            _ -> EUnit  -- Handle other expression types
-       in Right (otherDefs, mainExpr)
+       in Right (imports, otherDefs, mainExpr)
   where
     isPackageOrImport EPackage{} = True
     isPackageOrImport EImport{} = True
     isPackageOrImport _ = False
+    extractImport (EImport name) = Just name
+    extractImport _ = Nothing
     findMainDef = foldr findOne Nothing
       where
         findOne (EDefine "main" body anns) _ = Just (EDefine "main" body anns)
         findOne _ acc = acc
     isMainDef (EDefine "main" _ _) = True
     isMainDef _ = False
-extractTopineurProgram expr = Right ([], expr)
+extractTopineurProgram expr = Right ([], [], expr)
 
 compileDefinition :: CompilerConfig -> Expr -> Either CompileError (Name, CodeObject)
 compileDefinition _config (EDefine name body _) = do
@@ -248,3 +263,81 @@ compileDefinition _config (EDefine name body _) = do
       Right (name, code)
       
 compileDefinition _ _expr = Left $ SyntaxError "Expected definition" Nothing
+
+-- Module loading ----------------------------------------------------------------
+
+type ModuleCache = Map FilePath (Map Name CodeObject)
+
+data ModuleState = ModuleState ModuleCache (Set.Set FilePath)
+
+emptyModuleState :: ModuleState
+emptyModuleState = ModuleState Map.empty Set.empty
+
+compileTopineurFile :: CompilerConfig -> FilePath -> IO (Either CompileError (CodeObject, Map Name CodeObject))
+compileTopineurFile config entryPath =
+  runExceptT $ evalStateT (compileEntry entryPath) emptyModuleState
+  where
+    compileEntry :: FilePath -> StateT ModuleState (ExceptT CompileError IO) (CodeObject, Map Name CodeObject)
+    compileEntry path = do
+      source <- liftIO (readFile path)
+      imports <- liftEitherState (collectTopineurImports source)
+      let searchPaths = takeDirectory path : cfgModulePaths config
+      importDefs <- loadImports searchPaths imports
+      (mainCode, defs) <- liftEitherState (compileTopineurWithDefs config source)
+      let combinedDefs = Map.union defs importDefs
+      pure (mainCode, combinedDefs)
+
+    loadImports :: [FilePath] -> [Name] -> StateT ModuleState (ExceptT CompileError IO) (Map Name CodeObject)
+    loadImports searchPaths = fmap (foldl' (flip Map.union) Map.empty) . mapM (loadModule searchPaths)
+
+    loadModule :: [FilePath] -> Name -> StateT ModuleState (ExceptT CompileError IO) (Map Name CodeObject)
+    loadModule searchPaths moduleName = do
+      resolvedPath <- resolveModulePath searchPaths moduleName
+      ModuleState cache inProgress <- get
+      let alreadyCompiled = Map.lookup resolvedPath cache
+      case alreadyCompiled of
+        Just defs -> pure defs
+        Nothing -> do
+          when (Set.member resolvedPath inProgress) $
+            lift $ throwError $ SyntaxError ("Cyclic import detected for module: " ++ moduleName) Nothing
+          put $ ModuleState cache (Set.insert resolvedPath inProgress)
+          source <- liftIO (readFile resolvedPath)
+          imports <- liftEitherState (collectTopineurImports source)
+          let nextSearchPaths = takeDirectory resolvedPath : cfgModulePaths config
+          depsDefs <- loadImports nextSearchPaths imports
+          (_, moduleDefs) <- liftEitherState (compileTopineurWithDefs config source)
+          let finalDefs = Map.union moduleDefs depsDefs
+          ModuleState cache' inProgress' <- get
+          let newCache = Map.insert resolvedPath finalDefs cache'
+              newInProgress = Set.delete resolvedPath inProgress'
+          put $ ModuleState newCache newInProgress
+          pure finalDefs
+
+    resolveModulePath :: [FilePath] -> Name -> StateT ModuleState (ExceptT CompileError IO) FilePath
+    resolveModulePath [] moduleName =
+      lift $ throwError $ SyntaxError ("Unable to resolve import: " ++ moduleName) Nothing
+    resolveModulePath (p:ps) moduleName = do
+      let relativePath = joinPath (splitModuleName moduleName) ++ ".top"
+          candidate = p </> relativePath
+      exists <- liftIO (doesFileExist candidate)
+      if exists
+        then liftIO (canonicalizePath candidate)
+        else resolveModulePath ps moduleName
+
+    liftEitherState :: Either CompileError a -> StateT ModuleState (ExceptT CompileError IO) a
+    liftEitherState = either (lift . throwError) pure
+
+collectTopineurImports :: String -> Either CompileError [Name]
+collectTopineurImports source = do
+  topineur <- parseTopineurSource source
+  expr <- topineurToAst topineur
+  (imports, _, _) <- extractTopineurProgram expr
+  pure imports
+
+splitModuleName :: String -> [String]
+splitModuleName [] = []
+splitModuleName name =
+  let (chunk, rest) = break (=='.') name
+  in case rest of
+       [] -> [chunk | not (null chunk)]
+       (_:xs) -> chunk : splitModuleName xs

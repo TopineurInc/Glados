@@ -301,12 +301,23 @@ builtinArity op = case op of
   "string->number" -> 1
   "number->string" -> 1
   "string-length" -> 1
+  "__string_length" -> 1
   "string-append" -> 2
+  "__string_append" -> 2
   "substring" -> 3
+  "__substring" -> 3
   "not" -> 1
   "and" -> 2
   "or" -> 2
   "show" -> 1
+  "list-length" -> 1
+  "__list_length" -> 1
+  "list-append" -> 2
+  "__list_append" -> 2
+  "list-single" -> 1
+  "__list_single" -> 1
+  "list-get" -> 2
+  "__list_get" -> 2
   _ -> 2
 
 executePrim :: VMState -> Frame -> String -> IO (Either VMError (VMState, Maybe Value))

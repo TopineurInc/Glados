@@ -32,13 +32,13 @@ library
       AlphaRename
       ClosureConversion
       CodeGen
+      TypeChecker
       Builtins
       VM
       Compiler
       Disasm
       Lib
       TopineurParser
-      TypeChecker
   other-modules:
       SExprConstruct
       TopineurToAst
@@ -62,9 +62,11 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
+    , directory
     , filepath
     , mtl
     , parsec
+    , transformers
     , vector
   default-language: Haskell2010
 
@@ -80,10 +82,12 @@ executable glados-exe
   build-depends:
       base >=4.7 && <5
     , containers
+    , directory
     , filepath
     , glados
     , mtl
     , parsec
+    , transformers
     , vector
   default-language: Haskell2010
 
@@ -106,9 +110,11 @@ test-suite glados-test
       HUnit
     , base >=4.7 && <5
     , containers
+    , directory
     , filepath
     , glados
     , mtl
     , parsec
+    , transformers
     , vector
   default-language: Haskell2010

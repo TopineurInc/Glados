@@ -101,21 +101,25 @@ initializeGlobals vmState defs =
 runProgramWithSource :: String -> String -> IO (Either String Value)
 runProgramWithSource source filePath =
   let isTopineur = takeExtension filePath == ".top"
-      compileFunc = if isTopineur
-                    then compileTopineurWithDefs defaultConfig source
-                    else compileWithDefs defaultConfig source
-  in
-    case compileFunc of
-      Left err -> return $ Left (formatCompileError err)
-      Right (code, defs) -> do
-        let allCodeObjects = Map.insert "main" code defs
-            initialVmState = initVMState { vCodeObjects = allCodeObjects }
-        vmState <- initializeGlobals initialVmState defs
-        execResult <- try (execVM vmState code) :: IO (Either SomeException (Either VMError Value))
-        case execResult of
-          Left ex -> return $ Left $ "Runtime error: " ++ show ex
-          Right (Left err) -> return $ Left $ "Runtime error: " ++ show err
-          Right (Right val) -> return $ Right val
+  in if isTopineur
+      then do
+        compileResult <- compileTopineurFile defaultConfig filePath
+        case compileResult of
+          Left err -> return $ Left (formatCompileError err)
+          Right (code, defs) -> execute code defs
+      else case compileWithDefs defaultConfig source of
+        Left err -> return $ Left (formatCompileError err)
+        Right (code, defs) -> execute code defs
+  where
+    execute code defs = do
+      let allCodeObjects = Map.insert "main" code defs
+          initialVmState = initVMState { vCodeObjects = allCodeObjects }
+      vmState <- initializeGlobals initialVmState defs
+      execResult <- try (execVM vmState code) :: IO (Either SomeException (Either VMError Value))
+      case execResult of
+        Left ex -> return $ Left $ "Runtime error: " ++ show ex
+        Right (Left err) -> return $ Left $ "Runtime error: " ++ show err
+        Right (Right val) -> return $ Right val
 
 printHelp :: IO ()
 printHelp =
@@ -172,21 +176,34 @@ disasmFile file = do
     Left _ -> exitWithError $ "Cannot open file: " ++ file
     Right src -> return src
   let isTopineur = takeExtension file == ".top"
-      compileFunc = if isTopineur
-                    then compileTopineurWithDefs defaultConfig source
-                    else compileWithDefs defaultConfig source
-  case compileFunc of
-    Left err -> exitWithError (formatCompileError err)
-    Right (code, defs) ->
-      putStrLn "=== Main Code ==="
-        >> dumpCodeObject code
-        >> putStrLn "\n=== Nested Definitions ==="
-        >> mapM_
-          (\(name, obj) ->
-            putStrLn ("\n--- " ++ name ++ " ---")
-              >> dumpCodeObject obj)
-          (Map.toList defs)
-        >> exitSuccess
+  if isTopineur
+    then do
+      compileResult <- compileTopineurFile defaultConfig file
+      case compileResult of
+        Left err -> exitWithError (formatCompileError err)
+        Right (code, defs) ->
+          putStrLn "=== Main Code ==="
+            >> dumpCodeObject code
+            >> putStrLn "\n=== Nested Definitions ==="
+            >> mapM_
+              (\(name, obj) ->
+                putStrLn ("\n--- " ++ name ++ " ---")
+                  >> dumpCodeObject obj)
+              (Map.toList defs)
+            >> exitSuccess
+    else
+      case compileWithDefs defaultConfig source of
+        Left err -> exitWithError (formatCompileError err)
+        Right (code, defs) ->
+          putStrLn "=== Main Code ==="
+            >> dumpCodeObject code
+            >> putStrLn "\n=== Nested Definitions ==="
+            >> mapM_
+              (\(name, obj) ->
+                putStrLn ("\n--- " ++ name ++ " ---")
+                  >> dumpCodeObject obj)
+              (Map.toList defs)
+            >> exitSuccess
 
 showAst :: FilePath -> IO ()
 showAst file = do
@@ -211,21 +228,34 @@ showCompiled file = do
     Left _ -> exitWithError $ "Cannot open file: " ++ file
     Right src -> return src
   let isTopineur = takeExtension file == ".top"
-      compileFunc = if isTopineur
-                    then compileTopineurWithDefs defaultConfig source
-                    else compileWithDefs defaultConfig source
-  case compileFunc of
-    Left err -> exitWithError (formatCompileError err)
-    Right (code, defs) ->
-      putStrLn "=== Main Code ==="
-        >> dumpCodeInfo code
-        >> putStrLn "\n=== Nested Definitions ==="
-        >> mapM_
-          (\(name, obj) ->
-            putStrLn ("\n--- " ++ name ++ " ---")
-              >> dumpCodeInfo obj)
-          (Map.toList defs)
-        >> exitSuccess
+  if isTopineur
+    then do
+      compileResult <- compileTopineurFile defaultConfig file
+      case compileResult of
+        Left err -> exitWithError (formatCompileError err)
+        Right (code, defs) ->
+          putStrLn "=== Main Code ==="
+            >> dumpCodeInfo code
+            >> putStrLn "\n=== Nested Definitions ==="
+            >> mapM_
+              (\(name, obj) ->
+                putStrLn ("\n--- " ++ name ++ " ---")
+                  >> dumpCodeInfo obj)
+              (Map.toList defs)
+            >> exitSuccess
+    else
+      case compileWithDefs defaultConfig source of
+        Left err -> exitWithError (formatCompileError err)
+        Right (code, defs) ->
+          putStrLn "=== Main Code ==="
+            >> dumpCodeInfo code
+            >> putStrLn "\n=== Nested Definitions ==="
+            >> mapM_
+              (\(name, obj) ->
+                putStrLn ("\n--- " ++ name ++ " ---")
+                  >> dumpCodeInfo obj)
+              (Map.toList defs)
+            >> exitSuccess
 
 showBytecode :: FilePath -> IO ()
 showBytecode file = do
@@ -234,21 +264,34 @@ showBytecode file = do
     Left _ -> exitWithError $ "Cannot open file: " ++ file
     Right src -> return src
   let isTopineur = takeExtension file == ".top"
-      compileFunc = if isTopineur
-                    then compileTopineurWithDefs defaultConfig source
-                    else compileWithDefs defaultConfig source
-  case compileFunc of
-    Left err -> exitWithError (formatCompileError err)
-    Right (code, defs) ->
-      putStrLn "=== Main Bytecode ==="
-        >> dumpBytecode code
-        >> putStrLn "\n=== Nested Definitions ==="
-        >> mapM_
-          (\(name, obj) ->
-            putStrLn ("\n--- " ++ name ++ " ---")
-              >> dumpBytecode obj)
-          (Map.toList defs)
-        >> exitSuccess
+  if isTopineur
+    then do
+      compileResult <- compileTopineurFile defaultConfig file
+      case compileResult of
+        Left err -> exitWithError (formatCompileError err)
+        Right (code, defs) ->
+          putStrLn "=== Main Bytecode ==="
+            >> dumpBytecode code
+            >> putStrLn "\n=== Nested Definitions ==="
+            >> mapM_
+              (\(name, obj) ->
+                putStrLn ("\n--- " ++ name ++ " ---")
+                  >> dumpBytecode obj)
+              (Map.toList defs)
+            >> exitSuccess
+    else
+      case compileWithDefs defaultConfig source of
+        Left err -> exitWithError (formatCompileError err)
+        Right (code, defs) ->
+          putStrLn "=== Main Bytecode ==="
+            >> dumpBytecode code
+            >> putStrLn "\n=== Nested Definitions ==="
+            >> mapM_
+              (\(name, obj) ->
+                putStrLn ("\n--- " ++ name ++ " ---")
+                  >> dumpBytecode obj)
+              (Map.toList defs)
+            >> exitSuccess
 
 parseTopineurFile :: FilePath -> IO ()
 parseTopineurFile file = do
