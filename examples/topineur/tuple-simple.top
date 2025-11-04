@@ -1,0 +1,7 @@
+package main
+
+def main(): Int {
+  let pair: Tuple[Int, String] = (42, "answer")
+  println("Tuple created successfully")
+  top 0
+}

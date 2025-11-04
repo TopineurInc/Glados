@@ -204,7 +204,16 @@ compileTopineurWithDefs config source = do
 
   defsCodeObjects <- mapM (compileDefinition config) defs
 
-  let allDefs = Map.union (Map.fromList defsCodeObjects) defsCode
+  -- Extract method code objects from object declarations
+  let methodObjs = concatMap extractMethods defs
+        where
+          extractMethods (EObjectDecl typeName fields methods) =
+            let expr = EObjectDecl typeName fields methods
+                (_mainCodeE, methodMap) = generateCodeWithDefs typeName expr
+            in Map.toList methodMap
+          extractMethods _ = []
+
+  let allDefs = Map.unions [Map.fromList defsCodeObjects, Map.fromList methodObjs, defsCode]
   Right (mainCode, allDefs)
 
 extractTopineurProgram :: Expr -> Either CompileError ([Name], [Expr], Expr)
@@ -254,7 +263,24 @@ compileDefinition _config (EDefine name body _) = do
       converted <- closureConvert renamed
       code <- generateCode name converted
       Right (name, code)
-      
+
+compileDefinition _config (EObjectDecl typeName fields methods) = do
+  -- Compile the object declaration to generate method code objects
+  -- We'll compile each method as a separate function
+  let expr = EObjectDecl typeName fields methods
+      (_mainCodeE, methodObjs) = generateCodeWithDefs typeName expr
+
+  -- For now, just return the type's empty code object
+  -- The methods will be handled separately
+  Right (typeName, CodeObject
+    { coName = typeName
+    , coArity = 0
+    , coMaxLocals = 0
+    , coConsts = Vector.empty
+    , coInstrs = Vector.empty
+    , coLabelMap = Map.empty
+    })
+
 compileDefinition _ _expr = Left $ SyntaxError "Expected definition" Nothing
 
 -- Module loading ----------------------------------------------------------------

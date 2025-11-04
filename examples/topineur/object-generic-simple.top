@@ -1,0 +1,15 @@
+package main
+
+object type Box[T] {
+  value: T
+}
+
+def main(): Int {
+  let intBox: Box[Int] = Box { value = 42 }
+  println("Box contains: " ++ show(intBox.value))
+
+  let strBox: Box[String] = Box { value = "Hello" }
+  println("Box contains: " ++ strBox.value)
+
+  top 0
+}

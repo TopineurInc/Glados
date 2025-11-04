@@ -318,7 +318,7 @@ testBytecodeInstructions = TestList
   , "IListGet equality" ~: IListGet ~?= IListGet
   , "IListSet equality" ~: IListSet ~?= IListSet
   
-  , "IObjectCreate" ~: IObjectCreate "Person" ~?= IObjectCreate "Person"
+  , "IObjectCreate" ~: IObjectCreate "Person" [] ~?= IObjectCreate "Person" []
   , "IMemberGet" ~: IMemberGet "name" ~?= IMemberGet "name"
   , "IMemberSet" ~: IMemberSet "age" ~?= IMemberSet "age"
   

@@ -407,6 +407,72 @@
                         "command": "./glados examples/topineur/complex-list-indexing.top",
                         "output": "a\n",
                         "return": 0
+                    },
+                    {
+                        "name": "Fibonacci 42 naive (auto-memoization)",
+                        "command": "./glados examples/topineur/fibonacci-42-pas-opti.top",
+                        "output": "fib(42) = 267914296\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Tuple simple",
+                        "command": "./glados examples/topineur/tuple-simple.top",
+                        "output": "Tuple created successfully\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Object simple",
+                        "command": "./glados examples/topineur/object-simple.top",
+                        "output": "Object created: (1.0, 2.0)\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Object creation",
+                        "command": "./glados examples/topineur/object-creation.top",
+                        "output": "5.0,10.0\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Object multiple fields",
+                        "command": "./glados examples/topineur/object-multiple-fields.top",
+                        "output": "Alice is 30 years old and 1.65m tall\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Generic object Some",
+                        "command": "./glados examples/topineur/object-generic.top",
+                        "output": "Some[Int]: 42\nSome[String]: Hello\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Generic object Box",
+                        "command": "./glados examples/topineur/object-generic-simple.top",
+                        "output": "Box contains: 42\nBox contains: Hello\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Generic object pair",
+                        "command": "./glados examples/topineur/object-generic-pair.top",
+                        "output": "10 is ten\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Generic object nested",
+                        "command": "./glados examples/topineur/object-generic-nested.top",
+                        "output": "Nested value: 100\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Object method no args",
+                        "command": "./glados examples/topineur/object-method-getx.top",
+                        "output": "42.0\n",
+                        "return": 0
+                    },
+                    {
+                        "name": "Object method inline",
+                        "command": "./glados examples/topineur/object-method-inline.top",
+                        "output": "X value: 2.0\n",
+                        "return": 0
                     }
                 ]
             }

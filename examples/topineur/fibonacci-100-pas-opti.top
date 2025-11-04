@@ -1,0 +1,14 @@
+package main
+
+|- Naive recursive Fibonacci WITHOUT manual optimization
+
+def fib(n: Int): Int {
+  if n <= 1 then top n
+  else top fib(n - 1) + fib(n - 2)
+}
+
+def main(): Int {
+  let f: Int = fib(100)
+  println("fib(100) = " ++ show(f))
+  top 0
+}

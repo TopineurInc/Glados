@@ -1,0 +1,15 @@
+package main
+
+object type Some[T] {
+  value: T
+}
+
+def main(): Int {
+  let intOpt: Some[Int] = Some { value = 42 }
+  println("Some[Int]: " ++ show(intOpt.value))
+
+  let strOpt: Some[String] = Some { value = "Hello" }
+  println("Some[String]: " ++ strOpt.value)
+
+  top 0
+}

@@ -1,0 +1,16 @@
+package main
+
+object type Point {
+  x: Float
+  y: Float
+
+  def getX(): Float {
+    top self.x
+  }
+}
+
+def main(): Int {
+  let p1: Point = Point { x = 2.0, y = 3.0 }
+  println("X value: " ++ show(p1.getX()))
+  top 0
+}

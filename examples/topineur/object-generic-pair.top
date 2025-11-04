@@ -1,0 +1,12 @@
+package main
+
+object type Pair[A, B] {
+  first: A
+  second: B
+}
+
+def main(): Int {
+  let p: Pair[Int, String] = Pair { first = 10, second = "ten" }
+  println(show(p.first) ++ " is " ++ p.second)
+  top 0
+}

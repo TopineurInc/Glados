@@ -18,6 +18,8 @@ import Text.Parsec
       , between
       , char
       , getPosition
+      , lookAhead
+      , manyTill
       , option
       , optionMaybe
       , optional
@@ -69,12 +71,15 @@ objectTypeDecl = do
   _ <- keyword "object"
   _ <- keyword "type"
   (l, n) <- ident
-  _ <- symbol "{"
+  -- Parse optional generic type parameters [T, U, ...]
+  typeParams <- option [] (between (symbolML "[") (symbolML "]") (typeParam `sepBy` symbolML ","))
+  _ <- symbolML "{"
   whitespaceWithComments
-  mems <- many (whitespaceWithComments *> objMember)
-  whitespaceWithComments
-  _ <- symbol "}"
-  return (DObjectType l n mems)
+  mems <- manyTill (whitespaceWithComments *> objMember <* whitespaceWithComments) (lookAhead (symbolML "}"))
+  _ <- symbolML "}"
+  return (DObjectType l n typeParams mems)
+  where
+    typeParam = snd <$> identML  -- Just get the name, ignore location
 
 objMember :: Parser ObjMember
 objMember =

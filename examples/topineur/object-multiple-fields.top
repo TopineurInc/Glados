@@ -1,0 +1,13 @@
+package main
+
+object type Person {
+  name: String
+  age: Int
+  height: Float
+}
+
+def main(): Int {
+  let alice: Person = Person { name = "Alice", age = 30, height = 1.65 }
+  println(alice.name ++ " is " ++ show(alice.age) ++ " years old and " ++ show(alice.height) ++ "m tall")
+  top 0
+}

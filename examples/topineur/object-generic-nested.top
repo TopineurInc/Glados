@@ -1,0 +1,11 @@
+package main
+
+object type Container[T] {
+  value: T
+}
+
+def main(): Int {
+  let nested: Container[Container[Int]] = Container { value = Container { value = 100 } }
+  println("Nested value: " ++ show(nested.value.value))
+  top 0
+}

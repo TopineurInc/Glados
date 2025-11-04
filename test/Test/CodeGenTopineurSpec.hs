@@ -224,12 +224,12 @@ testCodeGenObjects = TestList
       ~? "Should generate code for object declaration"
   
   , "gen EObjectInst" ~: case generateCode "test" (EObjectInst "Person" [("name", EString "Alice")]) of
-      Right code -> any (\instr -> case instr of IObjectCreate "Person" -> True; _ -> False) (Vector.toList $ coInstrs code)
+      Right code -> any (\instr -> case instr of IObjectCreate "Person" ["name"] -> True; _ -> False) (Vector.toList $ coInstrs code)
       Left _ -> False
       ~? "Should generate IObjectCreate"
-  
+
   , "gen EObjectInst with multiple fields" ~: case generateCode "test" (EObjectInst "Point" [("x", EInt 1), ("y", EInt 2)]) of
-      Right code -> any (\instr -> case instr of IObjectCreate "Point" -> True; _ -> False) (Vector.toList $ coInstrs code)
+      Right code -> any (\instr -> case instr of IObjectCreate "Point" ["x", "y"] -> True; _ -> False) (Vector.toList $ coInstrs code)
       Left _ -> False
       ~? "Should generate IObjectCreate with fields"
   
@@ -322,7 +322,7 @@ testCodeGenEdgeCases = TestList
       ~? "For should push unit value as result"
   
   , "gen EObjectInst field order" ~: case generateCode "test" (EObjectInst "Point" [("x", EInt 10), ("y", EInt 20)]) of
-      Right code -> any (\instr -> case instr of IObjectCreate "Point" -> True; _ -> False) (Vector.toList $ coInstrs code)
+      Right code -> any (\instr -> case instr of IObjectCreate "Point" ["x", "y"] -> True; _ -> False) (Vector.toList $ coInstrs code)
       Left _ -> False
       ~? "Should compile field values in order before IObjectCreate"
   

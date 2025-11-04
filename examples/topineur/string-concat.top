@@ -1,0 +1,9 @@
+package main
+
+def main(): Int {
+  let hello: String = "Hello"
+  let world: String = "World"
+  let message: String = hello ++ ", " ++ world ++ "!"
+  println(message)
+  top 0
+}

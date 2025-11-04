@@ -190,7 +190,7 @@ data Instr
   | IListCreate Int
   | IListGet
   | IListSet
-  | IObjectCreate Name
+  | IObjectCreate Name [Name]  -- Object type name and field names
   | IMemberGet Name
   | IMemberSet Name
   | IAssign Int

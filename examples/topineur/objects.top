@@ -31,3 +31,4 @@ let triangle = Polygon {
 }
 
 let center = triangle.centroid()
+println("4 / 2 = " ++ show(center.x))

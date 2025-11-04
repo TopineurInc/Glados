@@ -241,19 +241,37 @@ executeInstr vmState frame instr = case instr of
           in return $ Right (updateFrame vmState frame', Nothing)
     _ -> return $ Left $ TypeError "Expected value, index, and list on stack"
 
-  IObjectCreate name ->
-    let obj = VObject name []
-        frame' = frame { fStack = obj : fStack frame, fPC = fPC frame + 1 }
-    in return $ Right (updateFrame vmState frame', Nothing)
+  IObjectCreate name fieldNames ->
+    let numFields = length fieldNames
+        (fieldValues, stack') = splitAt numFields (fStack frame)
+    in if length fieldValues < numFields
+      then return $ Left StackUnderflow
+      else
+        -- Reverse because stack is LIFO (last field value is on top)
+        let fields = zip fieldNames (reverse fieldValues)
+            obj = VObject name fields
+            frame' = frame { fStack = obj : stack', fPC = fPC frame + 1 }
+        in return $ Right (updateFrame vmState frame', Nothing)
 
   IMemberGet fieldName -> case fStack frame of
     [] -> return $ Left StackUnderflow
-    (VObject _ fields : stack') ->
+    (VObject typeName fields : stack') ->
       case lookup fieldName fields of
-        Nothing -> return $ Left $ RuntimeError ("Field not found: " ++ fieldName)
         Just val ->
+          -- It's a field, return the value
           let frame' = frame { fStack = val : stack', fPC = fPC frame + 1 }
           in return $ Right (updateFrame vmState frame', Nothing)
+        Nothing ->
+          -- Not a field, check if it's a method
+          let methodName = typeName ++ "." ++ fieldName
+          in case Map.lookup methodName (vCodeObjects vmState) of
+            Just _code ->
+              -- It's a method, create a closure with 'self' bound
+              let closure = VClosure methodName [VObject typeName fields]
+                  frame' = frame { fStack = closure : stack', fPC = fPC frame + 1 }
+              in return $ Right (updateFrame vmState frame', Nothing)
+            Nothing ->
+              return $ Left $ RuntimeError ("Field or method not found: " ++ fieldName)
     _ -> return $ Left $ TypeError "Expected object on stack"
 
   IMemberSet fieldName -> case fStack frame of
@@ -417,17 +435,18 @@ callClosure vmState frame args stackAfterArgs isTail =
             Nothing -> return $ Left $ UndefinedFunction name
             Just code ->
               let baseLocals = Vector.replicate (coMaxLocals code) Nothing
-                  argValues = map Just (reverse args)
-                  localsWithArgs = baseLocals Vector.// zip [0..] argValues
+                  -- Put environment values first, then arguments
                   envValues = map Just env
-                  envStart = length argValues
-                  localsFinal = localsWithArgs Vector.// zip [envStart..] envValues
+                  argValues = map Just (reverse args)
+                  localsWithEnv = baseLocals Vector.// zip [0..] envValues
+                  argStart = length envValues
+                  localsFinal = localsWithEnv Vector.// zip [argStart..] argValues
                   newFrame = Frame
                     { fLocals = localsFinal
                     , fStack = []
                     , fCode = code
                     , fPC = 0
-                    , fMemoInfo = Just (name, reverse args)
+                    , fMemoInfo = Just (name, env ++ reverse args)
                     }
                   frame' = frame { fStack = stackRest }
               in case vFrames vmState of

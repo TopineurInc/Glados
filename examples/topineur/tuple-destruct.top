@@ -1,0 +1,14 @@
+package main
+
+def swap(p: Tuple[Int, Int]): Tuple[Int, Int] {
+  let (a: Int, b: Int) = p
+  top (b, a)
+}
+
+def main(): Int {
+  let original: Tuple[Int, Int] = (3, 7)
+  let swapped: Tuple[Int, Int] = swap(original)
+  let (x: Int, y: Int) = swapped
+  println(show(x) ++ ", " ++ show(y))
+  top 0
+}

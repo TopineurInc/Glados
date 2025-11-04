@@ -361,16 +361,24 @@ compileExpr (EListLiteral exprs _type) = do
   emit (IListCreate (length exprs))
 
 -- Objects
-compileExpr (EObjectDecl _name _fields _methods) = do
-  -- For now, object declarations just push a unit value
-  -- The actual object type system will be handled by the type checker
-  -- and objects are instantiated with EObjectInst
+compileExpr (EObjectDecl typeName _fields methods) = do
+  -- Compile each method as a global function with name TypeName.methodName
+  forM_ methods $ \(Method methodName params _retType body) -> do
+    let fullName = typeName ++ "." ++ methodName
+    -- Add 'self' as first parameter
+    let paramsWithSelf = ("self", Nothing) : params
+    codeObj <- compileLambda fullName (map fst paramsWithSelf) body
+    modify $ \s -> s { cgsCodeObjects = Map.insert fullName codeObj (cgsCodeObjects s) }
+  -- Push unit value for the declaration itself
   idx <- addConst (CInt 0)
   emit (IConst idx)
 
 compileExpr (EObjectInst typeName fieldInits) = do
+  -- Compile field expressions in order (pushes values onto stack)
   forM_ fieldInits $ \(_fieldName, expr) -> compileExpr expr
-  emit (IObjectCreate typeName)
+  -- Extract field names in the same order
+  let fieldNames = map fst fieldInits
+  emit (IObjectCreate typeName fieldNames)
 
 compileExpr (EMemberAccess obj memberName) = do
   compileExpr obj

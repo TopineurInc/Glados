@@ -1,0 +1,12 @@
+package main
+
+object type Point {
+  x: Float
+  y: Float
+}
+
+def main(): Int {
+  let p: Point = Point { x = 5.0, y = 10.0 }
+  println(show(p.x) ++ "," ++ show(p.y))
+  top 0
+}

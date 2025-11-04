@@ -40,7 +40,7 @@ data Topineur = Topineur
 data Decl
   = DLet Loc Pattern Expression
   | DFunc Loc [Decorator] Name [Param] (Maybe TypeAnn) Block
-  | DObjectType Loc Name [ObjMember]
+  | DObjectType Loc Name [Name] [ObjMember]  -- name, type params, members
   deriving (Eq, Show, Generic)
 
 data Decorator = Decorator Loc Name [Expression]

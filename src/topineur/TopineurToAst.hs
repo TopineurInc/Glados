@@ -37,7 +37,9 @@ declToExpr = \case
     where
       decorators' = map decoratorToAnnotation decorators
 
-  T.DObjectType _loc name members -> do
+  T.DObjectType _loc name _typeParams members -> do
+    -- Note: type params are currently ignored in AST
+    -- They could be used for type checking but not for codegen
     (fields, methods) <- partitionMembers members
     fields' <- mapM memberFieldToField fields
     methods' <- mapM memberMethodToMethod methods

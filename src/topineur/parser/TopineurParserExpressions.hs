@@ -118,10 +118,11 @@ postfix e0 =
         _ <- char '.'
         sc
         (_, n) <- ident
-        args <- option [] callArgs
+        mArgs <- optionMaybe callArgs
         let l = toLoc pos
-        let base = EMember l e0 n
-        let res = if null args then base else EMethodCall l e0 n args
+        let res = case mArgs of
+              Nothing -> EMember l e0 n
+              Just args -> EMethodCall l e0 n args
         postfix res
     , try $ do
         args <- callArgs
@@ -275,10 +276,11 @@ postfixML e0 =
         _ <- char '.'
         scn
         (_, n) <- identML
-        args <- option [] callArgsML
+        mArgs <- optionMaybe callArgsML
         let l = toLoc pos
-        let base = EMember l e0 n
-        let res = if null args then base else EMethodCall l e0 n args
+        let res = case mArgs of
+              Nothing -> EMember l e0 n
+              Just args -> EMethodCall l e0 n args
         postfixML res
     , try $ do
         args <- callArgsML
