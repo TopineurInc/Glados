@@ -10,13 +10,14 @@
 module TypeChecker
   ( typeCheck
   , inferType
+  , typeCheckProgram
   , TypeEnv
   , emptyTypeEnv
   , TypeError(..)
   ) where
 
 import AST
-import Control.Monad (replicateM, zipWithM_)
+import Control.Monad (replicateM, zipWithM_, foldM)
 import Control.Monad.State
 import Control.Monad.Except
 import qualified Data.Map as Map
@@ -228,15 +229,25 @@ inferExpr env (EApp func args) = do
   s <- gets tiSubst
   return $ applySubst s resultType
 
-inferExpr env (EDefine _ expr _anns) = do
+inferExpr env (EDefine _name expr _anns) = do
   _ <- inferExpr env expr
+  -- Return TUnit; EList will handle adding the name to the environment
   return TUnit
 
 inferExpr _ (EList []) = return TUnit
 
 inferExpr env (EList exprs) = do
-  types <- mapM (inferExpr env) exprs
-  return $ last types
+  -- Thread environment through definitions in the list
+  (_, lastType) <- foldM processExpr (env, TUnit) exprs
+  return lastType
+  where
+    processExpr (currentEnv, _) (EDefine name expr _anns) = do
+      exprT <- inferExpr currentEnv expr
+      let newEnv = Map.insert name exprT currentEnv
+      return (newEnv, TUnit)
+    processExpr (currentEnv, _) expr = do
+      t <- inferExpr currentEnv expr
+      return (currentEnv, t)
 
 inferExpr _ (EQuote _) = return TUnit
 
@@ -350,11 +361,36 @@ inferExpr _ (EPackage _) = return TUnit
 
 inferExpr _ (EImport _) = return TUnit
 
+-- Collect function definitions from a program
+collectDefinitions :: Expr -> [(Name, Type)]
+collectDefinitions expr = go expr
+  where
+    go (EList exprs) = concatMap go exprs
+    go (EDefine name (ELambda params retTypeAnn _ _) _) =
+      -- Only collect if all parameters and return type have annotations
+      case (mapM snd params, retTypeAnn) of
+        (Just paramTypes, Just retType) -> [(name, TFun paramTypes retType)]
+        _ -> []  -- Skip functions without complete type annotations
+    go (EDefine _ innerExpr _) = go innerExpr
+    go _ = []
+
+-- Build type environment from program
+buildTypeEnv :: Expr -> TypeEnv
+buildTypeEnv expr =
+  let defs = collectDefinitions expr
+  in Map.union (Map.fromList defs) emptyTypeEnv
+
 -- Main type checking function
 typeCheck :: TypeEnv -> Expr -> Either TypeError Type
 typeCheck env expr =
   let (result, _) = runTI (inferExpr env expr)
   in result
+
+-- Type check with automatically built environment
+typeCheckProgram :: Expr -> Either TypeError Type
+typeCheckProgram expr =
+  let env = buildTypeEnv expr
+  in typeCheck env expr
 
 -- Infer type with default environment
 inferType :: Expr -> Either TypeError Type

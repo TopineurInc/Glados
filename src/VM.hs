@@ -16,6 +16,8 @@ import AST
 import Builtins
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
+import Data.List (intercalate)
+import Data.Maybe (fromMaybe)
 
 data VMError
   = StackUnderflow
@@ -31,6 +33,7 @@ initVMState = VMState
   , vGlobals = Map.empty
   , vCodeObjects = Map.empty
   , vBuiltins = builtins
+  , vFunctionCache = Map.empty
   }
 
 execVM :: VMState -> CodeObject -> IO (Either VMError Value)
@@ -40,6 +43,7 @@ execVM vmState code =
         , fStack = []
         , fCode = code
         , fPC = 0
+        , fCacheInfo = Nothing
         }
       vmState' = vmState { vFrames = [initialFrame] }
   in runVM vmState'
@@ -65,6 +69,51 @@ updateFrame :: VMState -> Frame -> VMState
 updateFrame vmState newFrame = case vFrames vmState of
   (_:rest) -> vmState { vFrames = newFrame : rest }
   [] -> vmState
+
+isCachedFunction :: CodeObject -> Bool
+isCachedFunction code = Cache `elem` coAnnotations code
+
+serializeValue :: Value -> String
+serializeValue (VInt i) = "i:" ++ show i
+serializeValue (VFloat f) = "f:" ++ show f
+serializeValue (VBool b) = "b:" ++ show b
+serializeValue (VString s) = "s:" ++ show s
+serializeValue (VClosure name env) =
+  "c:" ++ name ++ "(" ++ intercalate "," (map serializeValue env) ++ ")"
+serializeValue (VBuiltin name _) = "b:" ++ name
+serializeValue VUnit = "u"
+serializeValue (VList vals) =
+  "l:[" ++ intercalate "," (map serializeValue vals) ++ "]"
+serializeValue (VTuple vals) =
+  "t:[" ++ intercalate "," (map serializeValue vals) ++ "]"
+serializeValue (VObject name fields) =
+  "o:" ++ name ++ "{" ++ intercalate "," (map serializeField fields) ++ "}"
+
+serializeField :: (Name, Value) -> String
+serializeField (fieldName, val) = fieldName ++ "=" ++ serializeValue val
+
+serializeCacheKey :: Name -> [Value] -> [Value] -> String
+serializeCacheKey name args env =
+  intercalate "|"
+    (("fn:" ++ name) : argParts ++ envParts)
+  where
+    argParts = zipWith (\idx val -> "arg" ++ show idx ++ ":" ++ serializeValue val) [0 :: Int ..] args
+    envParts = zipWith (\idx val -> "env" ++ show idx ++ ":" ++ serializeValue val) [0 :: Int ..] env
+
+lookupCacheResult :: VMState -> Name -> String -> Maybe Value
+lookupCacheResult vmState name key =
+  Map.lookup name (vFunctionCache vmState) >>= Map.lookup key
+
+storeCacheResult :: VMState -> Name -> String -> Value -> VMState
+storeCacheResult vmState name key val =
+  let updatedCache =
+        Map.alter
+          (\maybeMap ->
+             let inner = fromMaybe Map.empty maybeMap
+             in Just (Map.insert key val inner))
+          name
+          (vFunctionCache vmState)
+  in vmState { vFunctionCache = updatedCache }
 executeInstr :: VMState -> Frame -> Instr -> IO (Either VMError (VMState, Maybe Value))
 executeInstr vmState frame instr = case instr of
   IConst idx ->
@@ -111,12 +160,17 @@ executeInstr vmState frame instr = case instr of
 
   IReturn -> case fStack frame of
     [] -> return $ Left StackUnderflow
-    (val:_) -> case vFrames vmState of
-      [] -> return $ Left $ RuntimeError "No frames for return"
-      [_] -> return $ Right (vmState, Just val)
-      (_:callerFrame:rest) ->
-        let callerFrame' = callerFrame { fStack = val : fStack callerFrame, fPC = fPC callerFrame + 1 }
-        in return $ Right (vmState { vFrames = callerFrame' : rest }, Nothing)
+    (val:_) ->
+      let vmStateWithCache =
+            case fCacheInfo frame of
+              Just (CacheMarker name key) -> storeCacheResult vmState name key val
+              Nothing -> vmState
+      in case vFrames vmState of
+        [] -> return $ Left $ RuntimeError "No frames for return"
+        [_] -> return $ Right (vmStateWithCache, Just val)
+        (_:callerFrame:rest) ->
+          let callerFrame' = callerFrame { fStack = val : fStack callerFrame, fPC = fPC callerFrame + 1 }
+          in return $ Right (vmStateWithCache { vFrames = callerFrame' : rest }, Nothing)
 
   IJump target ->
     let frame' = frame { fPC = target }
@@ -337,6 +391,7 @@ executePrim vmState frame op =
 executeCall :: VMState -> Frame -> Int -> Name -> Bool -> IO (Either VMError (VMState, Maybe Value))
 executeCall vmState frame arity funcName isTail =
   let (args, stackAfterArgs) = splitAt arity (fStack frame)
+      orderedArgs = reverse args
   in if length args < arity
     then return $ Left StackUnderflow
     else case funcName of
@@ -345,7 +400,7 @@ executeCall vmState frame arity funcName isTail =
       _ ->
         case Map.lookup funcName (vBuiltins vmState) of
           Just (VBuiltin _ func) -> do
-            result <- func (reverse args)
+            result <- func orderedArgs
             let frame' = frame { fStack = result : stackAfterArgs, fPC = fPC frame + 1 }
             case vFrames vmState of
               (_:rest) -> return $ Right (vmState { vFrames = frame' : rest }, Nothing)
@@ -353,25 +408,55 @@ executeCall vmState frame arity funcName isTail =
           Just _ -> return $ Left $ TypeError "Not a builtin function"
           Nothing ->
             case Map.lookup funcName (vCodeObjects vmState) of
+              Nothing -> return $ Left $ UndefinedFunction funcName
               Just code ->
                 let newLocals = Vector.replicate (coMaxLocals code) Nothing
-                    argsVector = Vector.fromList (map Just (reverse args))
+                    argsVector = Vector.fromList (map Just orderedArgs)
                     newLocals' = newLocals Vector.// zip [0..] (Vector.toList argsVector)
-                    newFrame = Frame
-                      { fLocals = newLocals'
-                      , fStack = []
-                      , fCode = code
-                      , fPC = 0
-                      }
-                    frame' = frame { fStack = stackAfterArgs }
-                in case vFrames vmState of
-                  (_:rest) ->
-                    let vmState' = if isTail
-                          then vmState { vFrames = newFrame : rest }
-                          else vmState { vFrames = newFrame : frame' : rest }
-                    in return $ Right (vmState', Nothing)
-                  [] -> return $ Left $ RuntimeError "No frames for function call"
-              Nothing -> return $ Left $ UndefinedFunction funcName
+                    cacheEnabled = isCachedFunction code
+                    cacheKey = if cacheEnabled then serializeCacheKey funcName orderedArgs [] else ""
+                in case (cacheEnabled, lookupCacheResult vmState funcName cacheKey) of
+                  (True, Just cachedVal) ->
+                    if isTail
+                      then case handleTailCachedReturn vmState frame cachedVal of
+                        Left err -> return $ Left err
+                        Right res -> return $ Right res
+                      else
+                        let frame' = frame { fStack = cachedVal : stackAfterArgs, fPC = fPC frame + 1 }
+                        in return $ Right (updateFrame vmState frame', Nothing)
+                  _ ->
+                    let newFrame = Frame
+                          { fLocals = newLocals'
+                          , fStack = []
+                          , fCode = code
+                          , fPC = 0
+                          , fCacheInfo = if cacheEnabled then Just (CacheMarker funcName cacheKey) else Nothing
+                          }
+                        frame' = frame { fStack = stackAfterArgs }
+                    in case vFrames vmState of
+                      (_:rest) ->
+                        let vmState' =
+                              if isTail
+                                then vmState { vFrames = newFrame : rest }
+                                else vmState { vFrames = newFrame : frame' : rest }
+                        in return $ Right (vmState', Nothing)
+                      [] -> return $ Left $ RuntimeError "No frames for function call"
+
+handleTailCachedReturn :: VMState -> Frame -> Value -> Either VMError (VMState, Maybe Value)
+handleTailCachedReturn vmState frame result =
+  let vmStateWithCache =
+        case fCacheInfo frame of
+          Just (CacheMarker name key) -> storeCacheResult vmState name key result
+          Nothing -> vmState
+  in case vFrames vmState of
+    [] -> Left $ RuntimeError "No frames for function call"
+    [_] -> Right (vmStateWithCache, Just result)
+    (_:callerFrame:rest) ->
+      let callerFrame' = callerFrame
+            { fStack = result : fStack callerFrame
+            , fPC = fPC callerFrame + 1
+            }
+      in Right (vmStateWithCache { vFrames = callerFrame' : rest }, Nothing)
 
 callClosure :: VMState -> Frame -> [Value] -> [Value] -> Bool -> IO (Either VMError (VMState, Maybe Value))
 callClosure vmState frame args stackAfterArgs isTail =
@@ -383,26 +468,40 @@ callClosure vmState frame args stackAfterArgs isTail =
           case Map.lookup name (vCodeObjects vmState) of
             Nothing -> return $ Left $ UndefinedFunction name
             Just code ->
-              let baseLocals = Vector.replicate (coMaxLocals code) Nothing
-                  argValues = map Just (reverse args)
+              let orderedArgs = reverse args
+                  baseLocals = Vector.replicate (coMaxLocals code) Nothing
+                  argValues = map Just orderedArgs
                   localsWithArgs = baseLocals Vector.// zip [0..] argValues
                   envValues = map Just env
                   envStart = length argValues
                   localsFinal = localsWithArgs Vector.// zip [envStart..] envValues
-                  newFrame = Frame
-                    { fLocals = localsFinal
-                    , fStack = []
-                    , fCode = code
-                    , fPC = 0
-                    }
-                  frame' = frame { fStack = stackRest }
-              in case vFrames vmState of
-                (_:rest) ->
-                  let vmState' = if isTail
-                        then vmState { vFrames = newFrame : rest }
-                        else vmState { vFrames = newFrame : frame' : rest }
-                  in return $ Right (vmState', Nothing)
-                [] -> return $ Left $ RuntimeError "No frames for function call"
+                  cacheEnabled = isCachedFunction code
+                  cacheKey = if cacheEnabled then serializeCacheKey name orderedArgs env else ""
+              in case (cacheEnabled, lookupCacheResult vmState name cacheKey) of
+                (True, Just cachedVal) ->
+                  if isTail
+                    then case handleTailCachedReturn vmState frame cachedVal of
+                      Left err -> return $ Left err
+                      Right res -> return $ Right res
+                    else
+                      let frame' = frame { fStack = cachedVal : stackRest, fPC = fPC frame + 1 }
+                      in return $ Right (updateFrame vmState frame', Nothing)
+                _ ->
+                  let newFrame = Frame
+                        { fLocals = localsFinal
+                        , fStack = []
+                        , fCode = code
+                        , fPC = 0
+                        , fCacheInfo = if cacheEnabled then Just (CacheMarker name cacheKey) else Nothing
+                        }
+                      frame' = frame { fStack = stackRest }
+                  in case vFrames vmState of
+                    (_:rest) ->
+                      let vmState' = if isTail
+                            then vmState { vFrames = newFrame : rest }
+                            else vmState { vFrames = newFrame : frame' : rest }
+                      in return $ Right (vmState', Nothing)
+                    [] -> return $ Left $ RuntimeError "No frames for function call"
         _ -> return $ Left $ TypeError "Attempted to call non-closure value"
 constantToValue :: Constant -> Value
 constantToValue (CInt n) = VInt n

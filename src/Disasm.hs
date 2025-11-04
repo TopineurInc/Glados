@@ -19,6 +19,7 @@ disassemble co = unlines
   [ "CodeObject: " ++ coName co
   , "  Arity: " ++ show (coArity co)
   , "  MaxLocals: " ++ show (coMaxLocals co)
+  , "  Annotations: " ++ show (coAnnotations co)
   , "  Constants:"
   , dumpConstants (coConsts co)
   , "  Instructions:"
