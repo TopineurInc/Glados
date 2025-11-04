@@ -64,7 +64,6 @@ emptyTypeEnv = Map.fromList
   , ("*", TFun [TInt, TInt] TInt)
   , ("div", TFun [TInt, TInt] TInt)
   , ("mod", TFun [TInt, TInt] TInt)
-  , ("eq?", TFun [TInt, TInt] TBool)
   , ("<", TFun [TInt, TInt] TBool)
   , ("<=", TFun [TInt, TInt] TBool)
   , (">", TFun [TInt, TInt] TBool)
@@ -75,7 +74,6 @@ emptyTypeEnv = Map.fromList
   , ("print", TFun [TString] TUnit)
   , ("println", TFun [TString] TUnit)
   , ("display", TFun [TString] TUnit)
-  , ("show", TFun [TInt] TString)
   , ("input", TFun [] TString)
   , ("read-line", TFun [] TString)
   , ("string->number", TFun [TString] TInt)
@@ -221,12 +219,29 @@ inferExpr env (ELambda params retTypeAnn body _anns) = do
     createParamType (_, Nothing) = freshTVar
 
 inferExpr env (EApp func args) = do
-  funcType <- inferExpr env func
-  argTypes <- mapM (inferExpr env) args
-  resultType <- freshTVar
-  unify funcType (TFun argTypes resultType)
-  s <- gets tiSubst
-  return $ applySubst s resultType
+  -- Special handling for polymorphic built-in functions
+  case (func, args) of
+    (EVar "show", [arg]) -> do
+      -- show: ∀a. a -> String
+      -- Accept any type and return String
+      _ <- inferExpr env arg
+      return TString
+    
+    (EVar "eq?", [arg1, arg2]) -> do
+      -- eq?: ∀a. a -> a -> Bool
+      -- Both arguments must have the same type
+      t1 <- inferExpr env arg1
+      t2 <- inferExpr env arg2
+      unify t1 t2
+      return TBool
+    
+    _ -> do
+      funcType <- inferExpr env func
+      argTypes <- mapM (inferExpr env) args
+      resultType <- freshTVar
+      unify funcType (TFun argTypes resultType)
+      s <- gets tiSubst
+      return $ applySubst s resultType
 
 inferExpr env (EDefine _ expr _anns) = do
   _ <- inferExpr env expr

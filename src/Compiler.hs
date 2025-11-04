@@ -98,13 +98,6 @@ compileWithDefs config source = do
 
       converted <- closureConvert renamed
 
-      -- Optional type checking
-      if cfgTypeCheck config
-        then case typeCheck emptyTypeEnv converted of
-          Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
-          Right _ -> return ()
-        else return ()
-
       let (mainCodeE, defs) = generateCodeWithDefs "main" converted
       mainCode <- mainCodeE
       return (mainCode, defs)
