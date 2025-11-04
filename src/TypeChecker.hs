@@ -82,8 +82,19 @@ emptyTypeEnv = Map.fromList
   , ("string->number", TFun [TString] TInt)
   , ("number->string", TFun [TInt] TString)
   , ("string-length", TFun [TString] TInt)
+  , ("__string_length", TFun [TString] TInt)
   , ("string-append", TFun [TString, TString] TString)
+  , ("__string_append", TFun [TString, TString] TString)
   , ("substring", TFun [TString, TInt, TInt] TString)
+  , ("__substring", TFun [TString, TInt, TInt] TString)
+  , ("list-length", TFun [TList (TVar "a")] TInt)
+  , ("__list_length", TFun [TList (TVar "a")] TInt)
+  , ("list-append", TFun [TList (TVar "a"), TList (TVar "a")] (TList (TVar "a")))
+  , ("__list_append", TFun [TList (TVar "a"), TList (TVar "a")] (TList (TVar "a")))
+  , ("list-single", TFun [TVar "a"] (TList (TVar "a")))
+  , ("__list_single", TFun [TVar "a"] (TList (TVar "a")))
+  , ("list-get", TFun [TList (TVar "a"), TInt] (TVar "a"))
+  , ("__list_get", TFun [TList (TVar "a"), TInt] (TVar "a"))
   ]
 
 -- Generate a fresh type variable

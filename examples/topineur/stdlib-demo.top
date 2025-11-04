@@ -1,0 +1,23 @@
+package main
+
+import std.core
+import std.collections.list
+import std.string
+
+def main(): Int {
+  let seed = list_single(1)
+  let enriched = list_concat(seed, list_single(2))
+  println(show(enriched))
+
+  let lastItem = list_last(enriched)
+  println(show(lastItem))
+
+  let headline = "Topineur"
+  let hasPrefix = string_starts_with(headline, "Top")
+  println(show(hasPrefix))
+
+  let hasSuffix = string_ends_with(headline, "neur")
+  println(show(hasSuffix))
+
+  top 0
+}

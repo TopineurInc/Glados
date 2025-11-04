@@ -32,6 +32,10 @@ module Builtins
   , builtinOr
   , builtinFormat
   , builtinShow
+  , builtinListLength
+  , builtinListAppend
+  , builtinListSingle
+  , builtinListGet
   ) where
 
 import AST
@@ -61,13 +65,24 @@ builtins = Map.fromList
   , ("string->number", VBuiltin "string->number" builtinStringToNumber)
   , ("number->string", VBuiltin "number->string" builtinNumberToString)
   , ("string-length", VBuiltin "string-length" builtinStringLength)
+  , ("__string_length", VBuiltin "__string_length" builtinStringLength)
   , ("string-append", VBuiltin "string-append" builtinStringAppend)
+  , ("__string_append", VBuiltin "__string_append" builtinStringAppend)
   , ("substring", VBuiltin "substring" builtinSubstring)
+  , ("__substring", VBuiltin "__substring" builtinSubstring)
   , ("not", VBuiltin "not" builtinNot)
   , ("and", VBuiltin "and" builtinAnd)
   , ("or", VBuiltin "or" builtinOr)
   , ("format", VBuiltin "format" builtinFormat)
   , ("show", VBuiltin "show" builtinShow)
+  , ("list-length", VBuiltin "list-length" builtinListLength)
+  , ("__list_length", VBuiltin "__list_length" builtinListLength)
+  , ("list-append", VBuiltin "list-append" builtinListAppend)
+  , ("__list_append", VBuiltin "__list_append" builtinListAppend)
+  , ("list-single", VBuiltin "list-single" builtinListSingle)
+  , ("__list_single", VBuiltin "__list_single" builtinListSingle)
+  , ("list-get", VBuiltin "list-get" builtinListGet)
+  , ("__list_get", VBuiltin "__list_get" builtinListGet)
   ]
 
 builtinAdd :: [Value] -> IO Value
@@ -272,3 +287,23 @@ topineurShow (VObject name fields) = "#<object:" ++ name ++ " " ++ showFields fi
     showFields [] = ""
     showFields [(k, v)] = k ++ ":" ++ topineurShow v
     showFields ((k, v):rest) = k ++ ":" ++ topineurShow v ++ " " ++ showFields rest
+
+builtinListLength :: [Value] -> IO Value
+builtinListLength [VList values] = return $ VInt (toInteger $ length values)
+builtinListLength _ = error "Type error: list-length expects a list"
+
+builtinListAppend :: [Value] -> IO Value
+builtinListAppend [VList left, VList right] = return $ VList (left ++ right)
+builtinListAppend _ = error "Type error: list-append expects two lists"
+
+builtinListSingle :: [Value] -> IO Value
+builtinListSingle [val] = return $ VList [val]
+builtinListSingle _ = error "Type error: list-single expects one value"
+
+builtinListGet :: [Value] -> IO Value
+builtinListGet [VList elements, VInt idx] =
+  let i = fromInteger idx
+  in if i < 0 || i >= length elements
+    then error "Index out of bounds"
+    else return (elements !! i)
+builtinListGet _ = error "Type error: list-get expects (list, index)"
