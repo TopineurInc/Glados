@@ -36,6 +36,10 @@ module Builtins
   , builtinListAppend
   , builtinListSingle
   , builtinListGet
+  , builtinAbs
+  , builtinSqrt
+  , builtinInt
+  , builtinFloat
   ) where
 
 import AST
@@ -83,6 +87,10 @@ builtins = Map.fromList
   , ("__list_single", VBuiltin "__list_single" builtinListSingle)
   , ("list-get", VBuiltin "list-get" builtinListGet)
   , ("__list_get", VBuiltin "__list_get" builtinListGet)
+  , ("abs", VBuiltin "abs" builtinAbs)
+  , ("sqrt", VBuiltin "sqrt" builtinSqrt)
+  , ("int", VBuiltin "int" builtinInt)
+  , ("float", VBuiltin "float" builtinFloat)
   ]
 
 builtinAdd :: [Value] -> IO Value
@@ -307,3 +315,31 @@ builtinListGet [VList elements, VInt idx] =
     then error "Index out of bounds"
     else return (elements !! i)
 builtinListGet _ = error "Type error: list-get expects (list, index)"
+
+-- Math builtins
+builtinAbs :: [Value] -> IO Value
+builtinAbs [VInt n] = return $ VInt (abs n)
+builtinAbs [VFloat n] = return $ VFloat (abs n)
+builtinAbs _ = error "Type error: abs expects a number"
+
+builtinSqrt :: [Value] -> IO Value
+builtinSqrt [VInt n] = return $ VFloat (sqrt (fromInteger n))
+builtinSqrt [VFloat n] = return $ VFloat (sqrt n)
+builtinSqrt _ = error "Type error: sqrt expects a number"
+
+-- Type conversion builtins
+builtinInt :: [Value] -> IO Value
+builtinInt [VInt n] = return $ VInt n
+builtinInt [VFloat n] = return $ VInt (truncate n)  -- Truncate towards zero
+builtinInt [VString s] = case readMaybe s of
+  Just n -> return $ VInt n
+  Nothing -> error $ "Type error: cannot convert '" ++ s ++ "' to int"
+builtinInt _ = error "Type error: int expects a number or string"
+
+builtinFloat :: [Value] -> IO Value
+builtinFloat [VFloat n] = return $ VFloat n
+builtinFloat [VInt n] = return $ VFloat (fromInteger n)
+builtinFloat [VString s] = case (readMaybe s :: Maybe Double) of
+  Just n -> return $ VFloat n
+  Nothing -> error $ "Type error: cannot convert '" ++ s ++ "' to float"
+builtinFloat _ = error "Type error: float expects a number or string"

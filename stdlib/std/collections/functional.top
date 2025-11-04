@@ -1,0 +1,154 @@
+package std_collections_functional
+
+|- Higher-order list functions (map, filter, fold)
+
+|- fold: Reduce a list to a single value using an accumulator
+|- fold([1,2,3], 0, fun (acc, x) -> acc + x) => 6
+def fold(items: List[Any], init: Any, func: Any): Any {
+  let len = __list_length(items)
+  top __fold_helper(items, init, func, 0, len)
+}
+
+def __fold_helper(items: List[Any], acc: Any, func: Any, idx: Int, len: Int): Any {
+  if idx >= len then
+    top acc
+  else
+    let elem = __list_get(items, idx)
+    let newAcc = func(acc, elem)
+    top __fold_helper(items, newAcc, func, idx + 1, len)
+}
+
+|- map: Transform each element of a list
+|- map([1,2,3], fun (x) -> x * 2) => [2,4,6]
+def map(items: List[Any], func: Any): List[Any] {
+  top fold(items, [], fun (acc: List[Any], elem: Any): List[Any] {
+    let transformed = func(elem)
+    top __list_append(acc, __list_single(transformed))
+  })
+}
+
+|- filter: Keep only elements that satisfy a predicate
+|- filter([1,2,3,4], fun (x) -> x > 2) => [3,4]
+def filter(items: List[Any], predicate: Any): List[Any] {
+  top fold(items, [], fun (acc: List[Any], elem: Any): List[Any] {
+    if predicate(elem) then
+      top __list_append(acc, __list_single(elem))
+    else
+      top acc
+  })
+}
+
+|- reverse: Reverse a list
+|- reverse([1,2,3]) => [3,2,1]
+def reverse(items: List[Any]): List[Any] {
+  top fold(items, [], fun (acc: List[Any], elem: Any): List[Any] {
+    top __list_append(__list_single(elem), acc)
+  })
+}
+
+|- take: Take first n elements
+|- take([1,2,3,4,5], 3) => [1,2,3]
+def take(items: List[Any], n: Int): List[Any] {
+  let len = __list_length(items)
+  let count = if n > len then len else n
+  top __take_helper(items, 0, count, [])
+}
+
+def __take_helper(items: List[Any], idx: Int, count: Int, acc: List[Any]): List[Any] {
+  if idx >= count then
+    top acc
+  else
+    let elem = __list_get(items, idx)
+    let newAcc = __list_append(acc, __list_single(elem))
+    top __take_helper(items, idx + 1, count, newAcc)
+}
+
+|- drop: Drop first n elements
+|- drop([1,2,3,4,5], 2) => [3,4,5]
+def drop(items: List[Any], n: Int): List[Any] {
+  let len = __list_length(items)
+  if n >= len then
+    top []
+  else
+    top __drop_helper(items, n, len, [])
+}
+
+def __drop_helper(items: List[Any], idx: Int, len: Int, acc: List[Any]): List[Any] {
+  if idx >= len then
+    top acc
+  else
+    let elem = __list_get(items, idx)
+    let newAcc = __list_append(acc, __list_single(elem))
+    top __drop_helper(items, idx + 1, len, newAcc)
+}
+
+|- find: Find first element matching predicate (returns nil if not found)
+|- find([1,2,3,4], fun (x) -> x > 2) => 3
+def find(items: List[Any], predicate: Any): Any {
+  let len = __list_length(items)
+  top __find_helper(items, predicate, 0, len)
+}
+
+def __find_helper(items: List[Any], predicate: Any, idx: Int, len: Int): Any {
+  if idx >= len then
+    top nil
+  else
+    let elem = __list_get(items, idx)
+    if predicate(elem) then
+      top elem
+    else
+      top __find_helper(items, predicate, idx + 1, len)
+}
+
+|- contains: Check if list contains a value
+|- contains([1,2,3], 2) => true
+def contains(items: List[Any], value: Any): Bool {
+  let len = __list_length(items)
+  top __contains_helper(items, value, 0, len)
+}
+
+def __contains_helper(items: List[Any], value: Any, idx: Int, len: Int): Bool {
+  if idx >= len then
+    top false
+  else
+    let elem = __list_get(items, idx)
+    if elem == value then
+      top true
+    else
+      top __contains_helper(items, value, idx + 1, len)
+}
+
+|- index_of: Find index of first occurrence (-1 if not found)
+|- index_of([1,2,3,2], 2) => 1
+def index_of(items: List[Any], value: Any): Int {
+  let len = __list_length(items)
+  top __index_of_helper(items, value, 0, len)
+}
+
+def __index_of_helper(items: List[Any], value: Any, idx: Int, len: Int): Int {
+  if idx >= len then
+    top -1
+  else
+    let elem = __list_get(items, idx)
+    if elem == value then
+      top idx
+    else
+      top __index_of_helper(items, value, idx + 1, len)
+}
+
+|- range: Generate list of integers from start to end (inclusive)
+|- range(1, 5) => [1,2,3,4,5]
+def range(start: Int, end: Int): List[Int] {
+  if start > end then
+    top []
+  else
+    top __range_helper(start, end, [])
+}
+
+def __range_helper(current: Int, end: Int, acc: List[Int]): List[Int] {
+  if current > end then
+    top acc
+  else
+    let newAcc = __list_append(acc, __list_single(current))
+    top __range_helper(current + 1, end, newAcc)
+}

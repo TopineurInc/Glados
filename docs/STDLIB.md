@@ -11,6 +11,8 @@ stdlib/
     string.top
     collections/
       list.top
+      aliases.top
+      functional.top
 ```
 
 ### std.core
@@ -37,7 +39,34 @@ Utilities layered on top of the VM's native list support (`VList`, `IListGet`, `
 | `list_concat` | Delegates to the runtime concatenation primitive. |
 | `list_single` | Creates a one-element list. |
 
-At this stage higher-order helpers (`map`, `filter`, …) are earmarked for a future iteration once the parser grows richer list syntax.
+### std.collections.aliases
+
+Convenient short aliases for common list operations:
+
+| Symbol | Description |
+|--------|-------------|
+| `length(lst)` | Alias for `__list_length`. Returns the number of elements in a list. |
+| `head(lst)` | Alias for safe first element access. Returns `nil` if list is empty. |
+| `tail(lst)` | Returns all elements except the first. Returns `[]` if list is empty or has one element. |
+| `concat(left, right)` | Alias for `__list_append`. Concatenates two lists. |
+| `last(lst)` | Alias for safe last element access. Returns `nil` if list is empty. |
+
+### std.collections.functional
+
+Higher-order list functions for functional programming:
+
+| Symbol | Description |
+|--------|-------------|
+| `fold(lst, init, func)` | Reduces a list to a single value using an accumulator function. Left fold. |
+| `map(lst, func)` | Transforms each element of a list using the provided function. |
+| `filter(lst, predicate)` | Returns a new list containing only elements that satisfy the predicate. |
+| `reverse(lst)` | Returns a new list with elements in reverse order. |
+| `take(lst, n)` | Returns the first `n` elements of the list. |
+| `drop(lst, n)` | Returns all elements after dropping the first `n`. |
+| `find(lst, predicate)` | Returns the first element matching the predicate, or `nil` if none found. |
+| `contains(lst, value)` | Returns `true` if the list contains the value, `false` otherwise. |
+| `index_of(lst, value)` | Returns the index of the first occurrence of value, or `-1` if not found. |
+| `range(start, end)` | Generates a list of integers from `start` to `end` (inclusive). |
 
 ### std.string
 
@@ -47,6 +76,50 @@ Convenience wrappers around the existing string builtins:
 |--------|-------------|
 | `string_is_empty` | Checks whether a string has length zero. |
 | `string_starts_with` / `string_ends_with` | Prefix and suffix checks expressed via `__substring`. |
+
+## Built-in Functions
+
+The Topineur runtime provides several built-in functions implemented in Haskell:
+
+### Math Functions
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `abs(x)` | `Int\|Float -> Int\|Float` | Returns the absolute value. Preserves input type. |
+| `sqrt(x)` | `Int\|Float -> Float` | Returns the square root. Always returns Float. |
+
+### Type Conversions
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `int(x)` | `Int\|Float\|String -> Int` | Converts to Int. Truncates floats towards zero. |
+| `float(x)` | `Int\|Float\|String -> Float` | Converts to Float. |
+| `show(x)` | `Any -> String` | Converts any value to its string representation. |
+
+**Conversion behaviors:**
+- `int(3.9)` → `3` (truncate towards zero)
+- `int(-3.9)` → `-3` (truncate towards zero)
+- `float(42)` → `42.0`
+- `abs(-5)` → `5` (preserves Int type)
+- `abs(-3.14)` → `3.14` (preserves Float type)
+- `sqrt(16)` → `4.0` (always Float)
+
+### List Primitives
+
+| Function | Description |
+|----------|-------------|
+| `__list_length(lst)` | Runtime primitive for list length. |
+| `__list_get(lst, idx)` | Runtime primitive for element access by index. |
+| `__list_append(left, right)` | Runtime primitive for list concatenation. |
+| `__list_single(value)` | Runtime primitive to create a single-element list. |
+
+### String Primitives
+
+| Function | Description |
+|----------|-------------|
+| `__string_length(str)` | Runtime primitive for string length. |
+| `__string_append(s1, s2)` | Runtime primitive for string concatenation. |
+| `__substring(str, start, end)` | Runtime primitive to extract substring. |
 
 ## Using the Stdlib
 
