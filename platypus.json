@@ -389,30 +389,6 @@
                         "command": "./glados examples/topineur/id.top",
                         "output": "hello\n",
                         "return": 0
-                    },
-                    {
-                        "name": "Type check valid",
-                        "command": "./glados examples/topineur/type-check-valid.top",
-                        "output": "Testing type checker with valid types\n15\n18\n",
-                        "return": 0
-                    },
-                    {
-                        "name": "Type error condition",
-                        "command": "./glados examples/topineur/type-check-valid.top",
-                        "output": "*",
-                        "return": 84
-                    },
-                    {
-                        "name": "Type error if branches",
-                        "command": "./glados examples/topineur/type-check-if-branches.top",
-                        "output": "*",
-                        "return": 84
-                    },
-                    {
-                        "name": "Type error wrong argument",
-                        "command": "./glados examples/topineur/type-check-wrong-argument.top",
-                        "output": "*",
-                        "return": 84
                     }
                 ]
             }

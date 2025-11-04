@@ -9,12 +9,12 @@ def isPositive(n: Int): Bool {
 
 def absolute(n: Int): Int {
   if n < 0 then top n * 1
-  else top n
+  else then top n
 }
 
 def compute(a: Int, b: Int): Int {
   if isPositive(a) then top absolute(a) + b
-  else top absolute(b) - a
+  else then top absolute(b) - a
 }
 
 def main(): Int {

@@ -24,7 +24,6 @@ module AST
   , Instr(..)
   , CodeObject(..)
   , Value(..)
-  , CacheMarker(..)
   , Frame(..)
   , VMState(..)
   , Atom(..)
@@ -205,7 +204,6 @@ data CodeObject = CodeObject
   , coConsts :: Vector.Vector Constant
   , coInstrs :: Vector.Vector Instr
   , coLabelMap :: Map.Map Label Int
-  , coAnnotations :: [Annotation]
   } deriving (Eq, Show, Generic)
 
 data Value
@@ -219,11 +217,6 @@ data Value
   | VList [Value]
   | VTuple [Value]
   | VObject Name [(Name, Value)]
-
-data CacheMarker = CacheMarker
-  { cmName :: Name
-  , cmKey :: String
-  } deriving (Eq, Show, Generic)
 
 instance Eq Value where
   (VInt a) == (VInt b) = a == b
@@ -252,7 +245,6 @@ data Frame = Frame
   , fStack :: [Value]
   , fCode :: CodeObject
   , fPC :: Int
-  , fCacheInfo :: Maybe CacheMarker
   } deriving (Eq, Show, Generic)
 
 data VMState = VMState
@@ -260,5 +252,4 @@ data VMState = VMState
   , vGlobals :: Map.Map Name Value
   , vCodeObjects :: Map.Map Name CodeObject
   , vBuiltins :: Map.Map Name Value
-  , vFunctionCache :: Map.Map Name (Map.Map String Value)
   } deriving (Eq, Show, Generic)

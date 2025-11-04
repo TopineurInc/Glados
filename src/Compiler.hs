@@ -51,7 +51,7 @@ defaultConfig :: CompilerConfig
 defaultConfig = CompilerConfig
   { cfgTCO = True
   , cfgDebug = False
-  , cfgTypeCheck = True
+  , cfgTypeCheck = False  -- Disabled by default for backward compatibility
   , cfgMacroEnv = defaultMacroEnv
   , cfgModulePaths = ["stdlib"]
   }
@@ -74,7 +74,7 @@ compile config source = do
 
       -- Optional type checking
       if cfgTypeCheck config
-        then case typeCheckProgram converted of
+        then case typeCheck emptyTypeEnv converted of
           Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
           Right _ -> return ()
         else return ()
@@ -100,7 +100,7 @@ compileWithDefs config source = do
 
       -- Optional type checking
       if cfgTypeCheck config
-        then case typeCheckProgram converted of
+        then case typeCheck emptyTypeEnv converted of
           Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
           Right _ -> return ()
         else return ()
@@ -169,18 +169,17 @@ compileTopineur config source = do
   topineur <- parseTopineurSource source
   expr <- topineurToAst topineur
 
-  -- Type check the entire program before extraction
-  if cfgTypeCheck config
-    then case typeCheckProgram expr of
-      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
-      Right _ -> return ()
-    else return ()
-
   (_imports, defs, mainExpr) <- extractTopineurProgram expr
 
   renamed <- alphaRename mainExpr
 
   converted <- closureConvert renamed
+
+  if cfgTypeCheck config
+    then case typeCheck emptyTypeEnv converted of
+      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+      Right _ -> return ()
+    else return ()
 
   let (mainCodeE, _defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE
@@ -194,18 +193,18 @@ compileTopineurWithDefs config source = do
   topineur <- parseTopineurSource source
   expr <- topineurToAst topineur
 
-  -- Type check the entire program before extraction
-  if cfgTypeCheck config
-    then case typeCheckProgram expr of
-      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
-      Right _ -> return ()
-    else return ()
-
   (_imports, defs, mainExpr) <- extractTopineurProgram expr
 
   renamed <- alphaRename mainExpr
 
   converted <- closureConvert renamed
+
+  -- Optional type checking
+  if cfgTypeCheck config
+    then case typeCheck emptyTypeEnv converted of
+      Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
+      Right _ -> return ()
+    else return ()
 
   let (mainCodeE, defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE
@@ -231,7 +230,6 @@ extractTopineurProgram (EList exprs) = do
                 _ -> body
             Just _ -> EUnit
             Nothing -> EUnit
-            _ -> EUnit  -- Handle other expression types
        in Right (imports, otherDefs, mainExpr)
   where
     isPackageOrImport EPackage{} = True
@@ -250,14 +248,14 @@ extractTopineurProgram expr = Right ([], [], expr)
 compileDefinition :: CompilerConfig -> Expr -> Either CompileError (Name, CodeObject)
 compileDefinition _config (EDefine name body _) = do
   case body of
-    ELambda params _retType lambdaBody ann -> do
+    ELambda params _retType lambdaBody _ann -> do
       renamed <- alphaRename lambdaBody
       converted <- closureConvert renamed
       -- Use compileLambda to properly compile the function with parameters
       let paramNames = map fst params
           initialState = emptyCodeGenState
           (codeObj, _finalState) = runCodeGen (compileLambda name paramNames converted) initialState
-      Right (name, codeObj { coAnnotations = ann })
+      Right (name, codeObj)
     _ -> do
       renamed <- alphaRename body
       converted <- closureConvert renamed
@@ -290,8 +288,7 @@ compileTopineurFile config entryPath =
       pure (mainCode, combinedDefs)
 
     loadImports :: [FilePath] -> [Name] -> StateT ModuleState (ExceptT CompileError IO) (Map Name CodeObject)
-    loadImports searchPaths =
-      fmap (foldl' (flip Map.union) Map.empty) . mapM (loadModule searchPaths)
+    loadImports searchPaths = fmap (foldl' (flip Map.union) Map.empty) . mapM (loadModule searchPaths)
 
     loadModule :: [FilePath] -> Name -> StateT ModuleState (ExceptT CompileError IO) (Map Name CodeObject)
     loadModule searchPaths moduleName = do

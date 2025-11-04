@@ -1,11 +1,11 @@
 package main
 
-|- This test should fail type checking because if branches return different types
-|- The then branch returns Int, but the else branch returns String
+# This test should fail type checking because if branches return different types
+# The then branch returns Int, but the else branch returns String
 
 def testIfBranches(x: Int): Int {
   if x > 0 then top 42
-  else top "error"
+  else then top "error"
 }
 
 def main(): Int {

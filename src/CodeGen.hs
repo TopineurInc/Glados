@@ -64,7 +64,6 @@ generateCodeWithDefs name expr =
         , coConsts = consts
         , coInstrs = instrs
         , coLabelMap = cgsLabels finalState
-        , coAnnotations = []
         }
   in (mainCode, cgsCodeObjects finalState)
 
@@ -143,11 +142,10 @@ compileExpr (EIf cond thenE elseE) = do
   finalIdx <- gets (length . cgsInstructions)
   patchJump (endLabelIdx - 1) finalIdx
 
-compileExpr (ELambda params _retType body anns) = do
+compileExpr (ELambda params _retType body _) = do
   lambdaName <- freshName "lambda#"
   codeObj <- compileLambda lambdaName (map fst params) body
-  let annotated = codeObj { coAnnotations = anns }
-  modify $ \s -> s { cgsCodeObjects = Map.insert lambdaName annotated (cgsCodeObjects s) }
+  modify $ \s -> s { cgsCodeObjects = Map.insert lambdaName codeObj (cgsCodeObjects s) }
   idx <- addConst (CFuncRef lambdaName)
   emit (IConst idx)
 
@@ -185,10 +183,9 @@ compileExpr (EApp func args) =
 
 compileExpr (EDefine name expr _) =
   case expr of
-    ELambda params _retType body ann -> do
+    ELambda params _retType body _ann -> do
       codeObj <- compileLambda name (map fst params) body
-      let annotated = codeObj { coAnnotations = ann }
-      modify $ \s -> s { cgsCodeObjects = Map.insert name annotated (cgsCodeObjects s) }
+      modify $ \s -> s { cgsCodeObjects = Map.insert name codeObj (cgsCodeObjects s) }
       idx <- addConst (CFuncRef name)
       emit (IConst idx)
       slot <- allocLocal name
@@ -396,7 +393,6 @@ compileLambda name params body = do
         , coConsts = consts
         , coInstrs = instrs
         , coLabelMap = cgsLabels lambdaState
-        , coAnnotations = []
         }
   modify $ \s -> s { cgsCodeObjects = Map.union (cgsCodeObjects s) (cgsCodeObjects lambdaState) }
   return codeObj
