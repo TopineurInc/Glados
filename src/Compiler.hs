@@ -26,6 +26,7 @@ import CodeGen
 import TypeChecker
 import TopineurParser
 import TopineurToAst
+import BytecodeCache
 import qualified Data.Map as Map
 import Data.Map (Map)
 import qualified Data.Vector as Vector
@@ -46,6 +47,7 @@ data CompilerConfig = CompilerConfig
   , cfgTypeCheck :: Bool
   , cfgMacroEnv :: MacroEnv
   , cfgModulePaths :: [FilePath]
+  , cfgUseCache :: Bool
   }
 
 defaultConfig :: CompilerConfig
@@ -55,6 +57,7 @@ defaultConfig = CompilerConfig
   , cfgTypeCheck = False  -- Disabled by default for backward compatibility
   , cfgMacroEnv = defaultMacroEnv
   , cfgModulePaths = ["stdlib"]
+  , cfgUseCache = True  -- Enable bytecode cache by default
   }
 
 compile :: CompilerConfig -> String -> Either CompileError CodeObject
@@ -299,12 +302,36 @@ compileTopineurFile config entryPath =
   where
     compileEntry :: FilePath -> StateT ModuleState (ExceptT CompileError IO) (CodeObject, Map Name CodeObject)
     compileEntry path = do
+      -- Try to load from cache if enabled
+      if cfgUseCache config
+        then do
+          cached <- liftIO $ loadBytecodeCache path
+          case cached of
+            Just (mainCode, defs) -> do
+              when (cfgDebug config) $
+                liftIO $ putStrLn $ "[Cache] Loaded bytecode from cache: " ++ getCachePath path
+              pure (mainCode, defs)
+            Nothing -> compileAndCache path
+        else compileAndCache path
+
+    compileAndCache :: FilePath -> StateT ModuleState (ExceptT CompileError IO) (CodeObject, Map Name CodeObject)
+    compileAndCache path = do
       source <- liftIO (readFile path)
       imports <- liftEitherState (collectTopineurImports source)
       let searchPaths = takeDirectory path : cfgModulePaths config
       importDefs <- loadImports searchPaths imports
       (mainCode, defs) <- liftEitherState (compileTopineurWithDefs config source)
       let combinedDefs = Map.union defs importDefs
+
+      -- Save to cache if enabled
+      when (cfgUseCache config) $ do
+        result <- liftIO $ saveBytecodeCache path mainCode combinedDefs
+        case result of
+          Right () -> when (cfgDebug config) $
+            liftIO $ putStrLn $ "[Cache] Saved bytecode to cache: " ++ getCachePath path
+          Left err -> when (cfgDebug config) $
+            liftIO $ putStrLn $ "[Cache] Warning: Failed to save cache: " ++ err
+
       pure (mainCode, combinedDefs)
 
     loadImports :: [FilePath] -> [Name] -> StateT ModuleState (ExceptT CompileError IO) (Map Name CodeObject)

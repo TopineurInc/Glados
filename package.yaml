@@ -28,6 +28,8 @@ dependencies:
 - filepath
 - transformers
 - directory
+- binary
+- time
 
 ghc-options:
 - -Wall
@@ -62,6 +64,7 @@ library:
     - Disasm
     - Lib
     - TopineurParser
+    - BytecodeCache
 
 executables:
   glados-exe:
