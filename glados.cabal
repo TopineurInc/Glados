@@ -32,13 +32,13 @@ library
       AlphaRename
       ClosureConversion
       CodeGen
+      TypeChecker
       Builtins
       VM
       Compiler
       Disasm
       Lib
       TopineurParser
-      TypeChecker
   other-modules:
       SExprConstruct
       TopineurToAst

@@ -234,14 +234,14 @@ extractTopineurProgram expr = Right ([], expr)
 compileDefinition :: CompilerConfig -> Expr -> Either CompileError (Name, CodeObject)
 compileDefinition _config (EDefine name body _) = do
   case body of
-    ELambda params _retType lambdaBody _ann -> do
+    ELambda params _retType lambdaBody ann -> do
       renamed <- alphaRename lambdaBody
       converted <- closureConvert renamed
       -- Use compileLambda to properly compile the function with parameters
       let paramNames = map fst params
           initialState = emptyCodeGenState
           (codeObj, _finalState) = runCodeGen (compileLambda name paramNames converted) initialState
-      Right (name, codeObj)
+      Right (name, codeObj { coAnnotations = ann })
     _ -> do
       renamed <- alphaRename body
       converted <- closureConvert renamed
