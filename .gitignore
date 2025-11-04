@@ -1,0 +1,8 @@
+.stack-work/
+*~
+glados
+test/coverage
+.stack-work/
+.DS_Store
+.stack
+*.tix
