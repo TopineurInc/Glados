@@ -28,6 +28,7 @@ import TopineurParser
 import TopineurToAst
 import qualified Data.Map as Map
 import Data.Map (Map)
+import qualified Data.Vector as Vector
 import Data.Maybe (mapMaybe)
 import Control.Monad (when)
 import Control.Monad.Except (ExceptT, runExceptT, throwError)

@@ -25,7 +25,6 @@ import Text.Parsec
   , try
   , choice
   , string
-  , option
   , between
   , sepBy
   , optionMaybe
