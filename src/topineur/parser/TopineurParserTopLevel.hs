@@ -18,6 +18,8 @@ import Text.Parsec
       , between
       , char
       , getPosition
+      , lookAhead
+      , manyTill
       , option
       , optionMaybe
       , optional
@@ -69,21 +71,20 @@ objectTypeDecl = do
   _ <- keyword "object"
   _ <- keyword "type"
   (l, n) <- ident
-  _ <- symbol "{"
+  _ <- symbolML "{"
   whitespaceWithComments
-  mems <- many (whitespaceWithComments *> objMember)
-  whitespaceWithComments
-  _ <- symbol "}"
+  mems <- manyTill (whitespaceWithComments *> objMember <* whitespaceWithComments) (lookAhead (symbolML "}"))
+  _ <- symbolML "}"
   return (DObjectType l n mems)
 
 objMember :: Parser ObjMember
 objMember =
   try
     ( do
-        (l, n) <- ident
-        _ <- symbol ":"
+        (l, n) <- identML
+        _ <- symbolML ":"
         t <- typeAnn
-        dv <- optionMaybe (symbol "=" >> expr)
+        dv <- optionMaybe (symbolML "=" >> exprML)
         return (OMField l n t dv)
     )
     <|> do OMFunc <$> defDecl
