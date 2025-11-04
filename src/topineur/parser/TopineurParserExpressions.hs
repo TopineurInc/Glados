@@ -78,7 +78,17 @@ floatLit = lexeme $ do
 
 
 expr :: Parser Expression
-expr = makeBinOps
+expr = makeUnOps
+  where
+    makeUnOps = do
+      mOp <- optionMaybe $ try $ do
+        l <- keyword "not"
+        return l
+      case mOp of
+        Just l -> do
+          e <- makeUnOps
+          return (EUnOp l "not" e)
+        Nothing -> makeBinOps
 
 basicTerm :: Parser Expression
 basicTerm =
@@ -142,17 +152,28 @@ callArgs = between (symbol "(") (symbol ")") (argExpr `sepBy` symbol ",")
       exprML
 
 exprML :: Parser Expression
-exprML = makeBinOpsML
+exprML = makeUnOpsML
+  where
+    makeUnOpsML = do
+      mOp <- optionMaybe $ try $ do
+        l <- keywordML "not"
+        return l
+      case mOp of
+        Just l -> do
+          e <- makeUnOpsML
+          return (EUnOp l "not" e)
+        Nothing -> makeBinOpsML
 
 makeBinOpsML :: Parser Expression
 makeBinOpsML = level1ML
   where
     level1ML = chainlML level2ML ["++"]
-    level2ML = chainlML level3ML ["=="]
-    level3ML = chainlML level4ML ["<=", ">=", "<", ">"]
-    level4ML = chainlML level5ML [".."]
-    level5ML = chainlML level6ML ["+", "-"]
-    level6ML = chainlML termML ["*", "/", "%"]
+    level2ML = chainlML level3ML ["and", "or"]
+    level3ML = chainlML level4ML ["=="]
+    level4ML = chainlML level5ML ["<=", ">=", "<", ">"]
+    level5ML = chainlML level6ML [".."]
+    level6ML = chainlML level7ML ["+", "-"]
+    level7ML = chainlML termML ["*", "/", "%"]
 
     chainlML :: Parser Expression -> [String] -> Parser Expression
     chainlML p ops
@@ -170,8 +191,9 @@ makeBinOpsML = level1ML
           parseRest l
       where
         tryOpML op = try $ do
-          _ <- string op
-          notFollowedBy (oneOf "+-*/<>=!")
+          _ <- if op == "and" || op == "or" || op == "not"
+            then keywordML op >> return ()
+            else string op >> notFollowedBy (oneOf "+-*/<>=!")
           scn
           return op
 
@@ -362,11 +384,12 @@ makeBinOps :: Parser Expression
 makeBinOps = level1
   where
     level1 = chainl level2 ["++"]
-    level2 = chainl level3 ["=="]
-    level3 = chainl level4 ["<=", ">=", "<", ">"]
-    level4 = chainl level5 [".."]
-    level5 = chainl level6 ["+", "-"]
-    level6 = chainl term ["*", "/", "%"]
+    level2 = chainl level3 ["and", "or"]
+    level3 = chainl level4 ["=="]
+    level4 = chainl level5 ["<=", ">=", "<", ">"]
+    level5 = chainl level6 [".."]
+    level6 = chainl level7 ["+", "-"]
+    level7 = chainl term ["*", "/", "%"]
 
     chainl :: Parser Expression -> [String] -> Parser Expression
     chainl p ops
@@ -384,7 +407,8 @@ makeBinOps = level1
           parseRest l
       where
         tryOp op = try $ do
-          _ <- string op
-          notFollowedBy (oneOf "+-*/<>=!")
+          _ <- if op == "and" || op == "or" || op == "not"
+            then keyword op >> return ()
+            else string op >> notFollowedBy (oneOf "+-*/<>=!")
           sc
           return op

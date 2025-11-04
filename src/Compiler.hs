@@ -209,8 +209,8 @@ compileTopineurWithDefs config source = do
   let methodObjs = concatMap extractMethods defs
         where
           extractMethods (EObjectDecl typeName fields methods) =
-            let expr = EObjectDecl typeName fields methods
-                (_mainCodeE, methodMap) = generateCodeWithDefs typeName expr
+            let expr' = EObjectDecl typeName fields methods
+                (_mainCodeE, methodMap) = generateCodeWithDefs typeName expr'
             in Map.toList methodMap
           extractMethods _ = []
 
@@ -269,7 +269,7 @@ compileDefinition _config (EObjectDecl typeName fields methods) = do
   -- Compile the object declaration to generate method code objects
   -- We'll compile each method as a separate function
   let expr = EObjectDecl typeName fields methods
-      (_mainCodeE, methodObjs) = generateCodeWithDefs typeName expr
+      (_mainCodeE, _) = generateCodeWithDefs typeName expr
 
   -- For now, just return the type's empty code object
   -- The methods will be handled separately

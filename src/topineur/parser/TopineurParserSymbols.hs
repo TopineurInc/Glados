@@ -31,7 +31,7 @@ isIdentChar :: Char -> Bool
 isIdentChar c = isAlphaNum c || c == '_'
 
 reservedWords :: [String]
-reservedWords = ["for", "in", "do", "end", "if", "then", "else", "while", "let", "top", "def", "object", "type", "self", "package", "import", "fun"]
+reservedWords = ["for", "in", "do", "end", "if", "then", "else", "while", "let", "top", "def", "object", "type", "self", "package", "import", "fun", "and", "or", "not"]
 
 ident :: Parser (Loc, Name)
 ident = lexeme $ do

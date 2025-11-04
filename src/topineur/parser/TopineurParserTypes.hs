@@ -101,6 +101,7 @@ data Expression
   | ELet Loc Name Expression Expression
   | ELambda Loc [Param] (Maybe TypeAnn) Expression
   | EBinOp Loc String Expression Expression
+  | EUnOp Loc String Expression
   | EParens Loc Expression
   deriving (Eq, Show, Generic)
 
@@ -134,6 +135,7 @@ locOfE e =
     ELet l _ _ _ -> l
     ELambda l _ _ _ -> l
     EBinOp l _ _ _ -> l
+    EUnOp l _ _ -> l
     EParens l _ -> l
 
 data IndentState = IndentState
