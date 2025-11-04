@@ -473,6 +473,12 @@
                         "command": "./glados examples/topineur/object-method-inline.top",
                         "output": "X value: 2.0\n",
                         "return": 0
+                    },
+                    {
+                        "name": "Binary operators",
+                        "command": "./glados examples/topineur/binary-operators.top",
+                        "output": "true\nDoing good I am\n",
+                        "return": 0
                     }
                 ]
             }

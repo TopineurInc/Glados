@@ -1,0 +1,9 @@
+package main
+
+def main(): Int {
+  let good = not false or false and true
+  println(show(good))
+  if "2" == show(1) and 21 == 42 / 2 or "1" == show(1) then println("Doing good I am")
+  else println("Doing good I am not")
+  top 0
+}

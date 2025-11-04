@@ -227,6 +227,11 @@ expressionToExpr = \case
     binOp <- stringToBinOp op
     Right $ EBinOp binOp left' right'
 
+  T.EUnOp _ op expr -> do
+    expr' <- expressionToExpr expr
+    unOp <- stringToUnOp op
+    Right $ EUnOp unOp expr'
+
   T.EParens _ expr -> expressionToExpr expr
 
 fieldAssignToPair :: T.FieldAssign -> Either CompileError (Name, Expr)
@@ -245,6 +250,8 @@ stringToBinOp = \case
   "%" -> Right Mod
   "&&" -> Right And
   "||" -> Right Or
+  "and" -> Right And
+  "or" -> Right Or
   "==" -> Right Eq
   "!=" -> Right Neq
   "<" -> Right Lt
@@ -253,6 +260,12 @@ stringToBinOp = \case
   ">=" -> Right Gte
   "++" -> Right Concat
   op -> Left $ SyntaxError ("Unknown binary operator: " ++ op) Nothing
+
+stringToUnOp :: String -> Either CompileError UnOp
+stringToUnOp = \case
+  "not" -> Right Not
+  "-" -> Right Neg
+  op -> Left $ SyntaxError ("Unknown unary operator: " ++ op) Nothing
 
 typeAnnToType :: T.TypeAnn -> Either CompileError Type
 typeAnnToType = \case
