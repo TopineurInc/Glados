@@ -6,3 +6,4 @@ test/coverage
 .DS_Store
 .stack
 *.tix
+*.topo

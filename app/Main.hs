@@ -28,17 +28,22 @@ import System.FilePath (takeExtension)
 main :: IO ()
 main = do
   args <- getArgs
-  case args of
+  let (noCache, restArgs) = parseFlags args
+      config = defaultConfig { cfgUseCache = not noCache }
+  case restArgs of
     [] -> repl
     ["--help"] -> printHelp
-    ["--disasm", file] -> disasmFile file
+    ["--disasm", file] -> disasmFile config file
     ["--ast", file] -> showAst file
-    ["--compiled", file] -> showCompiled file
-    ["--bytecode", file] -> showBytecode file
+    ["--compiled", file] -> showCompiled config file
+    ["--bytecode", file] -> showBytecode config file
     ["--parse-top", file] -> parseTopineurFile file
-    [file] -> runFile file
+    [file] -> runFile config file
     _ ->
       exitWithError "Invalid arguments. Use --help for usage."
+  where
+    parseFlags :: [String] -> (Bool, [String])
+    parseFlags xs = (elem "--no-cache" xs, filter (/= "--no-cache") xs)
 
 exitWithError :: String -> IO a
 exitWithError msg =
@@ -98,16 +103,16 @@ initializeGlobals vmState defs =
     vmState
     (Map.toList defs)
 
-runProgramWithSource :: String -> String -> IO (Either String Value)
-runProgramWithSource source filePath =
+runProgramWithSource :: CompilerConfig -> String -> String -> IO (Either String Value)
+runProgramWithSource config source filePath =
   let isTopineur = takeExtension filePath == ".top"
   in if isTopineur
       then do
-        compileResult <- compileTopineurFile defaultConfig filePath
+        compileResult <- compileTopineurFile config filePath
         case compileResult of
           Left err -> return $ Left (formatCompileError err)
           Right (code, defs) -> execute code defs
-      else case compileWithDefs defaultConfig source of
+      else case compileWithDefs config source of
         Left err -> return $ Left (formatCompileError err)
         Right (code, defs) -> execute code defs
   where
@@ -137,22 +142,27 @@ printHelp =
     , "  ./glados                        Start REPL (interactive mode)"
     , "  ./glados --help                 Show this help message"
     , ""
+    , "Options:"
+    , "  --no-cache                      Disable bytecode cache (.topo files)"
+    , ""
     , "Examples:"
     , "  ./glados program.lisp"
+    , "  ./glados program.top"
+    , "  ./glados --no-cache program.top"
     , "  ./glados --disasm program.lisp"
     , "  ./glados --ast program.lisp"
     , "  ./glados --compiled program.lisp"
     , "  ./glados --parse-topineur program.top"
     ]
 
-runFile :: FilePath -> IO ()
-runFile file = do
+runFile :: CompilerConfig -> FilePath -> IO ()
+runFile config file = do
   sourceOrErr <- try (readFile file) :: IO (Either IOException String)
   source <- case sourceOrErr of
     Left _ -> exitWithError $ "Cannot open file: " ++ file
     Right src -> return src
   let isTopineur = takeExtension file == ".top"
-  result <- runProgramWithSource source file
+  result <- runProgramWithSource config source file
   case result of
     Left err -> exitWithError err
     Right val ->
@@ -169,8 +179,8 @@ valueToExitCode (VInt n)
 valueToExitCode VUnit = ExitSuccess
 valueToExitCode _ = ExitSuccess  -- Default to success for other types
 
-disasmFile :: FilePath -> IO ()
-disasmFile file = do
+disasmFile :: CompilerConfig -> FilePath -> IO ()
+disasmFile config file = do
   sourceOrErr <- try (readFile file) :: IO (Either IOException String)
   source <- case sourceOrErr of
     Left _ -> exitWithError $ "Cannot open file: " ++ file
@@ -178,7 +188,7 @@ disasmFile file = do
   let isTopineur = takeExtension file == ".top"
   if isTopineur
     then do
-      compileResult <- compileTopineurFile defaultConfig file
+      compileResult <- compileTopineurFile config file
       case compileResult of
         Left err -> exitWithError (formatCompileError err)
         Right (code, defs) ->
@@ -192,7 +202,7 @@ disasmFile file = do
               (Map.toList defs)
             >> exitSuccess
     else
-      case compileWithDefs defaultConfig source of
+      case compileWithDefs config source of
         Left err -> exitWithError (formatCompileError err)
         Right (code, defs) ->
           putStrLn "=== Main Code ==="
@@ -221,8 +231,8 @@ showAst file = do
           Left err -> exitWithError ("Desugar error: " ++ show err)
           Right exprs -> mapM_ (putStrLn . show) exprs >> exitSuccess
 
-showCompiled :: FilePath -> IO ()
-showCompiled file = do
+showCompiled :: CompilerConfig -> FilePath -> IO ()
+showCompiled config file = do
   sourceOrErr <- try (readFile file) :: IO (Either IOException String)
   source <- case sourceOrErr of
     Left _ -> exitWithError $ "Cannot open file: " ++ file
@@ -230,7 +240,7 @@ showCompiled file = do
   let isTopineur = takeExtension file == ".top"
   if isTopineur
     then do
-      compileResult <- compileTopineurFile defaultConfig file
+      compileResult <- compileTopineurFile config file
       case compileResult of
         Left err -> exitWithError (formatCompileError err)
         Right (code, defs) ->
@@ -244,7 +254,7 @@ showCompiled file = do
               (Map.toList defs)
             >> exitSuccess
     else
-      case compileWithDefs defaultConfig source of
+      case compileWithDefs config source of
         Left err -> exitWithError (formatCompileError err)
         Right (code, defs) ->
           putStrLn "=== Main Code ==="
@@ -257,8 +267,8 @@ showCompiled file = do
               (Map.toList defs)
             >> exitSuccess
 
-showBytecode :: FilePath -> IO ()
-showBytecode file = do
+showBytecode :: CompilerConfig -> FilePath -> IO ()
+showBytecode config file = do
   sourceOrErr <- try (readFile file) :: IO (Either IOException String)
   source <- case sourceOrErr of
     Left _ -> exitWithError $ "Cannot open file: " ++ file
@@ -266,7 +276,7 @@ showBytecode file = do
   let isTopineur = takeExtension file == ".top"
   if isTopineur
     then do
-      compileResult <- compileTopineurFile defaultConfig file
+      compileResult <- compileTopineurFile config file
       case compileResult of
         Left err -> exitWithError (formatCompileError err)
         Right (code, defs) ->
@@ -280,7 +290,7 @@ showBytecode file = do
               (Map.toList defs)
             >> exitSuccess
     else
-      case compileWithDefs defaultConfig source of
+      case compileWithDefs config source of
         Left err -> exitWithError (formatCompileError err)
         Right (code, defs) ->
           putStrLn "=== Main Bytecode ==="
