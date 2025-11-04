@@ -1,0 +1,8 @@
+package main
+
+def main() {
+  |- Conversions
+  let floatValue = float(42)
+  let intValue = int(3.14)
+  let stringValue = show(42)
+}

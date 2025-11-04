@@ -6,11 +6,6 @@ def main() {
   |- Affichage
   println("Standard output")
 
-  |- Conversions
-  let floatValue = float(42)
-  let intValue = int(3.14)
-  let stringValue = show(42)
-
   |- Fonctions mathématiques (si disponibles)
   let sqrtResult = sqrt(16.0)
   let absValue = abs(-42)
