@@ -16,11 +16,12 @@ module CodeGen
   , compileLambda
   ) where
 
-import AST
-import Control.Monad.State
 import Control.Monad (forM_)
+import Control.Monad.State (MonadState, State, get, gets, modify, put, runState)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
+
+import AST
 
 data CodeGenState = CodeGenState
   { cgsCounter :: Int
@@ -38,14 +39,15 @@ emptyCodeGenState = CodeGenState 0 [] [] Map.empty Map.empty Map.empty 0
 newtype CodeGenM a = CodeGenM { unCodeGenM :: State CodeGenState a }
   deriving (Functor, Applicative, Monad, MonadState CodeGenState)
 
+-- | Generate a fresh unique name with the given prefix
 freshName :: String -> CodeGenM Name
 freshName prefix = do
   n <- gets cgsCounter
   modify $ \s -> s { cgsCounter = n + 1 }
-  return (prefix ++ show n)
+  pure (prefix ++ show n)
 
 runCodeGen :: CodeGenM a -> CodeGenState -> (a, CodeGenState)
-runCodeGen m s = runState (unCodeGenM m) s
+runCodeGen m = runState (unCodeGenM m)
 
 generateCode :: Name -> Expr -> Either CompileError CodeObject
 generateCode name expr =
@@ -149,37 +151,36 @@ compileExpr (ELambda params _retType body _) = do
   idx <- addConst (CFuncRef lambdaName)
   emit (IConst idx)
 
-compileExpr (EApp (EVar funcName) args) =
-  mapM_ compileExpr args >> emitCall
-  where
-    emitCall = case funcName of
-      "+" -> emit (IPrim "+")
-      "-" -> emit (IPrim "-")
-      "*" -> emit (IPrim "*")
-      "div" -> emit (IPrim "div")
-      "mod" -> emit (IPrim "mod")
-      "eq?" -> emit (IPrim "eq?")
-      "<" -> emit (IPrim "<")
-      ">" -> emit (IPrim ">")
-      "print" -> emit (IPrim "print")
-      "display" -> emit (IPrim "display")
-      "input" -> emit (IPrim "input")
-      "read-line" -> emit (IPrim "read-line")
-      "string->number" -> emit (IPrim "string->number")
-      "number->string" -> emit (IPrim "number->string")
-      "string-length" -> emit (IPrim "string-length")
-      "string-append" -> emit (IPrim "string-append")
-      "substring" -> emit (IPrim "substring")
-      "not" -> emit (IPrim "not")
-      "and" -> emit (IPrim "and")
-      "or" -> emit (IPrim "or")
-      "show" -> emit (IPrim "show")
-      _ -> emit (ICall (length args) funcName)
+compileExpr (EApp (EVar funcName) args) = do
+  mapM_ compileExpr args
+  case funcName of
+    "+" -> emit (IPrim "+")
+    "-" -> emit (IPrim "-")
+    "*" -> emit (IPrim "*")
+    "div" -> emit (IPrim "div")
+    "mod" -> emit (IPrim "mod")
+    "eq?" -> emit (IPrim "eq?")
+    "<" -> emit (IPrim "<")
+    ">" -> emit (IPrim ">")
+    "print" -> emit (IPrim "print")
+    "display" -> emit (IPrim "display")
+    "input" -> emit (IPrim "input")
+    "read-line" -> emit (IPrim "read-line")
+    "string->number" -> emit (IPrim "string->number")
+    "number->string" -> emit (IPrim "number->string")
+    "string-length" -> emit (IPrim "string-length")
+    "string-append" -> emit (IPrim "string-append")
+    "substring" -> emit (IPrim "substring")
+    "not" -> emit (IPrim "not")
+    "and" -> emit (IPrim "and")
+    "or" -> emit (IPrim "or")
+    "show" -> emit (IPrim "show")
+    _ -> emit (ICall (length args) funcName)
 
-compileExpr (EApp func args) =
+compileExpr (EApp func args) = do
   compileExpr func
-    >> mapM_ compileExpr args
-    >> emit (ICall (length args) "<lambda>")
+  mapM_ compileExpr args
+  emit (ICall (length args) "<lambda>")
 
 compileExpr (EDefine name expr _) =
   case expr of
@@ -438,8 +439,9 @@ compileLambda name params body = do
   modify $ \s -> s { cgsCodeObjects = Map.union (cgsCodeObjects s) (cgsCodeObjects lambdaState) }
   return codeObj
 
+-- | Compile the body of a lambda with given parameters
 compileLambdaBody :: [Name] -> Expr -> CodeGenM ()
-compileLambdaBody params body =
+compileLambdaBody params body = do
   mapM_ allocLocal params
-    >> compileExpr body
-    >> emit IReturn
+  compileExpr body
+  emit IReturn

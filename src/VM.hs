@@ -14,6 +14,7 @@ module VM
 
 import AST
 import Builtins
+import Data.Maybe (catMaybes)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 
@@ -63,10 +64,9 @@ runVM vmState = case vFrames vmState of
           Right (vmState', Nothing) -> runVM vmState'
           Right (_, Just val) -> return $ Right val
 
+-- | Update the current frame in the VM state
 updateFrame :: VMState -> Frame -> VMState
-updateFrame vmState newFrame = case vFrames vmState of
-  (_:rest) -> vmState { vFrames = newFrame : rest }
-  [] -> vmState
+updateFrame vmState newFrame = vmState { vFrames = newFrame : drop 1 (vFrames vmState) }
 executeInstr :: VMState -> Frame -> Instr -> IO (Either VMError (VMState, Maybe Value))
 executeInstr vmState frame instr = case instr of
   IConst idx ->
@@ -153,8 +153,8 @@ executeInstr vmState frame instr = case instr of
     in return $ Right (updateFrame vmState frame', Nothing)
 
   IMakeClosure name slots ->
-    let capturedValues = map (\slot -> fLocals frame Vector.! slot) slots
-        values = [val | Just val <- capturedValues]
+    let capturedValues = map (fLocals frame Vector.!) slots
+        values = catMaybes capturedValues
         closure = VClosure name values
         frame' = frame { fStack = closure : fStack frame, fPC = fPC frame + 1 }
     in return $ Right (updateFrame vmState frame', Nothing)
@@ -313,44 +313,26 @@ executeInstr vmState frame instr = case instr of
           vmState' = vmState { vGlobals = Map.insert name val (vGlobals vmState) }
       in return $ Right (updateFrame vmState' frame', Nothing)
 
+-- | Get the arity (number of arguments) for builtin operations
 builtinArity :: String -> Int
-builtinArity op = case op of
-  "+" -> 2
-  "-" -> 2
-  "*" -> 2
-  "div" -> 2
-  "mod" -> 2
-  "eq?" -> 2
-  "<" -> 2
-  "<=" -> 2
-  ">" -> 2
-  ">=" -> 2
-  "print" -> 1
-  "println" -> 1
-  "display" -> 1
-  "input" -> 0
-  "read-line" -> 0
-  "string->number" -> 1
-  "number->string" -> 1
-  "string-length" -> 1
-  "__string_length" -> 1
-  "string-append" -> 2
-  "__string_append" -> 2
-  "substring" -> 3
-  "__substring" -> 3
-  "not" -> 1
-  "and" -> 2
-  "or" -> 2
-  "show" -> 1
-  "list-length" -> 1
-  "__list_length" -> 1
-  "list-append" -> 2
-  "__list_append" -> 2
-  "list-single" -> 1
-  "__list_single" -> 1
-  "list-get" -> 2
-  "__list_get" -> 2
-  _ -> 2
+builtinArity "input" = 0
+builtinArity "read-line" = 0
+builtinArity "print" = 1
+builtinArity "println" = 1
+builtinArity "display" = 1
+builtinArity "string->number" = 1
+builtinArity "number->string" = 1
+builtinArity "string-length" = 1
+builtinArity "__string_length" = 1
+builtinArity "not" = 1
+builtinArity "show" = 1
+builtinArity "list-length" = 1
+builtinArity "__list_length" = 1
+builtinArity "list-single" = 1
+builtinArity "__list_single" = 1
+builtinArity "substring" = 3
+builtinArity "__substring" = 3
+builtinArity _ = 2  -- Most operators are binary
 
 executePrim :: VMState -> Frame -> String -> IO (Either VMError (VMState, Maybe Value))
 executePrim vmState frame op =
@@ -367,11 +349,11 @@ executePrim vmState frame op =
           return $ Right (updateFrame vmState frame', Nothing)
     Just _ -> return $ Left $ TypeError "Not a builtin function"
 
--- Helper function to lookup in memoization cache
+-- | Lookup a value in the memoization cache
 lookupMemoCache :: [(Name, [Value], Value)] -> Name -> [Value] -> Maybe Value
 lookupMemoCache cache funcName args =
-  case [v | (n, a, v) <- cache, n == funcName && a == args] of
-    (result:_) -> Just result
+  case [(n, a, v) | (n, a, v) <- cache, n == funcName && a == args] of
+    ((_, _, result):_) -> Just result
     [] -> Nothing
 
 executeCall :: VMState -> Frame -> Int -> Name -> Bool -> IO (Either VMError (VMState, Maybe Value))
@@ -457,6 +439,8 @@ callClosure vmState frame args stackAfterArgs isTail =
                   in return $ Right (vmState', Nothing)
                 [] -> return $ Left $ RuntimeError "No frames for function call"
         _ -> return $ Left $ TypeError "Attempted to call non-closure value"
+
+-- | Convert a compile-time constant to a runtime value
 constantToValue :: Constant -> Value
 constantToValue (CInt n) = VInt n
 constantToValue (CFloat n) = VFloat n

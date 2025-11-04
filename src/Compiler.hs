@@ -16,30 +16,31 @@ module Compiler
   , defaultConfig
   ) where
 
-import AST
-import SExprParser
-import MacroExpander
-import Desugar
-import AlphaRename
-import ClosureConversion
-import CodeGen
-import TypeChecker
-import TopineurParser
-import TopineurToAst
-import BytecodeCache
-import qualified Data.Map as Map
-import Data.Map (Map)
-import qualified Data.Vector as Vector
-import Data.Maybe (mapMaybe)
 import Control.Monad (when)
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.State.Strict (StateT, evalStateT, get, put)
 import Control.Monad.Trans.Class (lift)
 import Data.Foldable (foldl')
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Maybe (mapMaybe)
 import qualified Data.Set as Set
+import qualified Data.Vector as Vector
 import System.Directory (canonicalizePath, doesFileExist)
-import System.FilePath (takeDirectory, (</>), joinPath)
+import System.FilePath (joinPath, takeDirectory, (</>))
+
+import AST
+import AlphaRename
+import BytecodeCache
+import ClosureConversion
+import CodeGen
+import Desugar
+import MacroExpander
+import SExprParser
+import TopineurParser
+import TopineurToAst
+import TypeChecker
 
 data CompilerConfig = CompilerConfig
   { cfgTCO :: Bool
@@ -106,32 +107,33 @@ compileWithDefs config source = do
       mainCode <- mainCodeE
       return (mainCode, defs)
 
+-- | Transform top-level defines into letrec for scoping
 transformProgram :: [SExpr] -> SExpr
-transformProgram sexprs =
-  let (defines, others) = span isDefine sexprs
-      bindings = map extractBinding defines
-      body = case others of
-               [] -> SAtom (AInteger 0) Nothing
-               [e] -> e
-               es -> SList (SAtom (ASymbol "begin") Nothing : es) Nothing
-  in if null bindings
-     then body
-     else SList [SAtom (ASymbol "letrec") Nothing,
-                 SList (map toBinding bindings) Nothing,
-                 body] Nothing
+transformProgram sexprs
+  | null bindings = body
+  | otherwise = SList
+      [ SAtom (ASymbol "letrec") Nothing
+      , SList (map toBinding bindings) Nothing
+      , body
+      ] Nothing
   where
+    (defines, others) = span isDefine sexprs
+    bindings = map extractBinding defines
+    body = case others of
+      [] -> SAtom (AInteger 0) Nothing
+      [e] -> e
+      es -> SList (SAtom (ASymbol "begin") Nothing : es) Nothing
+
     isDefine (SList [SAtom (ASymbol "define") _, SAtom (ASymbol _) _, _] _) = True
     isDefine (SList (SAtom (ASymbol "define") _ : SList (SAtom (ASymbol _) _ : _) _ : _ : _) _) = True
     isDefine _ = False
 
-    extractBinding (SList (SAtom (ASymbol "define") _ : SAtom (ASymbol name) _ : [expr]) _) =
-      (name, expr)
-    extractBinding (SList (SAtom (ASymbol "define") _ : SList (SAtom (ASymbol name) _ : params) _ : body : _) loc) =
-      (name, SList [SAtom (ASymbol "lambda") Nothing, SList params Nothing, body] loc)
+    extractBinding (SList (SAtom (ASymbol "define") _ : SAtom (ASymbol name) _ : [expr]) _) = (name, expr)
+    extractBinding (SList (SAtom (ASymbol "define") _ : SList (SAtom (ASymbol name) _ : params) _ : body' : _) loc) =
+      (name, SList [SAtom (ASymbol "lambda") Nothing, SList params Nothing, body'] loc)
     extractBinding _ = error "Invalid define (unreachable)"
 
-    toBinding (name, expr) =
-      SList [SAtom (ASymbol name) Nothing, expr] Nothing
+    toBinding (name, expr) = SList [SAtom (ASymbol name) Nothing, expr] Nothing
 
 compileProgram :: CompilerConfig -> String -> Either CompileError (Map.Map Name CodeObject)
 compileProgram config source = do
@@ -220,33 +222,29 @@ compileTopineurWithDefs config source = do
   let allDefs = Map.unions [Map.fromList defsCodeObjects, Map.fromList methodObjs, defsCode]
   Right (mainCode, allDefs)
 
+-- | Extract imports, definitions, and main expression from a Topineur program
 extractTopineurProgram :: Expr -> Either CompileError ([Name], [Expr], Expr)
-extractTopineurProgram (EList exprs) = do
-  case exprs of
-    [] -> Left $ SyntaxError "Empty Topineur program" Nothing
-    _ ->
-      let (pkgAndImports, defs) = span isPackageOrImport exprs
-          imports = mapMaybe extractImport pkgAndImports
-          mainDef = findMainDef defs
-          otherDefs = filter (not . isMainDef) defs
-          mainExpr = case mainDef of
-            Just (EDefine _ body _) ->
-              case body of
-                ELambda _ _ lambdaBody _ -> lambdaBody
-                _ -> body
-            Just _ -> EUnit
-            Nothing -> EUnit
-       in Right (imports, otherDefs, mainExpr)
+extractTopineurProgram (EList []) = Left $ SyntaxError "Empty Topineur program" Nothing
+extractTopineurProgram (EList exprs) = Right (imports, otherDefs, mainExpr)
   where
-    isPackageOrImport EPackage{} = True
-    isPackageOrImport EImport{} = True
+    (pkgAndImports, defs) = span isPackageOrImport exprs
+    imports = mapMaybe extractImport pkgAndImports
+    mainDef = findMainDef defs
+    otherDefs = filter (not . isMainDef) defs
+    mainExpr = case mainDef of
+      Just (EDefine _ (ELambda _ _ lambdaBody _) _) -> lambdaBody
+      Just (EDefine _ body _) -> body
+      _ -> EUnit
+
+    isPackageOrImport (EPackage _) = True
+    isPackageOrImport (EImport _) = True
     isPackageOrImport _ = False
+
     extractImport (EImport name) = Just name
     extractImport _ = Nothing
-    findMainDef = foldr findOne Nothing
-      where
-        findOne (EDefine "main" body anns) _ = Just (EDefine "main" body anns)
-        findOne _ acc = acc
+
+    findMainDef = foldr (\e acc -> if isMainDef e then Just e else acc) Nothing
+
     isMainDef (EDefine "main" _ _) = True
     isMainDef _ = False
 extractTopineurProgram expr = Right ([], [], expr)
@@ -381,10 +379,9 @@ collectTopineurImports source = do
   (imports, _, _) <- extractTopineurProgram expr
   pure imports
 
+-- | Split a module name by dots (e.g., "std.list" -> ["std", "list"])
 splitModuleName :: String -> [String]
 splitModuleName [] = []
-splitModuleName name =
-  let (chunk, rest) = break (=='.') name
-  in case rest of
-       [] -> [chunk | not (null chunk)]
-       (_:xs) -> chunk : splitModuleName xs
+splitModuleName name = case break (== '.') name of
+  (chunk, []) -> [chunk | not (null chunk)]
+  (chunk, _:rest) -> chunk : splitModuleName rest

@@ -8,22 +8,23 @@
 module Main (main) where
 
 import Control.Exception (IOException, SomeException, try)
-import Control.Monad (foldM)
+import Control.Monad (foldM, unless)
+import Data.Char (isSpace)
+import Data.List (intercalate)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 import System.Environment (getArgs)
 import System.Exit (ExitCode (ExitFailure, ExitSuccess), exitSuccess, exitWith)
+import System.FilePath (takeExtension)
 import System.IO (hFlush, hIsTerminalDevice, hPutStrLn, isEOF, stderr, stdin, stdout)
-import Data.Char (isSpace)
 
 import AST
 import Compiler
-import Desugar
-import Disasm
-import SExprParser
-import TopineurParser
+import Desugar (sexprToExpr)
+import Disasm (dumpCodeObject)
+import SExprParser (parseFromString)
+import TopineurParser (parseTopineurSource)
 import VM
-import System.FilePath (takeExtension)
 
 main :: IO ()
 main = do
@@ -43,12 +44,25 @@ main = do
       exitWithError "Invalid arguments. Use --help for usage."
   where
     parseFlags :: [String] -> (Bool, [String])
-    parseFlags xs = (elem "--no-cache" xs, filter (/= "--no-cache") xs)
+    parseFlags xs = ("--no-cache" `elem` xs, filter (/= "--no-cache") xs)
 
 exitWithError :: String -> IO a
 exitWithError msg =
-  hPutStrLn stderr ("*** ERROR : " ++ msg)
-    >> exitWith (ExitFailure 84)
+  hPutStrLn stderr ("*** ERROR : " ++ msg) >> exitWith (ExitFailure 84)
+
+-- | Read a file or exit with an error message
+readFileOrExit :: FilePath -> IO String
+readFileOrExit file = do
+  result <- try (readFile file) :: IO (Either IOException String)
+  case result of
+    Left _ -> exitWithError $ "Cannot open file: " ++ file
+    Right src -> return src
+
+-- | Compile source code from either Lisp or Topineur
+compileSource :: CompilerConfig -> String -> FilePath -> IO (Either CompileError (CodeObject, Map.Map Name CodeObject))
+compileSource config source file
+  | takeExtension file == ".top" = compileTopineurFile config file
+  | otherwise = return $ compileWithDefs config source
 
 formatCompileError :: CompileError -> String
 formatCompileError (ParseError err _) = "ParseError " ++ err
@@ -67,12 +81,8 @@ renderValue (VList values) = "(" ++ unwords (map renderValue values) ++ ")"
 renderValue (VTuple values) = "#(" ++ unwords (map renderValue values) ++ ")"
 renderValue (VObject name fields) =
   "#<object:" ++ name ++ " {" ++
-  intercalate ", " (map (\(k, v) -> k ++ ": " ++ renderValue v) fields) ++
+  intercalate ", " [k ++ ": " ++ renderValue v | (k, v) <- fields] ++
   "}>"
-  where
-    intercalate _ [] = ""
-    intercalate _ [x] = x
-    intercalate sep (x:xs) = x ++ sep ++ intercalate sep xs
 
 runProgram :: String -> IO (Either String Value)
 runProgram source =
@@ -157,16 +167,12 @@ printHelp =
 
 runFile :: CompilerConfig -> FilePath -> IO ()
 runFile config file = do
-  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
-  source <- case sourceOrErr of
-    Left _ -> exitWithError $ "Cannot open file: " ++ file
-    Right src -> return src
-  let isTopineur = takeExtension file == ".top"
+  source <- readFileOrExit file
   result <- runProgramWithSource config source file
   case result of
     Left err -> exitWithError err
     Right val ->
-      if isTopineur
+      if takeExtension file == ".top"
         then exitWith (valueToExitCode val)
         else case val of
           VUnit -> exitSuccess
@@ -181,161 +187,80 @@ valueToExitCode _ = ExitSuccess  -- Default to success for other types
 
 disasmFile :: CompilerConfig -> FilePath -> IO ()
 disasmFile config file = do
-  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
-  source <- case sourceOrErr of
-    Left _ -> exitWithError $ "Cannot open file: " ++ file
-    Right src -> return src
-  let isTopineur = takeExtension file == ".top"
-  if isTopineur
-    then do
-      compileResult <- compileTopineurFile config file
-      case compileResult of
-        Left err -> exitWithError (formatCompileError err)
-        Right (code, defs) ->
-          putStrLn "=== Main Code ==="
-            >> dumpCodeObject code
-            >> putStrLn "\n=== Nested Definitions ==="
-            >> mapM_
-              (\(name, obj) ->
-                putStrLn ("\n--- " ++ name ++ " ---")
-                  >> dumpCodeObject obj)
-              (Map.toList defs)
-            >> exitSuccess
-    else
-      case compileWithDefs config source of
-        Left err -> exitWithError (formatCompileError err)
-        Right (code, defs) ->
-          putStrLn "=== Main Code ==="
-            >> dumpCodeObject code
-            >> putStrLn "\n=== Nested Definitions ==="
-            >> mapM_
-              (\(name, obj) ->
-                putStrLn ("\n--- " ++ name ++ " ---")
-                  >> dumpCodeObject obj)
-              (Map.toList defs)
-            >> exitSuccess
+  source <- readFileOrExit file
+  compileResult <- compileSource config source file
+  case compileResult of
+    Left err -> exitWithError (formatCompileError err)
+    Right (code, defs) -> do
+      putStrLn "=== Main Code ==="
+      dumpCodeObject code
+      putStrLn "\n=== Nested Definitions ==="
+      mapM_ (\(name, obj) -> putStrLn ("\n--- " ++ name ++ " ---") >> dumpCodeObject obj) (Map.toList defs)
+      exitSuccess
 
 showAst :: FilePath -> IO ()
 showAst file = do
-  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
-  source <- case sourceOrErr of
-    Left _ -> exitWithError $ "Cannot open file: " ++ file
-    Right src -> return src
+  source <- readFileOrExit file
   case parseFromString source of
     Left err -> exitWithError (formatCompileError err)
-    Right sexprs ->
+    Right sexprs -> do
       putStrLn "=== S-Expression ==="
-        >> mapM_ (putStrLn . show) sexprs
-        >> putStrLn "\n=== AST ==="
-        >> case mapM sexprToExpr sexprs of
-          Left err -> exitWithError ("Desugar error: " ++ show err)
-          Right exprs -> mapM_ (putStrLn . show) exprs >> exitSuccess
+      mapM_ print sexprs
+      putStrLn "\n=== AST ==="
+      case mapM sexprToExpr sexprs of
+        Left err -> exitWithError ("Desugar error: " ++ show err)
+        Right exprs -> mapM_ print exprs >> exitSuccess
 
 showCompiled :: CompilerConfig -> FilePath -> IO ()
 showCompiled config file = do
-  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
-  source <- case sourceOrErr of
-    Left _ -> exitWithError $ "Cannot open file: " ++ file
-    Right src -> return src
-  let isTopineur = takeExtension file == ".top"
-  if isTopineur
-    then do
-      compileResult <- compileTopineurFile config file
-      case compileResult of
-        Left err -> exitWithError (formatCompileError err)
-        Right (code, defs) ->
-          putStrLn "=== Main Code ==="
-            >> dumpCodeInfo code
-            >> putStrLn "\n=== Nested Definitions ==="
-            >> mapM_
-              (\(name, obj) ->
-                putStrLn ("\n--- " ++ name ++ " ---")
-                  >> dumpCodeInfo obj)
-              (Map.toList defs)
-            >> exitSuccess
-    else
-      case compileWithDefs config source of
-        Left err -> exitWithError (formatCompileError err)
-        Right (code, defs) ->
-          putStrLn "=== Main Code ==="
-            >> dumpCodeInfo code
-            >> putStrLn "\n=== Nested Definitions ==="
-            >> mapM_
-              (\(name, obj) ->
-                putStrLn ("\n--- " ++ name ++ " ---")
-                  >> dumpCodeInfo obj)
-              (Map.toList defs)
-            >> exitSuccess
+  source <- readFileOrExit file
+  compileResult <- compileSource config source file
+  case compileResult of
+    Left err -> exitWithError (formatCompileError err)
+    Right (code, defs) -> do
+      putStrLn "=== Main Code ==="
+      dumpCodeInfo code
+      putStrLn "\n=== Nested Definitions ==="
+      mapM_ (\(name, obj) -> putStrLn ("\n--- " ++ name ++ " ---") >> dumpCodeInfo obj) (Map.toList defs)
+      exitSuccess
 
 showBytecode :: CompilerConfig -> FilePath -> IO ()
 showBytecode config file = do
-  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
-  source <- case sourceOrErr of
-    Left _ -> exitWithError $ "Cannot open file: " ++ file
-    Right src -> return src
-  let isTopineur = takeExtension file == ".top"
-  if isTopineur
-    then do
-      compileResult <- compileTopineurFile config file
-      case compileResult of
-        Left err -> exitWithError (formatCompileError err)
-        Right (code, defs) ->
-          putStrLn "=== Main Bytecode ==="
-            >> dumpBytecode code
-            >> putStrLn "\n=== Nested Definitions ==="
-            >> mapM_
-              (\(name, obj) ->
-                putStrLn ("\n--- " ++ name ++ " ---")
-                  >> dumpBytecode obj)
-              (Map.toList defs)
-            >> exitSuccess
-    else
-      case compileWithDefs config source of
-        Left err -> exitWithError (formatCompileError err)
-        Right (code, defs) ->
-          putStrLn "=== Main Bytecode ==="
-            >> dumpBytecode code
-            >> putStrLn "\n=== Nested Definitions ==="
-            >> mapM_
-              (\(name, obj) ->
-                putStrLn ("\n--- " ++ name ++ " ---")
-                  >> dumpBytecode obj)
-              (Map.toList defs)
-            >> exitSuccess
+  source <- readFileOrExit file
+  compileResult <- compileSource config source file
+  case compileResult of
+    Left err -> exitWithError (formatCompileError err)
+    Right (code, defs) -> do
+      putStrLn "=== Main Bytecode ==="
+      dumpBytecode code
+      putStrLn "\n=== Nested Definitions ==="
+      mapM_ (\(name, obj) -> putStrLn ("\n--- " ++ name ++ " ---") >> dumpBytecode obj) (Map.toList defs)
+      exitSuccess
 
 parseTopineurFile :: FilePath -> IO ()
 parseTopineurFile file = do
-  sourceOrErr <- try (readFile file) :: IO (Either IOException String)
-  source <- case sourceOrErr of
-    Left _ -> exitWithError $ "Cannot open file: " ++ file
-    Right src -> return src
+  source <- readFileOrExit file
   case parseTopineurSource source of
     Left err -> exitWithError (formatCompileError err)
-    Right topineur ->
+    Right topineur -> do
       putStrLn "=== Topineur AST ==="
-        >> putStrLn (show topineur)
-        >> exitSuccess
+      print topineur
+      exitSuccess
 
 dumpCodeInfo :: CodeObject -> IO ()
-dumpCodeInfo co =
-  putStrLn ("Name: " ++ coName co)
-    >> putStrLn ("Arity: " ++ show (coArity co))
-    >> putStrLn ("Max Locals: " ++ show (coMaxLocals co))
-    >> putStrLn "\nConstants:"
-    >> Vector.imapM_
-      (\i c -> putStrLn $ "  " ++ show i ++ ": " ++ show c)
-      (coConsts co)
-    >> putStrLn "\nInstructions:"
-    >> Vector.imapM_
-      (\i instr -> putStrLn $ "  " ++ show i ++ ": " ++ show instr)
-      (coInstrs co)
+dumpCodeInfo co = do
+  putStrLn $ "Name: " ++ coName co
+  putStrLn $ "Arity: " ++ show (coArity co)
+  putStrLn $ "Max Locals: " ++ show (coMaxLocals co)
+  putStrLn "\nConstants:"
+  Vector.imapM_ (\i c -> putStrLn $ "  " ++ show i ++ ": " ++ show c) (coConsts co)
+  putStrLn "\nInstructions:"
+  Vector.imapM_ (\i instr -> putStrLn $ "  " ++ show i ++ ": " ++ show instr) (coInstrs co)
 
 dumpBytecode :: CodeObject -> IO ()
-dumpBytecode co =
+dumpBytecode co = do
   putStrLn "Instructions:"
-    >> Vector.imapM_
-      (\i instr -> putStrLn $ "  " ++ show i ++ ": " ++ show instr)
-      (coInstrs co)
+  Vector.imapM_ (\i instr -> putStrLn $ "  " ++ show i ++ ": " ++ show instr) (coInstrs co)
 
 repl :: IO ()
 repl = do
@@ -346,26 +271,25 @@ repl = do
 
 replLoop :: IO ()
 replLoop = do
-  putStr "> " >> hFlush stdout
+  putStr "> "
+  hFlush stdout
   eof <- isEOF
   if eof
     then putStrLn ""
     else do
       input <- getLine
-      if all isSpace input
-        then replLoop
-        else do
-          result <- runProgram input
-          case result of
-            Left err -> putStrLn ("*** ERROR : " ++ err)
-            Right VUnit -> return ()
-            Right val -> putStrLn (renderValue val)
-          replLoop
+      unless (all isSpace input) $ do
+        result <- runProgram input
+        case result of
+          Left err -> putStrLn ("*** ERROR : " ++ err)
+          Right VUnit -> return ()
+          Right val -> putStrLn (renderValue val)
+      replLoop
 
 replInteractive :: IO ()
-replInteractive =
+replInteractive = do
   putStrLn "GLaDOS REPL - Enter expressions (Ctrl+D to exit)"
-    >> replLoop
+  replLoop
 
 replNonInteractive :: IO ()
 replNonInteractive = do

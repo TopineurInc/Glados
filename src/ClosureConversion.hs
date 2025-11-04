@@ -10,8 +10,9 @@ module ClosureConversion
   , ClosureInfo(..)
   ) where
 
-import AST
 import qualified Data.Set as Set
+
+import AST
 
 data ClosureInfo = ClosureInfo
   { ciFreeVars :: [Name]
@@ -20,20 +21,24 @@ data ClosureInfo = ClosureInfo
 
 type Env = Set.Set Name
 
+-- | Perform closure conversion to prepare expressions for code generation
 closureConvert :: Expr -> Either CompileError Expr
-closureConvert expr = Right $ convertExpr Set.empty expr
+closureConvert = Right . convertExpr Set.empty
 
+-- | Convert an expression with closure analysis
 convertExpr :: Env -> Expr -> Expr
-convertExpr _ e@(EInt _) = e
-convertExpr _ e@(EFloat _) = e
-convertExpr _ e@(EBool _) = e
-convertExpr _ e@(EString _) = e
+-- Simple values and variables pass through unchanged
+convertExpr _ e@EInt{} = e
+convertExpr _ e@EFloat{} = e
+convertExpr _ e@EBool{} = e
+convertExpr _ e@EString{} = e
 convertExpr _ e@EUnit = e
-convertExpr _ e@(EVar _) = e
-convertExpr _ e@(EQuote _) = e
+convertExpr _ e@EVar{} = e
+convertExpr _ e@EQuote{} = e
+convertExpr _ e@EPackage{} = e
+convertExpr _ e@EImport{} = e
 
-convertExpr env (EList exprs) =
-  EList (map (convertExpr env) exprs)
+convertExpr env (EList exprs) = EList (map (convertExpr env) exprs)
 
 convertExpr env (ELambda params retType body ann) =
   let paramNames = map fst params
@@ -102,20 +107,17 @@ convertExpr env (EObjectInst name fieldInits) =
 convertExpr env (EMemberAccess expr member) =
   EMemberAccess (convertExpr env expr) member
 
-convertExpr _ e@(EPackage _) = e
-
-convertExpr _ e@(EImport _) = e
-
+-- | Convert a field declaration, handling optional default expressions
 convertField :: Env -> Field -> Field
-convertField env (Field name ftype mExpr) =
-  Field name ftype (fmap (convertExpr env) mExpr)
+convertField env (Field name ftype mExpr) = Field name ftype (convertExpr env <$> mExpr)
 
+-- | Convert a method, extending environment with parameters
 convertMethod :: Env -> Method -> Method
-convertMethod env (Method name params retType body) =
-  let paramNames = map fst params
-      env' = env `Set.union` Set.fromList paramNames
-      body' = convertExpr env' body
-  in Method name params retType body'
+convertMethod env (Method name params retType body) = Method name params retType body'
+  where
+    paramNames = map fst params
+    env' = env `Set.union` Set.fromList paramNames
+    body' = convertExpr env' body
 
 getFreeVars :: Set.Set Name -> Expr -> Set.Set Name
 getFreeVars bound (EVar name)

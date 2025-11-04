@@ -13,11 +13,12 @@ module AlphaRename
   , runRename
   ) where
 
-import AST
 import Control.Monad (foldM)
-import Control.Monad.State
+import Control.Monad.State (MonadState, State, get, modify, put, runState)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+
+import AST
 
 type Env = Map.Map Name Name
 type FreeVars = Set.Set Name
@@ -30,23 +31,26 @@ data RenameState = RenameState
 newtype RenameM a = RenameM { unRenameM :: State RenameState a }
   deriving (Functor, Applicative, Monad, MonadState RenameState)
 
+-- | Run the rename monad and return result with free variables
 runRename :: RenameM a -> (a, FreeVars)
-runRename m =
-  let (result, st) = runState (unRenameM m) (RenameState 0 Set.empty)
-  in (result, rsFreeVars st)
+runRename m = (result, rsFreeVars st)
+  where (result, st) = runState (unRenameM m) (RenameState 0 Set.empty)
 
+-- | Generate a fresh symbol with the given base name
 gensym :: Name -> RenameM Name
 gensym base = do
   st <- get
   let counter = rsCounter st
   put st { rsCounter = counter + 1 }
-  return $ base ++ "#" ++ show counter
+  pure $ base ++ "#" ++ show counter
 
+-- | Record a free variable
 addFreeVar :: Name -> RenameM ()
 addFreeVar name = modify $ \st -> st { rsFreeVars = Set.insert name (rsFreeVars st) }
 
+-- | Perform alpha renaming to ensure unique variable names
 alphaRename :: Expr -> Either CompileError Expr
-alphaRename expr = Right $ fst $ runRename (renameExpr Map.empty expr)
+alphaRename expr = Right . fst . runRename $ renameExpr Map.empty expr
 
 renameExpr :: Env -> Expr -> RenameM Expr
 renameExpr _ (EInt n) = return $ EInt n

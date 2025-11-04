@@ -2,19 +2,16 @@
 -- EPITECH PROJECT, 2025
 -- glados
 -- File description:
--- Lib
+-- Lib - Utility module for development/testing
 -}
 
-module Lib
-    ( someFunc
-    ) where
+module Lib (someFunc) where
 
-import SExprParser (parseFromString)
 import SExprConstruct (sourceFromSExprs)
+import SExprParser (parseFromString)
 
+-- | Test function for parsing and reconstructing S-expressions
 someFunc :: IO ()
 someFunc = do
   contents <- readFile "ok.lsp"
-  case parseFromString contents of
-    Left err -> print err
-    Right exprs -> putStr $ sourceFromSExprs exprs
+  either print (putStr . sourceFromSExprs) $ parseFromString contents

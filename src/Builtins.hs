@@ -38,10 +38,11 @@ module Builtins
   , builtinListGet
   ) where
 
-import AST
 import qualified Data.Map as Map
 import System.IO (hFlush, stdout)
 import Text.Read (readMaybe)
+
+import AST
 
 builtins :: Map.Map Name Value
 builtins = Map.fromList
@@ -85,26 +86,22 @@ builtins = Map.fromList
   , ("__list_get", VBuiltin "__list_get" builtinListGet)
   ]
 
+-- | Helper for numeric binary operations supporting mixed Int/Float types
+numericBinOp :: (Integer -> Integer -> Integer) -> (Double -> Double -> Double) -> String -> [Value] -> IO Value
+numericBinOp intOp _ _ [VInt a, VInt b] = pure $ VInt (intOp a b)
+numericBinOp _ floatOp _ [VFloat a, VFloat b] = pure $ VFloat (floatOp a b)
+numericBinOp _ floatOp _ [VInt a, VFloat b] = pure $ VFloat (floatOp (fromInteger a) b)
+numericBinOp _ floatOp _ [VFloat a, VInt b] = pure $ VFloat (floatOp a (fromInteger b))
+numericBinOp _ _ name _ = error $ "Type error: " ++ name ++ " expects two numbers"
+
 builtinAdd :: [Value] -> IO Value
-builtinAdd [VInt a, VInt b] = return $ VInt (a + b)
-builtinAdd [VFloat a, VFloat b] = return $ VFloat (a + b)
-builtinAdd [VInt a, VFloat b] = return $ VFloat (fromInteger a + b)
-builtinAdd [VFloat a, VInt b] = return $ VFloat (a + fromInteger b)
-builtinAdd _ = error "Type error: + expects two numbers"
+builtinAdd = numericBinOp (+) (+) "+"
 
 builtinSub :: [Value] -> IO Value
-builtinSub [VInt a, VInt b] = return $ VInt (a - b)
-builtinSub [VFloat a, VFloat b] = return $ VFloat (a - b)
-builtinSub [VInt a, VFloat b] = return $ VFloat (fromInteger a - b)
-builtinSub [VFloat a, VInt b] = return $ VFloat (a - fromInteger b)
-builtinSub _ = error "Type error: - expects two numbers"
+builtinSub = numericBinOp (-) (-) "-"
 
 builtinMul :: [Value] -> IO Value
-builtinMul [VInt a, VInt b] = return $ VInt (a * b)
-builtinMul [VFloat a, VFloat b] = return $ VFloat (a * b)
-builtinMul [VInt a, VFloat b] = return $ VFloat (fromInteger a * b)
-builtinMul [VFloat a, VInt b] = return $ VFloat (a * fromInteger b)
-builtinMul _ = error "Type error: * expects two numbers"
+builtinMul = numericBinOp (*) (*) "*"
 
 builtinDiv :: [Value] -> IO Value
 builtinDiv [VInt a, VInt b]
@@ -127,33 +124,25 @@ builtinEq [VBool a, VBool b] = return $ VBool (a == b)
 builtinEq [VString a, VString b] = return $ VBool (a == b)
 builtinEq _ = return $ VBool False
 
+-- | Helper for comparison operations
+numericCmpOp :: (Integer -> Integer -> Bool) -> (Double -> Double -> Bool) -> String -> [Value] -> IO Value
+numericCmpOp intCmp _ _ [VInt a, VInt b] = pure $ VBool (intCmp a b)
+numericCmpOp _ floatCmp _ [VFloat a, VFloat b] = pure $ VBool (floatCmp a b)
+numericCmpOp _ floatCmp _ [VInt a, VFloat b] = pure $ VBool (floatCmp (fromInteger a) b)
+numericCmpOp _ floatCmp _ [VFloat a, VInt b] = pure $ VBool (floatCmp a (fromInteger b))
+numericCmpOp _ _ name _ = error $ "Type error: " ++ name ++ " expects two numbers"
+
 builtinLt :: [Value] -> IO Value
-builtinLt [VInt a, VInt b] = return $ VBool (a < b)
-builtinLt [VFloat a, VFloat b] = return $ VBool (a < b)
-builtinLt [VInt a, VFloat b] = return $ VBool (fromInteger a < b)
-builtinLt [VFloat a, VInt b] = return $ VBool (a < fromInteger b)
-builtinLt _ = error "Type error: < expects two numbers"
+builtinLt = numericCmpOp (<) (<) "<"
 
 builtinGt :: [Value] -> IO Value
-builtinGt [VInt a, VInt b] = return $ VBool (a > b)
-builtinGt [VFloat a, VFloat b] = return $ VBool (a > b)
-builtinGt [VInt a, VFloat b] = return $ VBool (fromInteger a > b)
-builtinGt [VFloat a, VInt b] = return $ VBool (a > fromInteger b)
-builtinGt _ = error "Type error: > expects two numbers"
+builtinGt = numericCmpOp (>) (>) ">"
 
 builtinLte :: [Value] -> IO Value
-builtinLte [VInt a, VInt b] = return $ VBool (a <= b)
-builtinLte [VFloat a, VFloat b] = return $ VBool (a <= b)
-builtinLte [VInt a, VFloat b] = return $ VBool (fromInteger a <= b)
-builtinLte [VFloat a, VInt b] = return $ VBool (a <= fromInteger b)
-builtinLte _ = error "Type error: <= expects two numbers"
+builtinLte = numericCmpOp (<=) (<=) "<="
 
 builtinGte :: [Value] -> IO Value
-builtinGte [VInt a, VInt b] = return $ VBool (a >= b)
-builtinGte [VFloat a, VFloat b] = return $ VBool (a >= b)
-builtinGte [VInt a, VFloat b] = return $ VBool (fromInteger a >= b)
-builtinGte [VFloat a, VInt b] = return $ VBool (a >= fromInteger b)
-builtinGte _ = error "Type error: >= expects two numbers"
+builtinGte = numericCmpOp (>=) (>=) ">="
 
 builtinPrint :: [Value] -> IO Value
 builtinPrint [val] =
@@ -175,17 +164,12 @@ builtinInput :: [Value] -> IO Value
 builtinInput [VString prompt] = do
   putStr prompt
   hFlush stdout
-  line <- getLine
-  return $ VString line
-builtinInput [] = do
-  line <- getLine
-  return $ VString line
+  VString <$> getLine
+builtinInput [] = VString <$> getLine
 builtinInput _ = error "Type error: input expects zero or one argument (prompt)"
 
 builtinReadLine :: [Value] -> IO Value
-builtinReadLine [] = do
-  line <- getLine
-  return $ VString line
+builtinReadLine [] = VString <$> getLine
 builtinReadLine _ = error "Type error: read-line expects no arguments"
 
 builtinStringToNumber :: [Value] -> IO Value
