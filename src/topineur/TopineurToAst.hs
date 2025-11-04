@@ -111,17 +111,13 @@ blockStmtsToExpr (T.SLet _loc pat expr : rest) = do
   body <- blockStmtsToExpr rest
   case pat of
     T.PVarPat _ name _ ->
-      -- Simple variable binding: wrap body in lambda application
       Right $ EApp (ELambda [(name, Nothing)] Nothing body []) [expr']
     T.PTuplePat _ _pats -> do
       names <- patternToNames pat
-      -- Tuple destructuring: use ETupleDestruct
       Right $ ETupleDestruct names expr' body
 blockStmtsToExpr (stmt : rest) = do
-  -- For non-let statements, just convert to a sequence
   expr <- stmtToExpr stmt
   restExpr <- blockStmtsToExpr rest
-  -- Create a sequence: evaluate expr, then restExpr
   case restExpr of
     EUnit -> Right expr  -- Last statement, just return it
     _ -> Right $ EApp (ELambda [("_", Nothing)] Nothing restExpr []) [expr]
