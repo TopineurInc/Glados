@@ -243,7 +243,7 @@ stringToBinOp = \case
 typeAnnToType :: T.TypeAnn -> Either CompileError Type
 typeAnnToType = \case
   T.TIdent _loc name -> typeNameToType name
-  T.TUpperIdent _loc name -> typeNameToType name  -- Also check upper idents for primitives
+  T.TUpperIdent _loc name -> Right $ TObject name
   T.TGeneric _loc name args -> do
     args' <- mapM typeAnnToType args
     case name of

@@ -1,0 +1,24 @@
+package std_core
+
+|- Core functional helpers
+
+def core_identity(value: Any): Any {
+  top value
+}
+
+def core_const(value: Any, ignored: Any): Any {
+  top value
+}
+
+def core_tap(value: Any, effect: Any): Any {
+  let _ignored = effect(value)
+  top value
+}
+
+def core_apply_twice(value: Any, func: Any): Any {
+  top func(func(value))
+}
+
+def core_pipe(value: Any, func: Any): Any {
+  top func(value)
+}

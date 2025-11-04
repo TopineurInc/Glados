@@ -245,6 +245,7 @@ data Frame = Frame
   , fStack :: [Value]
   , fCode :: CodeObject
   , fPC :: Int
+  , fMemoInfo :: Maybe (Name, [Value])  -- For memoization: (funcName, args)
   } deriving (Eq, Show, Generic)
 
 data VMState = VMState
@@ -252,4 +253,5 @@ data VMState = VMState
   , vGlobals :: Map.Map Name Value
   , vCodeObjects :: Map.Map Name CodeObject
   , vBuiltins :: Map.Map Name Value
+  , vMemoCache :: [(Name, [Value], Value)]  -- Function memoization cache
   } deriving (Eq, Show, Generic)

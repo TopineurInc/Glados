@@ -1,0 +1,28 @@
+package std_collections_list
+
+|- Thin wrappers around runtime list primitives
+
+def list_length(items: List[Any]): Int {
+  top __list_length(items)
+}
+
+def list_is_empty(items: List[Any]): Bool {
+  top list_length(items) == 0
+}
+
+def list_head(items: List[Any]): Any {
+  if list_is_empty(items) then top nil else top __list_get(items, 0)
+}
+
+def list_last(items: List[Any]): Any {
+  let size = list_length(items)
+  if size == 0 then top nil else top __list_get(items, size - 1)
+}
+
+def list_concat(left: List[Any], right: List[Any]): List[Any] {
+  top __list_append(left, right)
+}
+
+def list_single(value: Any): List[Any] {
+  top __list_single(value)
+}

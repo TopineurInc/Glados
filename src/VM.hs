@@ -31,6 +31,7 @@ initVMState = VMState
   , vGlobals = Map.empty
   , vCodeObjects = Map.empty
   , vBuiltins = builtins
+  , vMemoCache = []
   }
 
 execVM :: VMState -> CodeObject -> IO (Either VMError Value)
@@ -40,6 +41,7 @@ execVM vmState code =
         , fStack = []
         , fCode = code
         , fPC = 0
+        , fMemoInfo = Nothing
         }
       vmState' = vmState { vFrames = [initialFrame] }
   in runVM vmState'
@@ -111,12 +113,18 @@ executeInstr vmState frame instr = case instr of
 
   IReturn -> case fStack frame of
     [] -> return $ Left StackUnderflow
-    (val:_) -> case vFrames vmState of
-      [] -> return $ Left $ RuntimeError "No frames for return"
-      [_] -> return $ Right (vmState, Just val)
-      (_:callerFrame:rest) ->
-        let callerFrame' = callerFrame { fStack = val : fStack callerFrame, fPC = fPC callerFrame + 1 }
-        in return $ Right (vmState { vFrames = callerFrame' : rest }, Nothing)
+    (val:_) ->
+      -- Store result in memoization cache if this frame has memo info
+      let vmState' = case fMemoInfo frame of
+            Just (funcName, args) ->
+              vmState { vMemoCache = (funcName, args, val) : vMemoCache vmState }
+            Nothing -> vmState
+      in case vFrames vmState' of
+        [] -> return $ Left $ RuntimeError "No frames for return"
+        [_] -> return $ Right (vmState', Just val)
+        (_:callerFrame:rest) ->
+          let callerFrame' = callerFrame { fStack = val : fStack callerFrame, fPC = fPC callerFrame + 1 }
+          in return $ Right (vmState' { vFrames = callerFrame' : rest }, Nothing)
 
   IJump target ->
     let frame' = frame { fPC = target }
@@ -301,12 +309,23 @@ builtinArity op = case op of
   "string->number" -> 1
   "number->string" -> 1
   "string-length" -> 1
+  "__string_length" -> 1
   "string-append" -> 2
+  "__string_append" -> 2
   "substring" -> 3
+  "__substring" -> 3
   "not" -> 1
   "and" -> 2
   "or" -> 2
   "show" -> 1
+  "list-length" -> 1
+  "__list_length" -> 1
+  "list-append" -> 2
+  "__list_append" -> 2
+  "list-single" -> 1
+  "__list_single" -> 1
+  "list-get" -> 2
+  "__list_get" -> 2
   _ -> 2
 
 executePrim :: VMState -> Frame -> String -> IO (Either VMError (VMState, Maybe Value))
@@ -323,6 +342,14 @@ executePrim vmState frame op =
           let frame' = frame { fStack = result : stack', fPC = fPC frame + 1 }
           return $ Right (updateFrame vmState frame', Nothing)
     Just _ -> return $ Left $ TypeError "Not a builtin function"
+
+-- Helper function to lookup in memoization cache
+lookupMemoCache :: [(Name, [Value], Value)] -> Name -> [Value] -> Maybe Value
+lookupMemoCache cache funcName args =
+  case [v | (n, a, v) <- cache, n == funcName && a == args] of
+    (result:_) -> Just result
+    [] -> Nothing
+
 executeCall :: VMState -> Frame -> Int -> Name -> Bool -> IO (Either VMError (VMState, Maybe Value))
 executeCall vmState frame arity funcName isTail =
   let (args, stackAfterArgs) = splitAt arity (fStack frame)
@@ -343,23 +370,34 @@ executeCall vmState frame arity funcName isTail =
           Nothing ->
             case Map.lookup funcName (vCodeObjects vmState) of
               Just code ->
-                let newLocals = Vector.replicate (coMaxLocals code) Nothing
-                    argsVector = Vector.fromList (map Just (reverse args))
-                    newLocals' = newLocals Vector.// zip [0..] (Vector.toList argsVector)
-                    newFrame = Frame
-                      { fLocals = newLocals'
-                      , fStack = []
-                      , fCode = code
-                      , fPC = 0
-                      }
-                    frame' = frame { fStack = stackAfterArgs }
-                in case vFrames vmState of
-                  (_:rest) ->
-                    let vmState' = if isTail
-                          then vmState { vFrames = newFrame : rest }
-                          else vmState { vFrames = newFrame : frame' : rest }
-                    in return $ Right (vmState', Nothing)
-                  [] -> return $ Left $ RuntimeError "No frames for function call"
+                -- Check memoization cache first
+                case lookupMemoCache (vMemoCache vmState) funcName (reverse args) of
+                  Just cachedResult ->
+                    -- Cache hit! Return cached result directly
+                    let frame' = frame { fStack = cachedResult : stackAfterArgs, fPC = fPC frame + 1 }
+                    in case vFrames vmState of
+                      (_:rest) -> return $ Right (vmState { vFrames = frame' : rest }, Nothing)
+                      [] -> return $ Left $ RuntimeError "No frames for memoized call"
+                  Nothing ->
+                    -- Cache miss, proceed with normal function call
+                    let newLocals = Vector.replicate (coMaxLocals code) Nothing
+                        argsVector = Vector.fromList (map Just (reverse args))
+                        newLocals' = newLocals Vector.// zip [0..] (Vector.toList argsVector)
+                        newFrame = Frame
+                          { fLocals = newLocals'
+                          , fStack = []
+                          , fCode = code
+                          , fPC = 0
+                          , fMemoInfo = Just (funcName, reverse args)
+                          }
+                        frame' = frame { fStack = stackAfterArgs }
+                    in case vFrames vmState of
+                      (_:rest) ->
+                        let vmState' = if isTail
+                              then vmState { vFrames = newFrame : rest }
+                              else vmState { vFrames = newFrame : frame' : rest }
+                        in return $ Right (vmState', Nothing)
+                      [] -> return $ Left $ RuntimeError "No frames for function call"
               Nothing -> return $ Left $ UndefinedFunction funcName
 
 callClosure :: VMState -> Frame -> [Value] -> [Value] -> Bool -> IO (Either VMError (VMState, Maybe Value))
@@ -383,6 +421,7 @@ callClosure vmState frame args stackAfterArgs isTail =
                     , fStack = []
                     , fCode = code
                     , fPC = 0
+                    , fMemoInfo = Just (name, reverse args)
                     }
                   frame' = frame { fStack = stackRest }
               in case vFrames vmState of
