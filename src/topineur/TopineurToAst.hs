@@ -93,49 +93,22 @@ patternToName = \case
   T.PTuplePat _ _pats ->
     Left $ SyntaxError "Tuple pattern destructuring not yet fully supported" Nothing
 
--- Extract names from a pattern (for tuple destructuring)
-patternToNames :: T.Pattern -> Either CompileError [Name]
-patternToNames = \case
-  T.PVarPat _ name _ -> Right [name]
-  T.PTuplePat _ pats -> concat <$> mapM patternToNames pats
-
 blockToExpr :: T.Block -> Either CompileError Expr
-blockToExpr (T.Block _ stmts) = blockStmtsToExpr stmts
-
--- Convert a list of statements to an expression, handling let bindings properly
-blockStmtsToExpr :: [T.Stmt] -> Either CompileError Expr
-blockStmtsToExpr [] = Right EUnit
-blockStmtsToExpr [stmt] = stmtToExpr stmt
-blockStmtsToExpr (T.SLet _loc pat expr : rest) = do
-  expr' <- expressionToExpr expr
-  body <- blockStmtsToExpr rest
-  case pat of
-    T.PVarPat _ name _ ->
-      Right $ EApp (ELambda [(name, Nothing)] Nothing body []) [expr']
-    T.PTuplePat _ _pats -> do
-      names <- patternToNames pat
-      Right $ ETupleDestruct names expr' body
-blockStmtsToExpr (stmt : rest) = do
-  expr <- stmtToExpr stmt
-  restExpr <- blockStmtsToExpr rest
-  case restExpr of
-    EUnit -> Right expr  -- Last statement, just return it
-    _ -> Right $ EApp (ELambda [("_", Nothing)] Nothing restExpr []) [expr]
+blockToExpr (T.Block _ stmts) = do
+  exprs <- mapM stmtToExpr stmts
+  case exprs of
+    [] -> Right EUnit
+    [e] -> Right e
+    es -> Right $ EList es
 
 stmtToExpr :: T.Stmt -> Either CompileError Expr
 stmtToExpr = \case
   T.STop _ expr -> expressionToExpr expr
 
   T.SLet _loc pat expr -> do
-    -- This case handles standalone let (not in a block context)
+    name <- patternToName pat
     expr' <- expressionToExpr expr
-    case pat of
-      T.PVarPat _ name _ ->
-        Right $ EDefine name expr' []
-      T.PTuplePat _ _pats -> do
-        names <- patternToNames pat
-        -- Standalone tuple destructuring - create a tuple destruct with Unit body
-        Right $ ETupleDestruct names expr' EUnit
+    Right $ EDefine name expr' []
 
   T.SIf _loc cond thenStmt elseStmt -> do
     cond' <- expressionToExpr cond
@@ -186,7 +159,7 @@ expressionToExpr :: T.Expression -> Either CompileError Expr
 expressionToExpr = \case
   T.EVar _ name -> Right $ EVar name
 
-  T.ESelf _ -> Right $ EVar "self"  -- self is treated as a special variable
+  T.ESelf _ -> Left $ SyntaxError "self keyword not yet supported" Nothing
 
   T.EInt _ n -> Right $ EInt n
 
@@ -255,11 +228,8 @@ expressionToExpr = \case
   T.EParens _ expr -> expressionToExpr expr
 
 fieldAssignToPair :: T.FieldAssign -> Either CompileError (Name, Expr)
-fieldAssignToPair (T.FieldAssign _ (Left (_expr, name)) expr) = do
-  -- Bitfield assignment: obj.field = value
-  -- For now, we ignore the base expression and just use the field name
-  expr' <- expressionToExpr expr
-  Right (name, expr')
+fieldAssignToPair (T.FieldAssign _ (Left (_expr, _name)) _) =
+  Left $ SyntaxError "Bitfield assignment not yet supported" Nothing
 fieldAssignToPair (T.FieldAssign _ (Right name) expr) = do
   expr' <- expressionToExpr expr
   Right (name, expr')

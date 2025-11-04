@@ -28,7 +28,6 @@ import TopineurParser
 import TopineurToAst
 import qualified Data.Map as Map
 import Data.Map (Map)
-import qualified Data.Vector as Vector
 import Data.Maybe (mapMaybe)
 import Control.Monad (when)
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
@@ -255,18 +254,6 @@ compileDefinition _config (EDefine name body _) = do
       converted <- closureConvert renamed
       code <- generateCode name converted
       Right (name, code)
-
-compileDefinition _config (EObjectDecl name _fields _methods) = do
-  -- For now, object declarations are compiled as empty code objects
-  -- Proper implementation would create a constructor and type info
-  Right (name, CodeObject
-    { coName = name
-    , coArity = 0
-    , coMaxLocals = 0
-    , coConsts = Vector.empty
-    , coInstrs = Vector.empty
-    , coLabelMap = Map.empty
-    })
       
 compileDefinition _ _expr = Left $ SyntaxError "Expected definition" Nothing
 
