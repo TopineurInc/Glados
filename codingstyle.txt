@@ -1,0 +1,167 @@
+./app/Main.hs:31: MINOR:H-F4 # too long function
+./app/Main.hs:74: MINOR:H-F4 # too long function
+./app/Main.hs:80: MINOR:H-F3 # too long line
+./app/Main.hs:88: MINOR:H-F4 # too long function
+./app/Main.hs:95: MINOR:H-F3 # too long line
+./app/Main.hs:108: MINOR:H-F4 # too long function
+./app/Main.hs:114: MINOR:H-F3 # too long line
+./app/Main.hs:124: MINOR:H-F4 # too long function
+./app/Main.hs:131: MINOR:H-F3 # too long line
+./app/Main.hs:132: MINOR:H-F3 # too long line
+./app/Main.hs:145: MINOR:H-F4 # too long function
+./app/Main.hs:163: MINOR:H-C5 # guard should be a pattern
+./app/Main.hs:178: MINOR:H-F4 # too long function
+./app/Main.hs:192: MINOR:H-F4 # too long function
+./app/Main.hs:217: MINOR:H-F4 # too long function
+./app/Main.hs:240: MINOR:H-F4 # too long function
+./app/Main.hs:254: MINOR:H-F4 # too long function
+./app/Main.hs:268: MINOR:H-F4 # too long function
+./app/Main.hs:298: MAJOR:H-C4 # nested ifs
+./app/Main.hs:300: MINOR:H-F4 # too long function
+./src/AlphaRename.hs:46: MINOR:H-F3 # too long line
+./src/AlphaRename.hs:75: MINOR:H-F4 # too long function
+./src/AlphaRename.hs:185: MINOR:H-F4 # too long function
+./src/AlphaRename.hs:201: MAJOR:H-D1 # useless do
+./src/AlphaRename.hs:201: MINOR:H-F4 # too long function
+./src/Disasm.hs:38: MINOR:H-F3 # too long line
+./src/Disasm.hs:46: MINOR:H-F3 # too long line
+./src/Disasm.hs:52: MINOR:H-F3 # too long line
+./src/Builtins.hs:44: MINOR:H-F4 # too long function
+./src/Builtins.hs:149: MAJOR:H-D1 # useless do
+./src/Builtins.hs:168: MINOR:H-F3 # too long line
+./src/Builtins.hs:223: MINOR:H-F3 # too long line
+./src/Builtins.hs:253: MINOR:H-F3 # too long line
+./src/Builtins.hs:257: MINOR:H-F3 # too long line
+./src/Builtins.hs:270: MINOR:H-F3 # too long line
+./src/Builtins.hs:274: MINOR:H-F3 # too long line
+./src/ClosureConversion.hs:61: MINOR:H-F3 # too long line
+./src/TypeChecker.hs:63: MINOR:H-F4 # too long function
+./src/TypeChecker.hs:105: MINOR:H-F3 # too long line
+./src/TypeChecker.hs:136: MINOR:H-F4 # too long function
+./src/TypeChecker.hs:144: MAJOR:H-D1 # useless do
+./src/TypeChecker.hs:147: MINOR:H-F3 # too long line
+./src/TypeChecker.hs:159: MINOR:H-C5 # guard should be a pattern
+./src/TypeChecker.hs:159: MINOR:H-C5 # guard should be a pattern
+./src/TypeChecker.hs:191: MINOR:H-F4 # too long function
+./src/TypeChecker.hs:228: MINOR:H-F4 # too long function
+./src/TypeChecker.hs:270: MINOR:H-F4 # too long function
+./src/TypeChecker.hs:308: MINOR:H-F4 # too long function
+./src/TypeChecker.hs:313: MAJOR:H-D1 # useless do
+./src/TypeChecker.hs:322: MAJOR:H-D1 # useless do
+./src/VM.hs:51: MINOR:H-F4 # too long function
+./src/VM.hs:95: MINOR:H-F3 # too long line
+./src/VM.hs:103: MINOR:H-F3 # too long line
+./src/VM.hs:118: MINOR:H-F3 # too long line
+./src/VM.hs:161: MINOR:H-F3 # too long line
+./src/VM.hs:172: MINOR:H-F3 # too long line
+./src/VM.hs:216: MINOR:H-F4 # too long function
+./src/VM.hs:237: MINOR:H-F3 # too long line
+./src/VM.hs:245: MINOR:H-F3 # too long line
+./src/VM.hs:265: MINOR:H-F3 # too long line
+./src/VM.hs:272: MINOR:H-F3 # too long line
+./src/VM.hs:279: MINOR:H-F3 # too long line
+./src/VM.hs:285: MINOR:H-F4 # too long function
+./src/VM.hs:314: MINOR:H-F4 # too long function
+./src/VM.hs:329: MAJOR:H-C4 # nested ifs
+./src/VM.hs:338: MINOR:H-F3 # too long line
+./src/VM.hs:340: MINOR:H-F3 # too long line
+./src/VM.hs:346: MINOR:H-F4 # too long function
+./src/VM.hs:348: MINOR:H-F3 # too long line
+./src/VM.hs:362: MINOR:H-F3 # too long line
+./src/VM.hs:375: MINOR:H-F4 # too long function
+./src/VM.hs:380: MINOR:H-F3 # too long line
+./src/VM.hs:394: MINOR:H-F3 # too long line
+./src/lisp/parser/SExprParser.hs:27: MINOR:H-F3 # too long line
+./src/Desugar.hs contains forbidden extensions
+./src/Compiler.hs:51: MINOR:H-F4 # too long function
+./src/Compiler.hs:65: MINOR:H-F3 # too long line
+./src/Compiler.hs:77: MINOR:H-F4 # too long function
+./src/Compiler.hs:91: MINOR:H-F3 # too long line
+./src/Compiler.hs:113: MINOR:H-F4 # too long function
+./src/Compiler.hs:113: MINOR:H-F3 # too long line
+./src/Compiler.hs:114: MINOR:H-F3 # too long line
+./src/Compiler.hs:117: MINOR:H-F3 # too long line
+./src/Compiler.hs:119: MINOR:H-F3 # too long line
+./src/Compiler.hs:120: MINOR:H-F3 # too long line
+./src/Compiler.hs:135: MINOR:H-F4 # too long function
+./src/Compiler.hs:155: MINOR:H-F4 # too long function
+./src/Compiler.hs:162: MINOR:H-F3 # too long line
+./src/Compiler.hs:180: MINOR:H-F4 # too long function
+./src/Compiler.hs:187: MINOR:H-F3 # too long line
+./src/Compiler.hs:206: MAJOR:H-D1 # useless do
+./src/Compiler.hs:210: MINOR:H-F4 # too long function
+./src/Compiler.hs:235: MAJOR:H-D1 # useless do
+./src/Compiler.hs:236: MINOR:H-F4 # too long function
+./src/Compiler.hs:243: MINOR:H-F3 # too long line
+./src/MacroExpander.hs:53: MINOR:H-F3 # too long line
+./src/MacroExpander.hs:64: MINOR:H-F3 # too long line
+./src/MacroExpander.hs:69: MINOR:H-F3 # too long line
+./src/MacroExpander.hs:83: MINOR:H-F3 # too long line
+./src/CodeGen.hs:57: MINOR:H-F4 # too long function
+./src/CodeGen.hs:57: MINOR:H-F3 # too long line
+./src/CodeGen.hs:129: MINOR:H-F4 # too long function
+./src/CodeGen.hs:148: MINOR:H-F3 # too long line
+./src/CodeGen.hs:155: MINOR:H-F4 # too long function
+./src/CodeGen.hs:185: MINOR:H-F4 # too long function
+./src/CodeGen.hs:188: MINOR:H-F3 # too long line
+./src/CodeGen.hs:213: MINOR:H-F4 # too long function
+./src/CodeGen.hs:231: MINOR:H-F4 # too long function
+./src/CodeGen.hs:261: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:266: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:271: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:274: MINOR:H-F4 # too long function
+./src/CodeGen.hs:285: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:292: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:294: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:304: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:311: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:316: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:320: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:326: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:338: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:342: MAJOR:H-D1 # useless do
+./src/CodeGen.hs:365: MINOR:H-F4 # too long function
+./src/CodeGen.hs:382: MINOR:H-F4 # too long function
+./src/CodeGen.hs:397: MINOR:H-F3 # too long line
+./src/topineur/parser/TopineurParserPattern.hs:24: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserPattern.hs:44: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserPattern.hs:58: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserTopLevel.hs:89: MAJOR:H-D1 # useless do
+./src/topineur/parser/TopineurParserTopLevel.hs:109: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserTypes.hs:117: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserUtils.hs:1: MINOR:H-G1 # ./src/topineur/parser/TopineurParserUtils.hs has a badly formatted Epitech header
+./src/topineur/parser/TopineurParserUtils.hs:40: MINOR:H-F3 # too long line
+./src/topineur/parser/TopineurParserUtils.hs:52: MINOR:H-F3 # too long line
+./src/topineur/parser/TopineurParserUtils.hs:111: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserUtils.hs:115: MAJOR:H-D1 # useless do
+./src/topineur/parser/TopineurParserUtils.hs:120: MINOR:H-F3 # too long line
+./src/topineur/parser/TopineurParserUtils.hs:127: MINOR:H-F3 # too long line
+./src/topineur/parser/TopineurParserUtils.hs:130: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserUtils.hs:144: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserUtils.hs:158: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserUtils.hs:170: MAJOR:H-D1 # useless do
+./src/topineur/parser/TopineurParserStatements.hs:41: MINOR:H-F3 # too long line
+./src/topineur/parser/TopineurParserStatements.hs:44: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserStatements.hs:53: MINOR:H-F3 # too long line
+./src/topineur/parser/TopineurParserStatements.hs:71: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserStatements.hs:88: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserStatements.hs:104: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserStatements.hs:127: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserStatements.hs:148: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserStatements.hs:172: MINOR:H-F3 # too long line
+./src/topineur/parser/TopineurParserStatements.hs:175: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserStatements.hs:184: MINOR:H-F3 # too long line
+./src/topineur/parser/TopineurParserStatements.hs:203: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserExpressions.hs:50: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserExpressions.hs:64: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserExpressions.hs:85: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserExpressions.hs:113: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserExpressions.hs:153: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserExpressions.hs:177: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserExpressions.hs:226: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserExpressions.hs:265: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserExpressions.hs:283: MINOR:H-F3 # too long line
+./src/topineur/parser/TopineurParserExpressions.hs:320: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserExpressions.hs:361: MINOR:H-F4 # too long function
+./src/topineur/parser/TopineurParserSymbols.hs:34: MINOR:H-F3 # too long line
+./src/topineur/TopineurToAst.hs contains forbidden extensions
