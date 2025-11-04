@@ -1,0 +1,25 @@
+package main
+
+|- This test should PASS type checking
+|- It demonstrates proper type usage with functions, if expressions, and operations
+
+def isPositive(n: Int): Bool {
+  top n > 0
+}
+
+def absolute(n: Int): Int {
+  if n < 0 then top n * 1
+  else then top n
+}
+
+def compute(a: Int, b: Int): Int {
+  if isPositive(a) then top absolute(a) + b
+  else then top absolute(b) - a
+}
+
+def main(): Int {
+  println("Testing type checker with valid types")
+  println(show(compute(5, 10)))
+  println(show(compute(15, 3)))
+  top 0
+}

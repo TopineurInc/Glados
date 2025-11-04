@@ -144,6 +144,126 @@ executeInstr vmState frame instr = case instr of
     let frame' = frame { fPC = fPC frame + 1 }
     in return $ Right (updateFrame vmState frame', Nothing)
 
+  IMakeClosure name slots -> 
+    let capturedValues = map (\slot -> fLocals frame Vector.! slot) slots
+        values = [val | Just val <- capturedValues]
+        closure = VClosure name values
+        frame' = frame { fStack = closure : fStack frame, fPC = fPC frame + 1 }
+    in return $ Right (updateFrame vmState frame', Nothing)
+
+  ILoadClosure slot -> case fStack frame of
+    [] -> return $ Left StackUnderflow
+    (VClosure _ env : _) ->
+      if slot >= length env
+        then return $ Left $ RuntimeError "Closure slot out of bounds"
+        else
+          let val = env !! slot
+              frame' = frame { fStack = val : fStack frame, fPC = fPC frame + 1 }
+          in return $ Right (updateFrame vmState frame', Nothing)
+    _ -> return $ Left $ TypeError "Expected closure on stack for ILoadClosure"
+
+  IStoreClosure slot -> case fStack frame of
+    (val : VClosure name env : stack') ->
+      if slot >= length env
+        then return $ Left $ RuntimeError "Closure slot out of bounds"
+        else
+          let env' = take slot env ++ [val] ++ drop (slot + 1) env
+              closure' = VClosure name env'
+              frame' = frame { fStack = closure' : stack', fPC = fPC frame + 1 }
+          in return $ Right (updateFrame vmState frame', Nothing)
+    _ -> return $ Left StackUnderflow
+
+  ITupleCreate n ->
+    let (elements, stack') = splitAt n (fStack frame)
+    in if length elements < n
+      then return $ Left StackUnderflow
+      else
+        let tuple = VTuple (reverse elements)
+            frame' = frame { fStack = tuple : stack', fPC = fPC frame + 1 }
+        in return $ Right (updateFrame vmState frame', Nothing)
+
+  ITupleGet idx -> case fStack frame of
+    [] -> return $ Left StackUnderflow
+    (VTuple elements : stack') ->
+      if idx >= length elements
+        then return $ Left $ RuntimeError "Tuple index out of bounds"
+        else
+          let val = elements !! idx
+              frame' = frame { fStack = val : stack', fPC = fPC frame + 1 }
+          in return $ Right (updateFrame vmState frame', Nothing)
+    _ -> return $ Left $ TypeError "Expected tuple on stack"
+
+  IListCreate n ->
+    let (elements, stack') = splitAt n (fStack frame)
+    in if length elements < n
+      then return $ Left StackUnderflow
+      else
+        let list = VList (reverse elements)
+            frame' = frame { fStack = list : stack', fPC = fPC frame + 1 }
+        in return $ Right (updateFrame vmState frame', Nothing)
+
+  IListGet -> case fStack frame of
+    (VInt idx : VList elements : stack') ->
+      let i = fromInteger idx
+      in if i < 0 || i >= length elements
+        then return $ Left $ RuntimeError "List index out of bounds"
+        else
+          let val = elements !! i
+              frame' = frame { fStack = val : stack', fPC = fPC frame + 1 }
+          in return $ Right (updateFrame vmState frame', Nothing)
+    _ -> return $ Left $ TypeError "Expected index and list on stack"
+
+  IListSet -> case fStack frame of
+    (val : VInt idx : VList elements : stack') ->
+      let i = fromInteger idx
+      in if i < 0 || i >= length elements
+        then return $ Left $ RuntimeError "List index out of bounds"
+        else
+          let elements' = take i elements ++ [val] ++ drop (i + 1) elements
+              list' = VList elements'
+              frame' = frame { fStack = list' : stack', fPC = fPC frame + 1 }
+          in return $ Right (updateFrame vmState frame', Nothing)
+    _ -> return $ Left $ TypeError "Expected value, index, and list on stack"
+
+  IObjectCreate name ->
+    let obj = VObject name []
+        frame' = frame { fStack = obj : fStack frame, fPC = fPC frame + 1 }
+    in return $ Right (updateFrame vmState frame', Nothing)
+
+  IMemberGet fieldName -> case fStack frame of
+    [] -> return $ Left StackUnderflow
+    (VObject _ fields : stack') ->
+      case lookup fieldName fields of
+        Nothing -> return $ Left $ RuntimeError ("Field not found: " ++ fieldName)
+        Just val ->
+          let frame' = frame { fStack = val : stack', fPC = fPC frame + 1 }
+          in return $ Right (updateFrame vmState frame', Nothing)
+    _ -> return $ Left $ TypeError "Expected object on stack"
+
+  IMemberSet fieldName -> case fStack frame of
+    (val : VObject name fields : stack') ->
+      let fields' = (fieldName, val) : filter (\(k, _) -> k /= fieldName) fields
+          obj' = VObject name fields'
+          frame' = frame { fStack = obj' : stack', fPC = fPC frame + 1 }
+      in return $ Right (updateFrame vmState frame', Nothing)
+    _ -> return $ Left $ TypeError "Expected value and object on stack"
+
+  IRangeCreate -> case fStack frame of
+    (VInt end : VInt start : stack') ->
+      let range = [start .. end]
+          list = VList (map VInt range)
+          frame' = frame { fStack = list : stack', fPC = fPC frame + 1 }
+      in return $ Right (updateFrame vmState frame', Nothing)
+    _ -> return $ Left $ TypeError "Expected two integers on stack for range"
+
+  IWhile -> return $ Left $ InvalidInstruction "IWhile not yet implemented"
+  
+  IFor -> return $ Left $ InvalidInstruction "IFor not yet implemented"
+  
+  IBreak -> return $ Left $ InvalidInstruction "IBreak not yet implemented"
+  
+  IContinue -> return $ Left $ InvalidInstruction "IContinue not yet implemented"
+
   IAssign slot -> case fStack frame of
     [] -> return $ Left StackUnderflow
     (val:stack') ->
@@ -181,12 +301,23 @@ builtinArity op = case op of
   "string->number" -> 1
   "number->string" -> 1
   "string-length" -> 1
+  "__string_length" -> 1
   "string-append" -> 2
+  "__string_append" -> 2
   "substring" -> 3
+  "__substring" -> 3
   "not" -> 1
   "and" -> 2
   "or" -> 2
   "show" -> 1
+  "list-length" -> 1
+  "__list_length" -> 1
+  "list-append" -> 2
+  "__list_append" -> 2
+  "list-single" -> 1
+  "__list_single" -> 1
+  "list-get" -> 2
+  "__list_get" -> 2
   _ -> 2
 
 executePrim :: VMState -> Frame -> String -> IO (Either VMError (VMState, Maybe Value))

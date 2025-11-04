@@ -1,0 +1,18 @@
+package std_string
+
+|- String predicates built on runtime primitives
+
+def string_is_empty(value: String): Bool {
+  top __string_length(value) == 0
+}
+
+def string_starts_with(value: String, prefix: String): Bool {
+  let prefixLen = __string_length(prefix)
+  if prefixLen == 0 then top true else if prefixLen > __string_length(value) then top false else top __substring(value, 0, prefixLen) == prefix
+}
+
+def string_ends_with(value: String, suffix: String): Bool {
+  let suffixLen = __string_length(suffix)
+  let valueLen = __string_length(value)
+  if suffixLen == 0 then top true else if suffixLen > valueLen then top false else top __substring(value, valueLen - suffixLen, valueLen) == suffix
+}

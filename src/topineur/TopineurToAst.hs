@@ -118,14 +118,14 @@ stmtToExpr = \case
       Nothing -> Right EUnit
     Right $ EIf cond' then' else'
 
-  T.SWhile loc cond stmts -> do
+  T.SWhile _loc cond stmts -> do
     cond' <- expressionToExpr cond
-    body <- blockToExpr (T.Block loc stmts)
+    body <- blockToExpr (T.Block _loc stmts)
     Right $ EWhile cond' body
 
-  T.SFor loc var range stmts -> do
+  T.SFor _loc var range stmts -> do
     range' <- rangeToExpr range
-    body <- blockToExpr (T.Block loc stmts)
+    body <- blockToExpr (T.Block _loc stmts)
     case range' of
       ERange start end -> Right $ EFor var start end body
       _ -> Left $ SyntaxError "Invalid range expression" Nothing
@@ -242,9 +242,9 @@ stringToBinOp = \case
 
 typeAnnToType :: T.TypeAnn -> Either CompileError Type
 typeAnnToType = \case
-  T.TIdent _ name -> typeNameToType name
-  T.TUpperIdent _ name -> Right $ TObject name
-  T.TGeneric _ name args -> do
+  T.TIdent _loc name -> typeNameToType name
+  T.TUpperIdent _loc name -> Right $ TObject name
+  T.TGeneric _loc name args -> do
     args' <- mapM typeAnnToType args
     case name of
       "List" -> case args' of
@@ -252,7 +252,7 @@ typeAnnToType = \case
         _ -> Left $ SyntaxError "List type requires one type argument" Nothing
       "Tuple" -> Right $ TTuple args'
       _ -> Right $ TObject name
-  T.TTuple _ types -> do
+  T.TTuple _loc types -> do
     types' <- mapM typeAnnToType types
     Right $ TTuple types'
 

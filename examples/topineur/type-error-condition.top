@@ -1,0 +1,13 @@
+package main
+
+|- This test should fail type checking because the if condition is not a Bool
+|- We're using an Int (42) as the condition instead of a boolean expression
+
+def testBadCondition(x: Int): Int {
+  if 42 then top 1
+  else then top 2
+}
+
+def main(): Int {
+  top testBadCondition(5)
+}

@@ -26,6 +26,8 @@ dependencies:
 - mtl
 - parsec
 - filepath
+- transformers
+- directory
 
 ghc-options:
 - -Wall
@@ -53,6 +55,7 @@ library:
     - AlphaRename
     - ClosureConversion
     - CodeGen
+    - TypeChecker
     - Builtins
     - VM
     - Compiler
