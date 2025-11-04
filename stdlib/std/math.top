@@ -1,0 +1,27 @@
+package std_math
+
+|- Numeric utilities implemented in Topineur
+
+|- Return the minimum of two numbers (supports Int and Float)
+def min(a: Any, b: Any): Any {
+  if a <= b then top a else top b
+}
+
+|- Return the maximum of two numbers (supports Int and Float)
+def max(a: Any, b: Any): Any {
+  if a >= b then top a else top b
+}
+
+|- Clamp a value between bounds: clamp(x, lo, hi)
+|- If lo > hi, we still clamp using the given order: max(lo, min(x, hi))
+def clamp(x: Any, lo: Any, hi: Any): Any {
+  top max(lo, min(x, hi))
+}
+
+|- Sign of a number: -1, 0, or 1
+|- For Float and Int inputs; returns Int
+|- Note: Float equality on 0.0 is used as-is
+
+def sign(x: Any): Int {
+  if x > 0 then top 1 else if x < 0 then top -1 else top 0
+}

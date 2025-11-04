@@ -9,6 +9,7 @@ stdlib/
   std/
     core.top
     string.top
+    math.top
     collections/
       list.top
       aliases.top
@@ -67,6 +68,7 @@ Higher-order list functions for functional programming:
 | `contains(lst, value)` | Returns `true` if the list contains the value, `false` otherwise. |
 | `index_of(lst, value)` | Returns the index of the first occurrence of value, or `-1` if not found. |
 | `range(start, end)` | Generates a list of integers from `start` to `end` (inclusive). |
+| `zip(lst1, lst2)` | Zips two lists into a list of pairs up to the shorter length. |
 
 ### std.string
 
@@ -87,6 +89,17 @@ The Topineur runtime provides several built-in functions implemented in Haskell:
 |----------|-----------|-------------|
 | `abs(x)` | `Int\|Float -> Int\|Float` | Returns the absolute value. Preserves input type. |
 | `sqrt(x)` | `Int\|Float -> Float` | Returns the square root. Always returns Float. |
+
+### std.math (Topineur)
+
+Convenience numeric utilities implemented in Topineur:
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `min(a, b)` | `Int\|Float -> Int\|Float` | Returns the smaller of two numbers. |
+| `max(a, b)` | `Int\|Float -> Int\|Float` | Returns the larger of two numbers. |
+| `clamp(x, lo, hi)` | `Int\|Float -> Int\|Float` | Clamps `x` into `[lo, hi]` using `max(lo, min(x, hi))`. |
+| `sign(x)` | `Int\|Float -> Int` | Returns `-1`, `0`, or `1`. |
 
 ### Type Conversions
 

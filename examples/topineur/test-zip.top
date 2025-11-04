@@ -1,0 +1,112 @@
+package test_zip
+
+import std.collections.functional
+
+|- Test zip with equal length lists
+def test_zip_equal(): Int {
+    println("Testing zip() with equal lengths:")
+
+    let nums = [1, 2, 3]
+    let letters = ["a", "b", "c"]
+    let zipped = zip(nums, letters)
+    println("  zip([1,2,3], [a,b,c]) = " ++ show(zipped))
+    println("  (should be [(1,a), (2,b), (3,c)])")
+
+    top 0
+}
+
+|- Test zip with first list shorter
+def test_zip_first_shorter(): Int {
+    println("")
+    println("Testing zip() with first list shorter:")
+
+    let short = [1, 2]
+    let long = ["a", "b", "c", "d"]
+    let zipped = zip(short, long)
+    println("  zip([1,2], [a,b,c,d]) = " ++ show(zipped))
+    println("  (should be [(1,a), (2,b)])")
+
+    top 0
+}
+
+|- Test zip with second list shorter
+def test_zip_second_shorter(): Int {
+    println("")
+    println("Testing zip() with second list shorter:")
+
+    let long = [1, 2, 3, 4]
+    let short = ["a", "b"]
+    let zipped = zip(long, short)
+    println("  zip([1,2,3,4], [a,b]) = " ++ show(zipped))
+    println("  (should be [(1,a), (2,b)])")
+
+    top 0
+}
+
+|- Test zip with empty lists
+def test_zip_empty(): Int {
+    println("")
+    println("Testing zip() with empty lists:")
+
+    let empty1: List[Int] = []
+    let empty2: List[String] = []
+    let nums = [1, 2, 3]
+
+    let zipped1 = zip(empty1, nums)
+    println("  zip([], [1,2,3]) = " ++ show(zipped1))
+    println("  (should be [])")
+
+    let zipped2 = zip(nums, empty2)
+    println("  zip([1,2,3], []) = " ++ show(zipped2))
+    println("  (should be [])")
+
+    let zipped3 = zip(empty1, empty2)
+    println("  zip([], []) = " ++ show(zipped3))
+    println("  (should be [])")
+
+    top 0
+}
+
+|- Test zip with single elements
+def test_zip_single(): Int {
+    println("")
+    println("Testing zip() with single elements:")
+
+    let single1 = [42]
+    let single2 = ["answer"]
+    let zipped = zip(single1, single2)
+    println("  zip([42], [answer]) = " ++ show(zipped))
+    println("  (should be [(42,answer)])")
+
+    top 0
+}
+
+|- Test zip with different types
+def test_zip_mixed_types(): Int {
+    println("")
+    println("Testing zip() with mixed types:")
+
+    let ints = [1, 2, 3]
+    let floats = [1.1, 2.2, 3.3]
+    let zipped = zip(ints, floats)
+    println("  zip([1,2,3], [1.1,2.2,3.3]) = " ++ show(zipped))
+    println("  (should be [(1,1.1), (2,2.2), (3,3.3)])")
+
+    top 0
+}
+
+def main(): Int {
+    println("=== zip() Test Suite ===")
+    println("")
+
+    test_zip_equal()
+    test_zip_first_shorter()
+    test_zip_second_shorter()
+    test_zip_empty()
+    test_zip_single()
+    test_zip_mixed_types()
+
+    println("")
+    println("=== All Zip Tests Complete ===")
+    top 0
+}

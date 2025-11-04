@@ -21,29 +21,19 @@ def __fold_helper(items: List[Any], acc: Any, func: Any, idx: Int, len: Int): An
 |- map: Transform each element of a list
 |- map([1,2,3], fun (x) -> x * 2) => [2,4,6]
 def map(items: List[Any], func: Any): List[Any] {
-  top fold(items, [], fun (acc: List[Any], elem: Any): List[Any] {
-    let transformed = func(elem)
-    top __list_append(acc, __list_single(transformed))
-  })
+  top fold(items, [], fun (acc: List[Any], elem: Any): List[Any] -> __list_append(acc, __list_single(func(elem))))
 }
 
 |- filter: Keep only elements that satisfy a predicate
 |- filter([1,2,3,4], fun (x) -> x > 2) => [3,4]
 def filter(items: List[Any], predicate: Any): List[Any] {
-  top fold(items, [], fun (acc: List[Any], elem: Any): List[Any] {
-    if predicate(elem) then
-      top __list_append(acc, __list_single(elem))
-    else
-      top acc
-  })
+  top fold(items, [], fun (acc: List[Any], elem: Any): List[Any] -> if predicate(elem) then __list_append(acc, __list_single(elem)) else acc)
 }
 
 |- reverse: Reverse a list
 |- reverse([1,2,3]) => [3,2,1]
 def reverse(items: List[Any]): List[Any] {
-  top fold(items, [], fun (acc: List[Any], elem: Any): List[Any] {
-    top __list_append(__list_single(elem), acc)
-  })
+  top fold(items, [], fun (acc: List[Any], elem: Any): List[Any] -> __list_append(__list_single(elem), acc))
 }
 
 |- take: Take first n elements
@@ -151,4 +141,24 @@ def __range_helper(current: Int, end: Int, acc: List[Int]): List[Int] {
   else
     let newAcc = __list_append(acc, __list_single(current))
     top __range_helper(current + 1, end, newAcc)
+}
+
+|- zip: Pair elements from two lists into a list of tuples; length of result is min(len(a), len(b))
+|- zip([1,2,3], ["a","b"]) => [(1, "a"), (2, "b")]
+def zip(left: List[Any], right: List[Any]): List[Tuple[Any, Any]] {
+  let lenL = __list_length(left)
+  let lenR = __list_length(right)
+  let lim = if lenL < lenR then lenL else lenR
+  top __zip_helper(left, right, 0, lim, [])
+}
+
+def __zip_helper(left: List[Any], right: List[Any], idx: Int, lim: Int, acc: List[Tuple[Any, Any]]): List[Tuple[Any, Any]] {
+  if idx >= lim then
+    top acc
+  else
+    let a = __list_get(left, idx)
+    let b = __list_get(right, idx)
+    let pair = (a, b)
+    let newAcc = __list_append(acc, __list_single(pair))
+    top __zip_helper(left, right, idx + 1, lim, newAcc)
 }
