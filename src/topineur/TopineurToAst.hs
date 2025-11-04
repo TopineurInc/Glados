@@ -101,26 +101,21 @@ patternToNames = \case
 
 blockToExpr :: T.Block -> Either CompileError Expr
 blockToExpr (T.Block _ stmts) = blockStmtsToExpr stmts
-
--- Convert a list of statements to an expression, handling let bindings properly
-blockStmtsToExpr :: [T.Stmt] -> Either CompileError Expr
-blockStmtsToExpr [] = Right EUnit
-blockStmtsToExpr [stmt] = stmtToExpr stmt
-blockStmtsToExpr (T.SLet _loc pat expr : rest) = do
-  expr' <- expressionToExpr expr
-  body <- blockStmtsToExpr rest
-  case pat of
-    T.PVarPat _ name _ ->
-      Right $ EApp (ELambda [(name, Nothing)] Nothing body []) [expr']
-    T.PTuplePat _ _pats -> do
-      names <- patternToNames pat
+  where
+    blockStmtsToExpr :: [T.Stmt] -> Either CompileError Expr
+    blockStmtsToExpr [] = Right EUnit
+    blockStmtsToExpr [stmt] = stmtToExpr stmt
+    blockStmtsToExpr (T.SLet _loc (T.PTuplePat _ pats) expr : rest) = do
+      expr' <- expressionToExpr expr
+      names <- patternToNames (T.PTuplePat _loc pats)
+      body <- blockStmtsToExpr rest
       Right $ ETupleDestruct names expr' body
-blockStmtsToExpr (stmt : rest) = do
-  expr <- stmtToExpr stmt
-  restExpr <- blockStmtsToExpr rest
-  case restExpr of
-    EUnit -> Right expr  -- Last statement, just return it
-    _ -> Right $ EApp (ELambda [("_", Nothing)] Nothing restExpr []) [expr]
+    blockStmtsToExpr (allStmts) = do
+      exprs <- mapM stmtToExpr allStmts
+      case exprs of
+        [] -> Right EUnit
+        [e] -> Right e
+        es -> Right $ EList es
 
 stmtToExpr :: T.Stmt -> Either CompileError Expr
 stmtToExpr = \case
@@ -133,9 +128,8 @@ stmtToExpr = \case
       T.PVarPat _ name _ ->
         Right $ EDefine name expr' []
       T.PTuplePat _ _pats -> do
-        names <- patternToNames pat
-        -- Standalone tuple destructuring - create a tuple destruct with Unit body
-        Right $ ETupleDestruct names expr' EUnit
+        -- Standalone tuple destructuring let is not yet supported
+        Left $ SyntaxError "Tuple destructuring in standalone let not yet supported. Use it inside a block with a continuation." Nothing
 
   T.SIf _loc cond thenStmt elseStmt -> do
     cond' <- expressionToExpr cond
