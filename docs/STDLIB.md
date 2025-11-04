@@ -89,6 +89,19 @@ The Topineur runtime provides several built-in functions implemented in Haskell:
 |----------|-----------|-------------|
 | `abs(x)` | `Int\|Float -> Int\|Float` | Returns the absolute value. Preserves input type. |
 | `sqrt(x)` | `Int\|Float -> Float` | Returns the square root. Always returns Float. |
+| `pow(a, b)` | `Int\|Float, Int\|Float -> Float` | Exponentiation. Returns Float. |
+| `floor(x)` | `Int\|Float -> Int` | Largest integer not greater than `x`. For Int, passthrough. |
+| `ceil(x)` | `Int\|Float -> Int` | Smallest integer not less than `x`. For Int, passthrough. |
+| `round(x)` | `Int\|Float -> Int` | Rounds to the nearest integer (banker's rounding as in Haskell). For Int, passthrough. |
+| `sin(x)` | `Int\|Float -> Float` | Sine of `x` in radians. |
+| `cos(x)` | `Int\|Float -> Float` | Cosine of `x` in radians. |
+| `tan(x)` | `Int\|Float -> Float` | Tangent of `x` in radians. |
+| `asin(x)` | `Int\|Float -> Float` | Arc-sine in radians. Domain [-1,1]. |
+| `acos(x)` | `Int\|Float -> Float` | Arc-cosine in radians. Domain [-1,1]. |
+| `atan(x)` | `Int\|Float -> Float` | Arc-tangent in radians. |
+| `atan2(y, x)` | `Int\|Float, Int\|Float -> Float` | Arc-tangent of `y/x` accounting for quadrant, in radians. |
+| `pi` | `Float` | π constant (3.14159…). |
+| `e` | `Float` | Euler's number e (2.71828…). |
 
 ### std.math (Topineur)
 

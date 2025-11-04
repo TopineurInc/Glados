@@ -40,6 +40,17 @@ module Builtins
   , builtinSqrt
   , builtinInt
   , builtinFloat
+  , builtinPow
+  , builtinFloor
+  , builtinCeil
+  , builtinRound
+  , builtinSin
+  , builtinCos
+  , builtinTan
+  , builtinAsin
+  , builtinAcos
+  , builtinAtan
+  , builtinAtan2
   ) where
 
 import AST
@@ -91,6 +102,19 @@ builtins = Map.fromList
   , ("sqrt", VBuiltin "sqrt" builtinSqrt)
   , ("int", VBuiltin "int" builtinInt)
   , ("float", VBuiltin "float" builtinFloat)
+  , ("pow", VBuiltin "pow" builtinPow)
+  , ("floor", VBuiltin "floor" builtinFloor)
+  , ("ceil", VBuiltin "ceil" builtinCeil)
+  , ("round", VBuiltin "round" builtinRound)
+  , ("sin", VBuiltin "sin" builtinSin)
+  , ("cos", VBuiltin "cos" builtinCos)
+  , ("tan", VBuiltin "tan" builtinTan)
+  , ("asin", VBuiltin "asin" builtinAsin)
+  , ("acos", VBuiltin "acos" builtinAcos)
+  , ("atan", VBuiltin "atan" builtinAtan)
+  , ("atan2", VBuiltin "atan2" builtinAtan2)
+  , ("pi", VFloat pi)
+  , ("e", VFloat (exp 1))
   ]
 
 builtinAdd :: [Value] -> IO Value
@@ -343,3 +367,63 @@ builtinFloat [VString s] = case (readMaybe s :: Maybe Double) of
   Just n -> return $ VFloat n
   Nothing -> error $ "Type error: cannot convert '" ++ s ++ "' to float"
 builtinFloat _ = error "Type error: float expects a number or string"
+
+-- Advanced math builtins
+builtinPow :: [Value] -> IO Value
+builtinPow [VInt a, VInt b] = return $ VFloat ((fromInteger a) ** (fromInteger b))
+builtinPow [VFloat a, VFloat b] = return $ VFloat (a ** b)
+builtinPow [VInt a, VFloat b] = return $ VFloat ((fromInteger a) ** b)
+builtinPow [VFloat a, VInt b] = return $ VFloat (a ** (fromInteger b))
+builtinPow _ = error "Type error: pow expects two numbers"
+
+builtinFloor :: [Value] -> IO Value
+builtinFloor [VInt n] = return $ VInt n
+builtinFloor [VFloat n] = return $ VInt (floor n)
+builtinFloor _ = error "Type error: floor expects a number"
+
+builtinCeil :: [Value] -> IO Value
+builtinCeil [VInt n] = return $ VInt n
+builtinCeil [VFloat n] = return $ VInt (ceiling n)
+builtinCeil _ = error "Type error: ceil expects a number"
+
+builtinRound :: [Value] -> IO Value
+builtinRound [VInt n] = return $ VInt n
+builtinRound [VFloat n] = return $ VInt (round n)
+builtinRound _ = error "Type error: round expects a number"
+
+builtinSin :: [Value] -> IO Value
+builtinSin [VInt n] = return $ VFloat (sin (fromInteger n))
+builtinSin [VFloat n] = return $ VFloat (sin n)
+builtinSin _ = error "Type error: sin expects a number"
+
+builtinCos :: [Value] -> IO Value
+builtinCos [VInt n] = return $ VFloat (cos (fromInteger n))
+builtinCos [VFloat n] = return $ VFloat (cos n)
+builtinCos _ = error "Type error: cos expects a number"
+
+builtinTan :: [Value] -> IO Value
+builtinTan [VInt n] = return $ VFloat (tan (fromInteger n))
+builtinTan [VFloat n] = return $ VFloat (tan n)
+builtinTan _ = error "Type error: tan expects a number"
+
+builtinAsin :: [Value] -> IO Value
+builtinAsin [VInt n] = return $ VFloat (asin (fromInteger n))
+builtinAsin [VFloat n] = return $ VFloat (asin n)
+builtinAsin _ = error "Type error: asin expects a number"
+
+builtinAcos :: [Value] -> IO Value
+builtinAcos [VInt n] = return $ VFloat (acos (fromInteger n))
+builtinAcos [VFloat n] = return $ VFloat (acos n)
+builtinAcos _ = error "Type error: acos expects a number"
+
+builtinAtan :: [Value] -> IO Value
+builtinAtan [VInt n] = return $ VFloat (atan (fromInteger n))
+builtinAtan [VFloat n] = return $ VFloat (atan n)
+builtinAtan _ = error "Type error: atan expects a number"
+
+builtinAtan2 :: [Value] -> IO Value
+builtinAtan2 [VInt y, VInt x] = return $ VFloat (atan2 (fromInteger y) (fromInteger x))
+builtinAtan2 [VFloat y, VFloat x] = return $ VFloat (atan2 y x)
+builtinAtan2 [VInt y, VFloat x] = return $ VFloat (atan2 (fromInteger y) x)
+builtinAtan2 [VFloat y, VInt x] = return $ VFloat (atan2 y (fromInteger x))
+builtinAtan2 _ = error "Type error: atan2 expects two numbers"

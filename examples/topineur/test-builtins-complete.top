@@ -143,28 +143,28 @@ def test_show_complete(): Int {
     
     |- Integers
     println("Integers:")
-    println("  show(0) = \"" ++ show(0) ++ "\"")
-    println("  show(42) = \"" ++ show(42) ++ "\"")
-    println("  show(-42) = \"" ++ show(-42) ++ "\"")
+    println("  show(0) = " ++ show(0))
+    println("  show(42) = " ++ show(42))
+    println("  show(-42) = " ++ show(-42))
     
     |- Floats
     println("")
     println("Floats:")
-    println("  show(0.0) = \"" ++ show(0.0) ++ "\"")
-    println("  show(3.14) = \"" ++ show(3.14) ++ "\"")
-    println("  show(-3.14) = \"" ++ show(-3.14) ++ "\"")
+    println("  show(0.0) = " ++ show(0.0))
+    println("  show(3.14) = " ++ show(3.14))
+    println("  show(-3.14) = " ++ show(-3.14))
     
     |- Booleans
     println("")
     println("Booleans:")
-    println("  show(true) = \"" ++ show(true) ++ "\"")
-    println("  show(false) = \"" ++ show(false) ++ "\"")
+    println("  show(true) = " ++ show(true))
+    println("  show(false) = " ++ show(false))
     
     |- Strings
     println("")
     println("Strings:")
-    println("  show(\"hello\") = \"" ++ show("hello") ++ "\"")
-    println("  show(\"\") = \"" ++ show("") ++ "\"")
+    println("  show(hello) = " ++ show("hello"))
+    println("  show(empty) = " ++ show(""))
     
     top 0
 }
