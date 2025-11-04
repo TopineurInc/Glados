@@ -76,7 +76,7 @@
                         "name": "Object type parsing with lambda functions",
                         "command": "./glados --parse-top examples/topineur/objects.top",
                         "output": "*",
-                        "return": 84
+                        "return": 0
                     },
                     {
                         "name": "Fibonacci",
