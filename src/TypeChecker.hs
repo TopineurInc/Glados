@@ -334,6 +334,16 @@ inferExpr env (EIndex expr idx) = do
       unify idxT TInt
       return elemT
 
+inferExpr env (EIndexSet container idx value) = do
+  containerT <- inferExpr env container
+  idxT <- inferExpr env idx
+  valueT <- inferExpr env value
+  unify idxT TInt
+  elemT <- freshTVar
+  unify containerT (TList elemT)
+  unify valueT elemT
+  return containerT
+
 inferExpr env (EListLiteral exprs typeAnn) = do
   case exprs of
     [] -> case typeAnn of

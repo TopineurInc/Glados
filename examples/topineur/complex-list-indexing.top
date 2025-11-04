@@ -1,0 +1,10 @@
+package main
+
+def getList(): List[List[String]] {
+  top [["a", "b", "c"], ["d", "e", "f"], ["g", "h", "i"]]
+}
+
+def main(): Int {
+  println(getList()[0][0])
+  top 0
+}

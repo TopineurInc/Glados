@@ -77,6 +77,7 @@ data Stmt
 data LValue
   = LVar Loc Name
   | LMember Loc Expression Name
+  | LIndex Loc Expression Expression
   deriving (Eq, Show, Generic)
 
 data Range = Range Expression Expression
@@ -95,6 +96,7 @@ data Expression
   | ECall Loc Expression [Expression]
   | EMethodCall Loc Expression Name [Expression]
   | EMember Loc Expression Name
+  | EIndex Loc Expression Expression
   | EIf Loc Expression Expression (Maybe Expression)
   | ELet Loc Name Expression Expression
   | ELambda Loc [Param] (Maybe TypeAnn) Expression
@@ -127,6 +129,7 @@ locOfE e =
     ECall l _ _ -> l
     EMethodCall l _ _ _ -> l
     EMember l _ _ -> l
+    EIndex l _ _ -> l
     EIf l _ _ _ -> l
     ELet l _ _ _ -> l
     ELambda l _ _ _ -> l

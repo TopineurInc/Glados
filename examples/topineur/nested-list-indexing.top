@@ -1,0 +1,19 @@
+package main
+
+let list: List[List[Int]] = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+
+def main(): Int {
+  println("0 0 :: " ++ show(list[0][0])) |- expecting 1
+  println("0 1 :: " ++ show(list[0][1])) |- expecting 2
+  println("0 2 :: " ++ show(list[0][2])) |- expecting 3
+  println("1 0 :: " ++ show(list[1][0]))
+  println("1 1 :: " ++ show(list[1][1]))
+  println("1 2 :: " ++ show(list[1][2]))
+  println("2 0 :: " ++ show(list[2][0]))
+  println("2 1 :: " ++ show(list[2][1]))
+  println("2 2 :: " ++ show(list[2][2]))
+
+  list[2][2] = 2
+
+  println("2 2 :: " ++ show(list[2][2]))
+}

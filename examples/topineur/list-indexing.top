@@ -1,0 +1,15 @@
+package main
+
+def main(): Int {
+  let list: List[Int] = [1, 2, 3, 4]
+
+  println(show(list[2])) |- expecting 3
+
+  println(show(list[0])) |- expecting 1
+
+  list[0] = 4
+
+  println(show(list[0])) |- expecting 4
+
+  top 0
+}

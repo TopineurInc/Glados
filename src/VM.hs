@@ -152,7 +152,7 @@ executeInstr vmState frame instr = case instr of
     let frame' = frame { fPC = fPC frame + 1 }
     in return $ Right (updateFrame vmState frame', Nothing)
 
-  IMakeClosure name slots -> 
+  IMakeClosure name slots ->
     let capturedValues = map (\slot -> fLocals frame Vector.! slot) slots
         values = [val | Just val <- capturedValues]
         closure = VClosure name values
@@ -219,7 +219,15 @@ executeInstr vmState frame instr = case instr of
           let val = elements !! i
               frame' = frame { fStack = val : stack', fPC = fPC frame + 1 }
           in return $ Right (updateFrame vmState frame', Nothing)
-    _ -> return $ Left $ TypeError "Expected index and list on stack"
+    (VInt idx : VTuple elements : stack') ->
+      let i = fromInteger idx
+      in if i < 0 || i >= length elements
+        then return $ Left $ RuntimeError "Tuple index out of bounds"
+        else
+          let val = elements !! i
+              frame' = frame { fStack = val : stack', fPC = fPC frame + 1 }
+          in return $ Right (updateFrame vmState frame', Nothing)
+    _ -> return $ Left $ TypeError "Expected index and list or tuple on stack"
 
   IListSet -> case fStack frame of
     (val : VInt idx : VList elements : stack') ->
@@ -265,11 +273,11 @@ executeInstr vmState frame instr = case instr of
     _ -> return $ Left $ TypeError "Expected two integers on stack for range"
 
   IWhile -> return $ Left $ InvalidInstruction "IWhile not yet implemented"
-  
+
   IFor -> return $ Left $ InvalidInstruction "IFor not yet implemented"
-  
+
   IBreak -> return $ Left $ InvalidInstruction "IBreak not yet implemented"
-  
+
   IContinue -> return $ Left $ InvalidInstruction "IContinue not yet implemented"
 
   IAssign slot -> case fStack frame of
@@ -286,8 +294,6 @@ executeInstr vmState frame instr = case instr of
       let frame' = frame { fStack = stack', fPC = fPC frame + 1 }
           vmState' = vmState { vGlobals = Map.insert name val (vGlobals vmState) }
       in return $ Right (updateFrame vmState' frame', Nothing)
-
-  _ -> return $ Left $ InvalidInstruction "Instruction not implemented"
 
 builtinArity :: String -> Int
 builtinArity op = case op of

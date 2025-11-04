@@ -136,6 +136,7 @@ data Expr
   | ETupleDestruct [Name] Expr Expr
   | EListLiteral [Expr] (Maybe Type)
   | EIndex Expr Expr
+  | EIndexSet Expr Expr Expr
   | EAssign Name Expr
   | EObjectDecl Name [Field] [Method]
   | EObjectInst Name [(Name, Expr)]

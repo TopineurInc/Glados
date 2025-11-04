@@ -10,6 +10,8 @@ module TopineurParserExpressions
   , exprML
   , term
   , termML
+  , basicTerm
+  , basicTermML
   ) where
 
 import Text.Parsec
@@ -124,6 +126,11 @@ postfix e0 =
     , try $ do
         args <- callArgs
         let l = locOfE e0 in postfix (ECall l e0 args)
+    , try $ do
+        pos <- getPosition
+        idx <- between (symbol "[") (symbol "]") expr
+        let l = toLoc pos
+        postfix (EIndex l e0 idx)
     , return e0
     ]
 
@@ -276,6 +283,11 @@ postfixML e0 =
     , try $ do
         args <- callArgsML
         let l = locOfE e0 in postfixML (ECall l e0 args)
+    , try $ do
+        pos <- getPosition
+        idx <- between (symbolML "[") (symbolML "]") exprML
+        let l = toLoc pos
+        postfixML (EIndex l e0 idx)
     , return e0
     ]
 
