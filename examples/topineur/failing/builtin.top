@@ -1,0 +1,24 @@
+package main
+
+
+|- manque des builtins surement arrivé avec la lib standard
+def main() {
+  |- Affichage
+  println("Standard output")
+
+  |- Conversions
+  let floatValue = float(42)
+  let intValue = int(3.14)
+  let stringValue = show(42)
+
+  |- Fonctions mathématiques (si disponibles)
+  let sqrtResult = sqrt(16.0)
+  let absValue = abs(-42)
+
+  |- Manipulation de listes
+  let len = length([1, 2, 3, 4, 5])
+  let headElem = head([1, 2, 3])
+  let tailList = tail([1, 2, 3])
+
+  top 0
+}

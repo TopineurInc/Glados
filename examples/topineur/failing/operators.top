@@ -1,0 +1,30 @@
+package main
+
+def main() {
+  |- Arithmétiques
+  let sum = 10 + 5
+  let diff = 10 - 5
+  let prod = 10 * 5
+  let quot = 10 / 5
+  let modulo = 10 % 3
+
+  |- Comparaisons
+  let eq = 5 == 5
+  let lt = 3 < 5
+  let gt = 5 > 3
+  let lte = 5 <= 5
+  let gte = 5 >= 5
+
+
+  |- Concaténation de chaînes
+  let fullName = "John" ++ " " ++ "Doe"
+
+  |- TODO
+  |- neq = 5 != 3
+  |- andResult = true && false
+  |- orResult = true || false
+  |- notResult = !false
+  |- je peux pas mettre let dans le commentaires
+
+  top 0
+}

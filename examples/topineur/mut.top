@@ -1,0 +1,17 @@
+package main
+
+def main() {
+  let mutable = 0
+
+  for i in 1..10 do
+    mutable = mutable + i
+  end
+
+  println(show(mutable))
+
+  if mutable > 50 then mutable = mutable * 2
+  else mutable = mutable + 10
+
+   println(show(mutable))
+   top 0
+}

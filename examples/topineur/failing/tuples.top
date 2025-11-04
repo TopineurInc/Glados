@@ -1,0 +1,16 @@
+package main
+
+
+|- Déstructuration de tuples
+def swapPair(p: Tuple[Int, Int]): Tuple[Int, Int] {
+  let (a: Int, b: Int) = p
+  top (b, a)
+}
+
+def main() {
+    |- Tuples de différentes tailles
+    let pair: Tuple[Int, String] = (42, "answer")
+    let triple: Tuple[Float, Float, Float] = (1.0, 2.0, 3.0)
+
+    top 0
+}

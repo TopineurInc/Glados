@@ -1,0 +1,10 @@
+package main
+
+def main() {
+    let numbers: List[Int] = [1, 2, 3, 4, 5]
+    let names: List[String] = ["Alice", "Bob", "Charlie"]
+    let emptyList: List[Float] = []
+
+    println(show(numbers[0]))
+    top 0
+}

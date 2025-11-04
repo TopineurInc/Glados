@@ -311,14 +311,12 @@ def demonstrateMutability(): Int {
   |- Modification dans une boucle
   for i in 1..10 do
     mutable = mutable + i
-  end
 
   |- Modification conditionnelle
   if mutable > 50 then
     mutable = mutable * 2
   else
     mutable = mutable + 10
-  end
 
   top mutable
 }

@@ -1,0 +1,20 @@
+package main
+
+def sumList(lst: List[Int]): Int {
+  top fold(lst, 0, fun (acc: Int, x: Int): Int -> acc + x)
+}
+
+def mapDouble(lst: List[Int]): List[Int] {
+  top map(lst, fun (x: Int): Int -> x * 2)
+}
+
+def filterPositive(lst: List[Int]): List[Int] {
+  top filter(lst, fun (x: Int): Bool -> x > 0)
+}
+
+def main() {
+    let numbers: List[Int] = [1, 2, 3, 4, 5]
+    let names: List[String] = ["Alice", "Bob", "Charlie"]
+    let emptyList: List[Float] = []
+    top 0
+}
