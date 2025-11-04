@@ -85,6 +85,9 @@ convertExpr env (EListLiteral exprs mType) =
 convertExpr env (EIndex expr idx) =
   EIndex (convertExpr env expr) (convertExpr env idx)
 
+convertExpr env (EIndexSet container idx value) =
+  EIndexSet (convertExpr env container) (convertExpr env idx) (convertExpr env value)
+
 convertExpr env (EAssign name expr) =
   EAssign name (convertExpr env expr)
 
@@ -179,6 +182,9 @@ getFreeVars bound (EListLiteral exprs _mType) =
 
 getFreeVars bound (EIndex expr idx) =
   getFreeVars bound expr `Set.union` getFreeVars bound idx
+
+getFreeVars bound (EIndexSet container idx value) =
+  getFreeVars bound container `Set.union` getFreeVars bound idx `Set.union` getFreeVars bound value
 
 getFreeVars bound (EAssign _name expr) =
   getFreeVars bound expr

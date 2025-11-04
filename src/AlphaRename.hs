@@ -170,6 +170,12 @@ renameExpr env (EIndex container index) = do
   index' <- renameExpr env index
   return $ EIndex container' index'
 
+renameExpr env (EIndexSet container index value) = do
+  container' <- renameExpr env container
+  index' <- renameExpr env index
+  value' <- renameExpr env value
+  return $ EIndexSet container' index' value'
+
 renameExpr env (EAssign name expr) = do
   expr' <- renameExpr env expr
   case Map.lookup name env of

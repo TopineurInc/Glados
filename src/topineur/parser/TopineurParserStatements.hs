@@ -15,8 +15,17 @@ import Text.Parsec
     ( (<|>)
       , choice
       , optionMaybe
+      , option
       , string
       , try
+      , getPosition
+      , between
+      , lookAhead
+      , char
+      , many
+      , noneOf
+      , sepBy
+      , notFollowedBy
       )
 
 import AST (SourcePos(..), Loc)
@@ -88,15 +97,104 @@ lvalue :: Parser (LValue, Loc)
 lvalue =
   try
     ( do
-        base <- term
+        base <- basicTerm
         _ <- symbol "."
         (l, n) <- ident
         return (LMember l base n, l)
+    )
+    <|> try
+    ( do
+        -- Parse base that can include indexing, but stop before final index
+        -- We parse basicTerm and then manually apply postfix operations,
+        -- but stop if we see another [ followed by ] and then =
+        base <- basicTerm
+        baseWithPostfix <- parsePostfixForLValue base
+        pos <- getPosition
+        idx <- between (symbol "[") (symbol "]") expr
+        let l = toLoc pos
+        return (LIndex l baseWithPostfix idx, l)
     )
     <|> do
       (l, n) <- ident
       return (LVar l n, l)
 
+-- Parse postfix operations for lvalue, stopping before final index
+parsePostfixForLValue :: Expression -> Parser Expression
+parsePostfixForLValue e0 =
+  choice
+    [ try $ do
+        pos <- getPosition
+        notFollowedBy (string "..")
+        _ <- char '.'
+        sc
+        (_, n) <- ident
+        args <- option [] callArgs
+        let l = toLoc pos
+        let base = EMember l e0 n
+        let res = if null args then base else EMethodCall l e0 n args
+        parsePostfixForLValue res
+    , try $ do
+        args <- callArgs
+        let l = locOfE e0 in parsePostfixForLValue (ECall l e0 args)
+    , try $ do
+        -- Check if next is [ followed by ] and then =
+        -- If so, stop here (don't consume the index)
+        _ <- lookAhead $ do
+          _ <- symbol "["
+          _ <- many (noneOf "]")
+          _ <- symbol "]"
+          _ <- lookAhead (symbol "=")
+          return ()
+        return e0
+    , try $ do
+        pos <- getPosition
+        idx <- between (symbol "[") (symbol "]") expr
+        let l = toLoc pos
+        parsePostfixForLValue (EIndex l e0 idx)
+    , return e0
+    ]
+  where
+    callArgs = between (symbol "(") (symbol ")") (argExpr `sepBy` symbol ",")
+    argExpr = do
+      scML
+      exprML
+
+parsePostfixForLValueML :: Expression -> Parser Expression
+parsePostfixForLValueML e0 =
+  choice
+    [ try $ do
+        pos <- getPosition
+        notFollowedBy (string "..")
+        _ <- char '.'
+        scn
+        (_, n) <- identML
+        args <- option [] callArgsML
+        let l = toLoc pos
+        let base = EMember l e0 n
+        let res = if null args then base else EMethodCall l e0 n args
+        parsePostfixForLValueML res
+    , try $ do
+        args <- callArgsML
+        let l = locOfE e0 in parsePostfixForLValueML (ECall l e0 args)
+    , try $ do
+        -- Check if next is [ followed by ] and then =
+        -- If so, stop here (don't consume the index)
+        _ <- lookAhead $ do
+          _ <- symbolML "["
+          _ <- many (noneOf "]")
+          _ <- symbolML "]"
+          _ <- lookAhead (symbolML "=")
+          return ()
+        return e0
+    , try $ do
+        pos <- getPosition
+        idx <- between (symbolML "[") (symbolML "]") exprML
+        let l = toLoc pos
+        parsePostfixForLValueML (EIndex l e0 idx)
+    , return e0
+    ]
+  where
+    callArgsML = between (symbolML "(") (symbolML ")") (exprML `sepBy` symbolML ",")
 
 stmt :: Parser Stmt
 stmt =
@@ -148,10 +246,20 @@ lvalueML :: Parser (LValue, Loc)
 lvalueML =
   try
     ( do
-        base <- termML
+        base <- basicTermML
         _ <- symbolML "."
         (l, n) <- identML
         return (LMember l base n, l)
+    )
+    <|> try
+    ( do
+        -- Parse base that can include indexing, but stop before final index
+        base <- basicTermML
+        baseWithPostfix <- parsePostfixForLValueML base
+        pos <- getPosition
+        idx <- between (symbolML "[") (symbolML "]") exprML
+        let l = toLoc pos
+        return (LIndex l baseWithPostfix idx, l)
     )
     <|> do
       (l, n) <- identML

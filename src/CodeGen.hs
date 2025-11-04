@@ -313,14 +313,47 @@ compileExpr (ETupleDestruct names tupleExpr body) = do
     emit (IStore slot)
   compileExpr body
 
-compileExpr (EIndex tuple (EInt n)) = do
-  compileExpr tuple
-  emit (ITupleGet (fromInteger n))
-
 compileExpr (EIndex expr idx) = do
   compileExpr expr
   compileExpr idx
   emit IListGet
+
+compileExpr (EIndexSet container idx value) = do
+  case container of
+    EIndex outerContainer outerIdx -> do
+      compileExpr outerContainer
+      tempSlot <- allocLocal =<< freshName "_temp_outer"
+      emit (IStore tempSlot)
+      emit (ILoad tempSlot)
+      compileExpr outerIdx
+      emit IListGet
+      compileExpr idx
+      compileExpr value
+      emit IListSet
+      compileExpr outerIdx
+      emit (ILoad tempSlot)
+      emit IListSet
+      case outerContainer of
+        EVar name -> do
+          mSlot <- getLocal name
+          case mSlot of
+            Just slot -> emit (IAssign slot)
+            Nothing -> emit (IAssignGlobal name)
+          compileExpr (EVar name)
+        _ -> return ()
+    _ -> do
+      compileExpr container
+      compileExpr idx
+      compileExpr value
+      emit IListSet
+      case container of
+        EVar name -> do
+          mSlot <- getLocal name
+          case mSlot of
+            Just slot -> emit (IAssign slot)
+            Nothing -> emit (IAssignGlobal name)
+          compileExpr (EVar name)
+        _ -> return ()
 
 -- Lists
 compileExpr (EListLiteral exprs _type) = do

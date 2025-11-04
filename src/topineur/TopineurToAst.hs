@@ -132,8 +132,14 @@ stmtToExpr = \case
 
   T.SAssign _loc lval expr -> do
     expr' <- expressionToExpr expr
-    name <- lvalueToName lval
-    Right $ EAssign name expr'
+    case lval of
+      T.LIndex _ container idx -> do
+        container' <- expressionToExpr container
+        idx' <- expressionToExpr idx
+        Right $ EIndexSet container' idx' expr'
+      _ -> do
+        name <- lvalueToName lval
+        Right $ EAssign name expr'
 
   T.SExpression _loc expr -> expressionToExpr expr
 
@@ -147,6 +153,7 @@ lvalueToName :: T.LValue -> Either CompileError Name
 lvalueToName = \case
   T.LVar _ name -> Right name
   T.LMember _ _expr name -> Right name
+  T.LIndex _ _expr _idx -> Left $ SyntaxError "Index assignment should be handled in stmtToExpr" Nothing
 
 expressionToExpr :: T.Expression -> Either CompileError Expr
 expressionToExpr = \case
@@ -187,6 +194,11 @@ expressionToExpr = \case
   T.EMember _ obj name -> do
     obj' <- expressionToExpr obj
     Right $ EMemberAccess obj' name
+
+  T.EIndex _ obj idx -> do
+    obj' <- expressionToExpr obj
+    idx' <- expressionToExpr idx
+    Right $ EIndex obj' idx'
 
   T.EIf _ cond thenExpr elseExpr -> do
     cond' <- expressionToExpr cond
