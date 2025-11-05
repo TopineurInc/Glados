@@ -1,0 +1,27 @@
+package main
+
+object type Grade {
+  subject: String
+  score: Float
+  coefficient: Int
+}
+
+def gradeWeightedScore(g: Grade): Float {
+  top g.score * float(g.coefficient)
+}
+
+def gradeIsPassing(g: Grade): Bool {
+  top g.score >= 10.0
+}
+
+def gradeIsExcellent(g: Grade): Bool {
+  top g.score >= 16.0
+}
+
+def main(): Int {
+  let g = Grade { subject = "Math", score = 17.0, coefficient = 2 }
+  println("Weighted: " ++ show(gradeWeightedScore(g)))
+  println("Passing: " ++ show(gradeIsPassing(g)))
+  println("Excellent: " ++ show(gradeIsExcellent(g)))
+  top 0
+}

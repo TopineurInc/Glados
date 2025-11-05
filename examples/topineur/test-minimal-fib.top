@@ -1,0 +1,12 @@
+package main
+
+def fib(n: Int): Int {
+  if n <= 1 then top n
+  else top fib(n - 1) + fib(n - 2)
+}
+
+def main(): Int {
+  let f: Int = fib(10)
+  println("fib(10) = " ++ show(f))
+  top 0
+}

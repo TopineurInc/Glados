@@ -1,0 +1,18 @@
+package main
+
+object type Grade {
+  subject: String
+  score: Float
+  coefficient: Int
+}
+
+def gradeWeightedScore(g: Grade): Float {
+  top g.score * float(g.coefficient)
+}
+
+def main(): Int {
+  let g = Grade { subject = "Math", score = 15.0, coefficient = 2 }
+  let weighted = gradeWeightedScore(g)
+  println("Weighted score: " ++ show(weighted))
+  top 0
+}
