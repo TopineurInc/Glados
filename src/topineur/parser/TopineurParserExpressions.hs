@@ -14,6 +14,7 @@ module TopineurParserExpressions
   , basicTermML
   ) where
 
+import Control.Monad (void)
 import Text.Parsec
   ( getPosition
   , char
@@ -81,13 +82,9 @@ expr :: Parser Expression
 expr = makeUnOps
   where
     makeUnOps = do
-      mOp <- optionMaybe $ try $ do
-        l <- keyword "not"
-        return l
+      mOp <- optionMaybe $ try $ keyword "not"
       case mOp of
-        Just l -> do
-          e <- makeUnOps
-          return (EUnOp l "not" e)
+        Just l -> EUnOp l "not" <$> makeUnOps
         Nothing -> makeBinOps
 
 basicTerm :: Parser Expression
@@ -155,13 +152,9 @@ exprML :: Parser Expression
 exprML = makeUnOpsML
   where
     makeUnOpsML = do
-      mOp <- optionMaybe $ try $ do
-        l <- keywordML "not"
-        return l
+      mOp <- optionMaybe $ try $ keywordML "not"
       case mOp of
-        Just l -> do
-          e <- makeUnOpsML
-          return (EUnOp l "not" e)
+        Just l -> EUnOp l "not" <$> makeUnOpsML
         Nothing -> makeBinOpsML
 
 makeBinOpsML :: Parser Expression
@@ -192,7 +185,7 @@ makeBinOpsML = level1ML
       where
         tryOpML op = try $ do
           _ <- if op == "and" || op == "or" || op == "not"
-            then keywordML op >> return ()
+            then void (keywordML op)
             else string op >> notFollowedBy (oneOf "+-*/<>=!")
           scn
           return op
@@ -408,7 +401,7 @@ makeBinOps = level1
       where
         tryOp op = try $ do
           _ <- if op == "and" || op == "or" || op == "not"
-            then keyword op >> return ()
+            then void (keyword op)
             else string op >> notFollowedBy (oneOf "+-*/<>=!")
           sc
           return op

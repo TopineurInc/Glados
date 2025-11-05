@@ -43,7 +43,7 @@ main = do
       exitWithError "Invalid arguments. Use --help for usage."
   where
     parseFlags :: [String] -> (Bool, [String])
-    parseFlags xs = (elem "--no-cache" xs, filter (/= "--no-cache") xs)
+    parseFlags xs = ("--no-cache" `elem` xs, filter (/= "--no-cache") xs)
 
 exitWithError :: String -> IO a
 exitWithError msg =
@@ -225,11 +225,11 @@ showAst file = do
     Left err -> exitWithError (formatCompileError err)
     Right sexprs ->
       putStrLn "=== S-Expression ==="
-        >> mapM_ (putStrLn . show) sexprs
+        >> mapM_ print sexprs
         >> putStrLn "\n=== AST ==="
         >> case mapM sexprToExpr sexprs of
           Left err -> exitWithError ("Desugar error: " ++ show err)
-          Right exprs -> mapM_ (putStrLn . show) exprs >> exitSuccess
+          Right exprs -> mapM_ print exprs >> exitSuccess
 
 showCompiled :: CompilerConfig -> FilePath -> IO ()
 showCompiled config file = do
@@ -313,7 +313,7 @@ parseTopineurFile file = do
     Left err -> exitWithError (formatCompileError err)
     Right topineur ->
       putStrLn "=== Topineur AST ==="
-        >> putStrLn (show topineur)
+        >> print topineur
         >> exitSuccess
 
 dumpCodeInfo :: CodeObject -> IO ()

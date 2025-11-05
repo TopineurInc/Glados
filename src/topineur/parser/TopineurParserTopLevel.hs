@@ -103,8 +103,7 @@ letDecl = do
 exprDecl :: Parser Decl
 exprDecl = do
   pos <- getPosition
-  e <- exprML
-  return (DExpr (toLoc pos) e)
+  DExpr (toLoc pos) <$> exprML
 
 decl :: Parser Decl
 decl = try defDecl <|> try objectTypeDecl <|> try letDecl <|> exprDecl

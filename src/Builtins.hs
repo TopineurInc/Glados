@@ -207,17 +207,12 @@ builtinInput :: [Value] -> IO Value
 builtinInput [VString prompt] = do
   putStr prompt
   hFlush stdout
-  line <- getLine
-  return $ VString line
-builtinInput [] = do
-  line <- getLine
-  return $ VString line
+  VString <$> getLine
+builtinInput [] = VString <$> getLine
 builtinInput _ = error "Type error: input expects zero or one argument (prompt)"
 
 builtinReadLine :: [Value] -> IO Value
-builtinReadLine [] = do
-  line <- getLine
-  return $ VString line
+builtinReadLine [] = VString <$> getLine
 builtinReadLine _ = error "Type error: read-line expects no arguments"
 
 builtinStringToNumber :: [Value] -> IO Value
@@ -370,10 +365,10 @@ builtinFloat _ = error "Type error: float expects a number or string"
 
 -- Advanced math builtins
 builtinPow :: [Value] -> IO Value
-builtinPow [VInt a, VInt b] = return $ VFloat ((fromInteger a) ** (fromInteger b))
+builtinPow [VInt a, VInt b] = return $ VFloat (fromInteger a ** fromInteger b)
 builtinPow [VFloat a, VFloat b] = return $ VFloat (a ** b)
-builtinPow [VInt a, VFloat b] = return $ VFloat ((fromInteger a) ** b)
-builtinPow [VFloat a, VInt b] = return $ VFloat (a ** (fromInteger b))
+builtinPow [VInt a, VFloat b] = return $ VFloat (fromInteger a ** b)
+builtinPow [VFloat a, VInt b] = return $ VFloat (a ** fromInteger b)
 builtinPow _ = error "Type error: pow expects two numbers"
 
 builtinFloor :: [Value] -> IO Value

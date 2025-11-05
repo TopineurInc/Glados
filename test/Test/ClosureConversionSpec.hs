@@ -1,4 +1,5 @@
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ViewPatterns #-}
 
 module Test.ClosureConversionSpec (tests) where
@@ -11,7 +12,7 @@ import ClosureConversion
 -- Helper pattern for Lisp-style lambda (without type annotations)
 pattern LispLambda :: [Name] -> Expr -> Expr
 pattern LispLambda params body <- ELambda (map fst -> params) Nothing body _
-  where LispLambda params body = ELambda (map (\p -> (p, Nothing)) params) Nothing body []
+  where LispLambda params body = ELambda (map (, Nothing) params) Nothing body []
 
 tests :: Test
 tests = TestList

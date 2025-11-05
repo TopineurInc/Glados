@@ -16,7 +16,7 @@ module TypeChecker
   ) where
 
 import AST
-import Control.Monad (replicateM, zipWithM_)
+import Control.Monad (forM_, replicateM, zipWithM_, (>=>))
 import Control.Monad.State
 import Control.Monad.Except
 import qualified Data.Map as Map
@@ -205,9 +205,7 @@ inferExpr env (ELambda params retTypeAnn body _anns) = do
   bodyType <- inferExpr env' body
   
   -- Check return type annotation if provided
-  case retTypeAnn of
-    Just annotatedRet -> unify bodyType annotatedRet
-    Nothing -> return ()
+  forM_ retTypeAnn (unify bodyType)
   
   s <- gets tiSubst
   let finalParamTypes = map (applySubst s) paramTypes
@@ -323,8 +321,7 @@ inferExpr env (EIndex expr idx) = do
   case exprT of
     TTuple _ -> do
       unify idxT TInt
-      elemT <- freshTVar
-      return elemT
+      freshTVar
     TList elemT -> do
       unify idxT TInt
       return elemT
@@ -351,7 +348,7 @@ inferExpr env (EListLiteral exprs typeAnn) = do
       Nothing -> TList <$> freshTVar
     (e:es) -> do
       elemT <- inferExpr env e
-      mapM_ (\ex -> inferExpr env ex >>= unify elemT) es
+      mapM_ (inferExpr env >=> unify elemT) es
       return $ TList elemT
 
 inferExpr _ (EObjectDecl name _fields _methods) = return $ TObject name

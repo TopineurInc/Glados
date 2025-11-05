@@ -11,6 +11,7 @@ module ClosureConversion
   ) where
 
 import AST
+import Data.Bifunctor (second)
 import qualified Data.Set as Set
 
 data ClosureInfo = ClosureInfo
@@ -97,7 +98,7 @@ convertExpr env (EObjectDecl name fields methods) =
   in EObjectDecl name fields' methods'
 
 convertExpr env (EObjectInst name fieldInits) =
-  EObjectInst name (map (\(n, e) -> (n, convertExpr env e)) fieldInits)
+  EObjectInst name (map (second (convertExpr env)) fieldInits)
 
 convertExpr env (EMemberAccess expr member) =
   EMemberAccess (convertExpr env expr) member

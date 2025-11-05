@@ -13,12 +13,13 @@ module TopineurToAst
 
 import AST
 import Control.Monad ((>=>))
+import Data.Maybe (fromMaybe)
 import qualified TopineurParserTypes as T
 
 topineurToAst :: T.Topineur -> Either CompileError Expr
 topineurToAst (T.Topineur pkg imps decls) = do
   pkgExpr <- Right $ EPackage pkg
-  impExprs <- mapM (\imp -> Right $ EImport imp) imps
+  impExprs <- mapM (Right . EImport) imps
   declExprs <- mapM declToExpr decls
   Right $ EList (pkgExpr : impExprs ++ declExprs)
 
@@ -75,7 +76,7 @@ memberMethodToMethod (T.OMFunc (T.DFunc _ _ name params retType block)) = do
   params' <- mapM paramToTuple params
   retType' <- mapM typeAnnToType retType
   body <- blockToExpr block
-  Right $ Method name params' (maybe TUnit id retType') body
+  Right $ Method name params' (fromMaybe TUnit retType') body
 memberMethodToMethod _ = Left $ SyntaxError "Expected method member" Nothing
 
 paramToTuple :: T.Param -> Either CompileError (Name, Maybe Type)
@@ -116,7 +117,7 @@ blockToExpr (T.Block _ stmts) = blockStmtsToExpr stmts
       names <- patternToNames (T.PTuplePat _loc pats)
       body <- blockStmtsToExpr rest
       Right $ ETupleDestruct names expr' body
-    blockStmtsToExpr (allStmts) = do
+    blockStmtsToExpr allStmts = do
       exprs <- mapM stmtToExpr allStmts
       case exprs of
         [] -> Right EUnit

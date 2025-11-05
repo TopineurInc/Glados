@@ -1,6 +1,3 @@
-{-# LANGUAGE PatternSynonyms #-}
-{-# LANGUAGE ViewPatterns #-}
-
 module Test.TopineurASTSpec (tests) where
 
 import Test.HUnit

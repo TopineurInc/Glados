@@ -14,6 +14,7 @@ module VM
 
 import AST
 import Builtins
+import Data.Maybe (catMaybes)
 import qualified Data.Map as Map
 import qualified Data.Vector as Vector
 
@@ -154,7 +155,7 @@ executeInstr vmState frame instr = case instr of
 
   IMakeClosure name slots ->
     let capturedValues = map (\slot -> fLocals frame Vector.! slot) slots
-        values = [val | Just val <- capturedValues]
+        values = catMaybes capturedValues
         closure = VClosure name values
         frame' = frame { fStack = closure : fStack frame, fPC = fPC frame + 1 }
     in return $ Right (updateFrame vmState frame', Nothing)

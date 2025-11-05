@@ -1,5 +1,3 @@
-{-# LANGUAGE PatternSynonyms #-}
-
 module Test.CodeGenTopineurSpec (tests) where
 
 import Test.HUnit

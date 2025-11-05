@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "rules": {
+    "style": {
+      "description": "Keep Haskell code clean, concise, and idiomatic.",
+      "guidelines": [
+        "Prefer point-free and compositional style when it improves clarity.",
+        "Use explicit type signatures for all top-level functions.",
+        "Remove redundant imports, unused variables, and dead code.",
+        "Simplify complex expressions and avoid unnecessary 'do' blocks.",
+        "Maintain consistent indentation and layout following Haskell conventions.",
+        "Use pure functions and avoid side effects where possible.",
+        "Adopt meaningful names and minimal, helpful comments.",
+        "Respect 'hlint' recommendations that enhance readability."
+      ]
+    },
+    "behavior": {
+      "description": "Preserve existing behavior while refactoring.",
+      "rules": [
+        "Do not change function behavior.",
+        "Avoid introducing new dependencies or libraries.",
+        "Focus strictly on readability and maintainability."
+      ]
+    }
+  }
+}

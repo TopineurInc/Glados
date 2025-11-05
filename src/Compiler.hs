@@ -27,6 +27,7 @@ import TypeChecker
 import TopineurParser
 import TopineurToAst
 import BytecodeCache
+import Control.Monad (when)
 import qualified Data.Map as Map
 import Data.Map (Map)
 import qualified Data.Vector as Vector
@@ -77,11 +78,10 @@ compile config source = do
       converted <- closureConvert renamed
 
       -- Optional type checking
-      if cfgTypeCheck config
-        then case typeCheck emptyTypeEnv converted of
+      when (cfgTypeCheck config) $
+        case typeCheck emptyTypeEnv converted of
           Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
           Right _ -> return ()
-        else return ()
 
       let (mainCodeE, _) = generateCodeWithDefs "main" converted
       mainCodeE
@@ -172,11 +172,10 @@ compileTopineur config source = do
 
   converted <- closureConvert renamed
 
-  if cfgTypeCheck config
-    then case typeCheck emptyTypeEnv converted of
+  when (cfgTypeCheck config) $
+    case typeCheck emptyTypeEnv converted of
       Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
       Right _ -> return ()
-    else return ()
 
   let (mainCodeE, _defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE
@@ -197,11 +196,10 @@ compileTopineurWithDefs config source = do
   converted <- closureConvert renamed
 
   -- Optional type checking
-  if cfgTypeCheck config
-    then case typeCheck emptyTypeEnv converted of
+  when (cfgTypeCheck config) $
+    case typeCheck emptyTypeEnv converted of
       Left typeErr -> Left $ SyntaxError ("Type error: " ++ show typeErr) Nothing
       Right _ -> return ()
-    else return ()
 
   let (mainCodeE, defsCode) = generateCodeWithDefs "main" converted
   mainCode <- mainCodeE

@@ -17,6 +17,7 @@ module CodeGen
   ) where
 
 import AST
+import Control.Monad (when)
 import Control.Monad.State
 import Control.Monad (forM_)
 import qualified Data.Map as Map
@@ -45,7 +46,7 @@ freshName prefix = do
   return (prefix ++ show n)
 
 runCodeGen :: CodeGenM a -> CodeGenState -> (a, CodeGenState)
-runCodeGen m s = runState (unCodeGenM m) s
+runCodeGen m = runState (unCodeGenM m)
 
 generateCode :: Name -> Expr -> Either CompileError CodeObject
 generateCode name expr =
@@ -413,8 +414,8 @@ patchJump instrIdx target = do
   let instrs = cgsInstructions s
   let len = length instrs
   let reverseIdx = len - instrIdx - 1
-  if reverseIdx >= 0 && reverseIdx < len
-    then case splitAt reverseIdx instrs of
+  when (reverseIdx >= 0 && reverseIdx < len) $
+    case splitAt reverseIdx instrs of
       (before, instr:after) ->
         let patchedInstr = case instr of
               IJumpIfFalse _ -> IJumpIfFalse target
@@ -422,7 +423,6 @@ patchJump instrIdx target = do
               other -> other
         in put s { cgsInstructions = before ++ (patchedInstr : after) }
       _ -> return ()
-    else return ()
 
 compileLambda :: Name -> [Name] -> Expr -> CodeGenM CodeObject
 compileLambda name params body = do
