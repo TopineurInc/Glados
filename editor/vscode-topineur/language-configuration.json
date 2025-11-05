@@ -1,0 +1,78 @@
+{
+  "comments": {
+    "lineComment": "|-"
+  },
+  "brackets": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ]
+  ],
+  "autoClosingPairs": [
+    {
+      "open": "{",
+      "close": "}",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    },
+    {
+      "open": "[",
+      "close": "]",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    },
+    {
+      "open": "(",
+      "close": ")",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    },
+    {
+      "open": "\"",
+      "close": "\"",
+      "notIn": [
+        "string",
+        "comment"
+      ]
+    }
+  ],
+  "surroundingPairs": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ],
+    [
+      "\"",
+      "\""
+    ]
+  ],
+  "wordPattern": "(?:[A-Za-z_][A-Za-z0-9_]*|@?[A-Za-z_][A-Za-z0-9_]*|\\d+)",
+  "folding": {
+    "markers": {
+      "start": "^\\s*(?:object\\s+type|def|while|for|if|@\\w+).*\\b(?:do|{)?\\s*$",
+      "end": "^\\s*(?:end|})\\s*$"
+    }
+  }
+}
