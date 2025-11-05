@@ -470,7 +470,7 @@ testVMInvalidInstruction = "VM invalid instruction path" ~: TestCase $ do
         , coArity = 0
         , coMaxLocals = 0
         , coConsts = Vector.empty
-        , coInstrs = Vector.fromList [IMakeClosure "f" []]
+        , coInstrs = Vector.fromList [IBreak]  -- IBreak is not implemented
         , coLabelMap = Map.empty
         }
   result <- execVM initVMState code

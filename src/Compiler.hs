@@ -285,7 +285,11 @@ compileDefinition _config (EObjectDecl typeName fields methods) = do
     , coLabelMap = Map.empty
     })
 
-compileDefinition _ _expr = Left $ SyntaxError "Expected definition" Nothing
+compileDefinition _config expr = do
+  renamed <- alphaRename expr
+  converted <- closureConvert renamed
+  code <- generateCode "<toplevel>" converted
+  Right ("<toplevel>", code)
 
 -- Module loading ----------------------------------------------------------------
 

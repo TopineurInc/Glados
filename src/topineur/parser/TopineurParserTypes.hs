@@ -41,6 +41,7 @@ data Decl
   = DLet Loc Pattern Expression
   | DFunc Loc [Decorator] Name [Param] (Maybe TypeAnn) Block
   | DObjectType Loc Name [Name] [ObjMember]  -- name, type params, members
+  | DExpr Loc Expression  -- Top-level expression (e.g., println, function calls)
   deriving (Eq, Show, Generic)
 
 data Decorator = Decorator Loc Name [Expression]

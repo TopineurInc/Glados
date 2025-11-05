@@ -100,8 +100,14 @@ letDecl = do
   _ <- symbol "="
   DLet l pat <$> exprML
 
+exprDecl :: Parser Decl
+exprDecl = do
+  pos <- getPosition
+  e <- exprML
+  return (DExpr (toLoc pos) e)
+
 decl :: Parser Decl
-decl = try defDecl <|> try objectTypeDecl <|> letDecl
+decl = try defDecl <|> try objectTypeDecl <|> try letDecl <|> exprDecl
 
 packageLine :: Parser Name
 packageLine = do

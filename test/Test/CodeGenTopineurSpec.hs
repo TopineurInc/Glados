@@ -31,9 +31,9 @@ testCodeGenLoops = TestList
       ~? "Should generate IStore for iterator"
   
   , "gen for with condition" ~: case generateCode "test" (EFor "i" (EInt 0) (EInt 10) (EVar "i")) of
-      Right code -> any (\instr -> case instr of IPrim "<" -> True; _ -> False) (Vector.toList $ coInstrs code)
+      Right code -> any (\instr -> case instr of IPrim "<=" -> True; _ -> False) (Vector.toList $ coInstrs code)
       Left _ -> False
-      ~? "Should generate < comparison for for loop"
+      ~? "Should generate <= comparison for for loop"
   
   , "gen for with increment" ~: case generateCode "test" (EFor "i" (EInt 0) (EInt 10) (EInt 1)) of
       Right code -> any (\instr -> case instr of IPrim "+" -> True; _ -> False) (Vector.toList $ coInstrs code)
