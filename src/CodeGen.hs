@@ -315,13 +315,8 @@ compileExpr (ETupleDestruct names tupleExpr body) = do
 
 compileExpr (EIndex expr idx) = do
   compileExpr expr
-  -- Use ITupleGet for constant integer indices (tuple access)
-  -- Use IListGet for variable indices or non-constant (list access)
-  case idx of
-    EInt n -> emit (ITupleGet (fromIntegral n))
-    _ -> do
-      compileExpr idx
-      emit IListGet
+  compileExpr idx
+  emit IListGet
 
 compileExpr (EIndexSet container idx value) = do
   case container of
