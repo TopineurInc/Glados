@@ -1,0 +1,44 @@
+package std_collections_aliases
+
+|- Convenient aliases for common list operations
+
+def length(items: List[Any]): Int {
+  top __list_length(items)
+}
+
+def head(items: List[Any]): Any {
+  if __list_length(items) == 0 then 
+    top nil 
+  else 
+    top __list_get(items, 0)
+}
+
+def tail(items: List[Any]): List[Any] {
+  let len = __list_length(items)
+  if len <= 1 then
+    top []
+  else
+    top __tail_helper(items, 1, len, [])
+}
+
+|- Helper function to build tail recursively
+def __tail_helper(items: List[Any], idx: Int, len: Int, acc: List[Any]): List[Any] {
+  if idx >= len then
+    top acc
+  else
+    let elem = __list_get(items, idx)
+    let newAcc = __list_append(acc, __list_single(elem))
+    top __tail_helper(items, idx + 1, len, newAcc)
+}
+
+def concat(left: List[Any], right: List[Any]): List[Any] {
+  top __list_append(left, right)
+}
+
+def last(items: List[Any]): Any {
+  let len = __list_length(items)
+  if len == 0 then 
+    top nil 
+  else 
+    top __list_get(items, len - 1)
+}

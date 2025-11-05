@@ -1,0 +1,110 @@
+package test_math_builtins
+
+|- Test abs function
+def test_abs(): Int {
+  println("Testing abs():")
+  
+  |- Test with positive integer
+  let abs_pos = abs(42)
+  println("  abs(42) = " ++ show(abs_pos))
+  
+  |- Test with negative integer
+  let abs_neg = abs(-42)
+  println("  abs(-42) = " ++ show(abs_neg))
+  
+  |- Test with zero
+  let abs_zero = abs(0)
+  println("  abs(0) = " ++ show(abs_zero))
+  
+  |- Test with positive float
+  let abs_float_pos = abs(3.14)
+  println("  abs(3.14) = " ++ show(abs_float_pos))
+  
+  |- Test with negative float
+  let abs_float_neg = abs(-3.14)
+  println("  abs(-3.14) = " ++ show(abs_float_neg))
+  
+  top 0
+}
+
+|- Test sqrt function
+def test_sqrt(): Int {
+  println("")
+  println("Testing sqrt():")
+  
+  |- Test with perfect square
+  let sqrt_16 = sqrt(16.0)
+  println("  sqrt(16.0) = " ++ show(sqrt_16))
+  
+  |- Test with integer input (should convert to float)
+  let sqrt_25 = sqrt(25)
+  println("  sqrt(25) = " ++ show(sqrt_25))
+  
+  |- Test with non-perfect square
+  let sqrt_2 = sqrt(2.0)
+  println("  sqrt(2.0) = " ++ show(sqrt_2))
+  
+  |- Test with zero
+  let sqrt_zero = sqrt(0.0)
+  println("  sqrt(0.0) = " ++ show(sqrt_zero))
+  
+  top 0
+}
+
+|- Test int function
+def test_int(): Int {
+  println("")
+  println("Testing int():")
+  
+  |- Test with integer input (should return same)
+  let int_42 = int(42)
+  println("  int(42) = " ++ show(int_42))
+  
+  |- Test truncation (positive)
+  let int_pos = int(3.9)
+  println("  int(3.9) = " ++ show(int_pos) ++ " (should be 3, truncate towards zero)")
+  
+  |- Test truncation (negative)
+  let int_neg = int(-3.9)
+  println("  int(-3.9) = " ++ show(int_neg) ++ " (should be -3, truncate towards zero)")
+  
+  |- Test with exact float
+  let int_exact = int(5.0)
+  println("  int(5.0) = " ++ show(int_exact))
+  
+  top 0
+}
+
+|- Test float function
+def test_float(): Int {
+  println("")
+  println("Testing float():")
+  
+  |- Test with float input (should return same)
+  let float_pi = float(3.14)
+  println("  float(3.14) = " ++ show(float_pi))
+  
+  |- Test with integer input
+  let float_42 = float(42)
+  println("  float(42) = " ++ show(float_42) ++ " (should be 42.0)")
+  
+  |- Test with zero
+  let float_zero = float(0)
+  println("  float(0) = " ++ show(float_zero))
+  
+  top 0
+}
+
+def main(): Int {
+  println("=== Math Builtins Test Suite ===")
+  println("")
+  
+  test_abs()
+  test_sqrt()
+  test_int()
+  test_float()
+  
+  println("")
+  println("=== All Tests Complete ===")
+  top 0
+}

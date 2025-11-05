@@ -1,0 +1,189 @@
+package test_builtins_complete
+
+|- Comprehensive tests for all builtins: abs, sqrt, int, float
+
+|- Test abs with edge cases
+def test_abs_complete(): Int {
+    println("=== Testing abs() - Complete ===")
+    
+    |- Integer tests
+    println("Integer tests:")
+    println("  abs(0) = " ++ show(abs(0)) ++ " (expect 0)")
+    println("  abs(1) = " ++ show(abs(1)) ++ " (expect 1)")
+    println("  abs(-1) = " ++ show(abs(-1)) ++ " (expect 1)")
+    println("  abs(42) = " ++ show(abs(42)) ++ " (expect 42)")
+    println("  abs(-42) = " ++ show(abs(-42)) ++ " (expect 42)")
+    println("  abs(1000) = " ++ show(abs(1000)) ++ " (expect 1000)")
+    println("  abs(-1000) = " ++ show(abs(-1000)) ++ " (expect 1000)")
+    
+    |- Float tests
+    println("")
+    println("Float tests:")
+    println("  abs(0.0) = " ++ show(abs(0.0)) ++ " (expect 0.0)")
+    println("  abs(3.14) = " ++ show(abs(3.14)) ++ " (expect 3.14)")
+    println("  abs(-3.14) = " ++ show(abs(-3.14)) ++ " (expect 3.14)")
+    println("  abs(0.001) = " ++ show(abs(0.001)) ++ " (expect 0.001)")
+    println("  abs(-0.001) = " ++ show(abs(-0.001)) ++ " (expect 0.001)")
+    println("  abs(999.999) = " ++ show(abs(999.999)) ++ " (expect 999.999)")
+    println("  abs(-999.999) = " ++ show(abs(-999.999)) ++ " (expect 999.999)")
+    
+    top 0
+}
+
+|- Test sqrt with edge cases
+def test_sqrt_complete(): Int {
+    println("")
+    println("=== Testing sqrt() - Complete ===")
+    
+    |- Perfect squares
+    println("Perfect squares:")
+    println("  sqrt(0) = " ++ show(sqrt(0)) ++ " (expect 0.0)")
+    println("  sqrt(1) = " ++ show(sqrt(1)) ++ " (expect 1.0)")
+    println("  sqrt(4) = " ++ show(sqrt(4)) ++ " (expect 2.0)")
+    println("  sqrt(9) = " ++ show(sqrt(9)) ++ " (expect 3.0)")
+    println("  sqrt(16) = " ++ show(sqrt(16)) ++ " (expect 4.0)")
+    println("  sqrt(25) = " ++ show(sqrt(25)) ++ " (expect 5.0)")
+    println("  sqrt(100) = " ++ show(sqrt(100)) ++ " (expect 10.0)")
+    
+    |- Non-perfect squares
+    println("")
+    println("Non-perfect squares:")
+    println("  sqrt(2) = " ++ show(sqrt(2)) ++ " (expect ~1.414)")
+    println("  sqrt(3) = " ++ show(sqrt(3)) ++ " (expect ~1.732)")
+    println("  sqrt(5) = " ++ show(sqrt(5)) ++ " (expect ~2.236)")
+    println("  sqrt(10) = " ++ show(sqrt(10)) ++ " (expect ~3.162)")
+    
+    |- Float inputs
+    println("")
+    println("Float inputs:")
+    println("  sqrt(0.25) = " ++ show(sqrt(0.25)) ++ " (expect 0.5)")
+    println("  sqrt(0.5) = " ++ show(sqrt(0.5)) ++ " (expect ~0.707)")
+    println("  sqrt(2.0) = " ++ show(sqrt(2.0)) ++ " (expect ~1.414)")
+    println("  sqrt(100.0) = " ++ show(sqrt(100.0)) ++ " (expect 10.0)")
+    
+    top 0
+}
+
+|- Test int with edge cases
+def test_int_complete(): Int {
+    println("")
+    println("=== Testing int() - Complete ===")
+    
+    |- Integer passthrough
+    println("Integer passthrough:")
+    println("  int(0) = " ++ show(int(0)) ++ " (expect 0)")
+    println("  int(42) = " ++ show(int(42)) ++ " (expect 42)")
+    println("  int(-42) = " ++ show(int(-42)) ++ " (expect -42)")
+    println("  int(1000) = " ++ show(int(1000)) ++ " (expect 1000)")
+    
+    |- Float truncation - positive
+    println("")
+    println("Float truncation (positive):")
+    println("  int(0.0) = " ++ show(int(0.0)) ++ " (expect 0)")
+    println("  int(0.1) = " ++ show(int(0.1)) ++ " (expect 0)")
+    println("  int(0.9) = " ++ show(int(0.9)) ++ " (expect 0)")
+    println("  int(1.0) = " ++ show(int(1.0)) ++ " (expect 1)")
+    println("  int(1.1) = " ++ show(int(1.1)) ++ " (expect 1)")
+    println("  int(1.9) = " ++ show(int(1.9)) ++ " (expect 1)")
+    println("  int(3.14) = " ++ show(int(3.14)) ++ " (expect 3)")
+    println("  int(3.99) = " ++ show(int(3.99)) ++ " (expect 3)")
+    println("  int(99.99) = " ++ show(int(99.99)) ++ " (expect 99)")
+    
+    |- Float truncation - negative (towards zero)
+    println("")
+    println("Float truncation (negative, towards zero):")
+    println("  int(-0.1) = " ++ show(int(-0.1)) ++ " (expect 0)")
+    println("  int(-0.9) = " ++ show(int(-0.9)) ++ " (expect 0)")
+    println("  int(-1.0) = " ++ show(int(-1.0)) ++ " (expect -1)")
+    println("  int(-1.1) = " ++ show(int(-1.1)) ++ " (expect -1)")
+    println("  int(-1.9) = " ++ show(int(-1.9)) ++ " (expect -1)")
+    println("  int(-3.14) = " ++ show(int(-3.14)) ++ " (expect -3)")
+    println("  int(-3.99) = " ++ show(int(-3.99)) ++ " (expect -3)")
+    println("  int(-99.99) = " ++ show(int(-99.99)) ++ " (expect -99)")
+    
+    top 0
+}
+
+|- Test float with edge cases
+def test_float_complete(): Int {
+    println("")
+    println("=== Testing float() - Complete ===")
+    
+    |- Float passthrough
+    println("Float passthrough:")
+    println("  float(0.0) = " ++ show(float(0.0)) ++ " (expect 0.0)")
+    println("  float(3.14) = " ++ show(float(3.14)) ++ " (expect 3.14)")
+    println("  float(-3.14) = " ++ show(float(-3.14)) ++ " (expect -3.14)")
+    println("  float(99.99) = " ++ show(float(99.99)) ++ " (expect 99.99)")
+    
+    |- Integer conversion
+    println("")
+    println("Integer to float conversion:")
+    println("  float(0) = " ++ show(float(0)) ++ " (expect 0.0)")
+    println("  float(1) = " ++ show(float(1)) ++ " (expect 1.0)")
+    println("  float(-1) = " ++ show(float(-1)) ++ " (expect -1.0)")
+    println("  float(42) = " ++ show(float(42)) ++ " (expect 42.0)")
+    println("  float(-42) = " ++ show(float(-42)) ++ " (expect -42.0)")
+    println("  float(100) = " ++ show(float(100)) ++ " (expect 100.0)")
+    println("  float(1000) = " ++ show(float(1000)) ++ " (expect 1000.0)")
+    
+    |- Edge values
+    println("")
+    println("Edge values:")
+    println("  float(0) = " ++ show(float(0)) ++ " (expect 0.0)")
+    println("  float(-0) = " ++ show(float(-0)) ++ " (expect -0.0 or 0.0)")
+    
+    top 0
+}
+
+|- Test show with various types
+def test_show_complete(): Int {
+    println("")
+    println("=== Testing show() - Complete ===")
+    
+    |- Integers
+    println("Integers:")
+    println("  show(0) = " ++ show(0))
+    println("  show(42) = " ++ show(42))
+    println("  show(-42) = " ++ show(-42))
+    
+    |- Floats
+    println("")
+    println("Floats:")
+    println("  show(0.0) = " ++ show(0.0))
+    println("  show(3.14) = " ++ show(3.14))
+    println("  show(-3.14) = " ++ show(-3.14))
+    
+    |- Booleans
+    println("")
+    println("Booleans:")
+    println("  show(true) = " ++ show(true))
+    println("  show(false) = " ++ show(false))
+    
+    |- Strings
+    println("")
+    println("Strings:")
+    println("  show(hello) = " ++ show("hello"))
+    println("  show(empty) = " ++ show(""))
+    
+    top 0
+}
+
+def main(): Int {
+    println("================================================")
+    println("    COMPLETE BUILTINS TEST SUITE")
+    println("================================================")
+    println("")
+    
+    test_abs_complete()
+    test_sqrt_complete()
+    test_int_complete()
+    test_float_complete()
+    test_show_complete()
+    
+    println("")
+    println("================================================")
+    println("    ALL BUILTIN TESTS COMPLETE")
+    println("================================================")
+    top 0
+}

@@ -1,0 +1,129 @@
+package test_math_stdlib
+
+import std.math
+
+|- Test min function
+def test_min(): Int {
+    println("Testing min():")
+    
+    |- Int tests
+    let min_int1 = min(5, 3)
+    println("  min(5, 3) = " ++ show(min_int1) ++ " (should be 3)")
+    
+    let min_int2 = min(-10, -5)
+    println("  min(-10, -5) = " ++ show(min_int2) ++ " (should be -10)")
+    
+    let min_int3 = min(0, 0)
+    println("  min(0, 0) = " ++ show(min_int3) ++ " (should be 0)")
+    
+    |- Float tests
+    let min_float1 = min(3.14, 2.71)
+    println("  min(3.14, 2.71) = " ++ show(min_float1) ++ " (should be 2.71)")
+    
+    let min_float2 = min(-1.5, -2.5)
+    println("  min(-1.5, -2.5) = " ++ show(min_float2) ++ " (should be -2.5)")
+    
+    top 0
+}
+
+|- Test max function
+def test_max(): Int {
+    println("")
+    println("Testing max():")
+    
+    |- Int tests
+    let max_int1 = max(5, 3)
+    println("  max(5, 3) = " ++ show(max_int1) ++ " (should be 5)")
+    
+    let max_int2 = max(-10, -5)
+    println("  max(-10, -5) = " ++ show(max_int2) ++ " (should be -5)")
+    
+    let max_int3 = max(100, 100)
+    println("  max(100, 100) = " ++ show(max_int3) ++ " (should be 100)")
+    
+    |- Float tests
+    let max_float1 = max(3.14, 2.71)
+    println("  max(3.14, 2.71) = " ++ show(max_float1) ++ " (should be 3.14)")
+    
+    let max_float2 = max(-1.5, -2.5)
+    println("  max(-1.5, -2.5) = " ++ show(max_float2) ++ " (should be -1.5)")
+    
+    top 0
+}
+
+|- Test clamp function
+def test_clamp(): Int {
+    println("")
+    println("Testing clamp():")
+    
+    |- Clamp within bounds
+    let clamp1 = clamp(5, 0, 10)
+    println("  clamp(5, 0, 10) = " ++ show(clamp1) ++ " (should be 5)")
+    
+    |- Clamp below lower bound
+    let clamp2 = clamp(-5, 0, 10)
+    println("  clamp(-5, 0, 10) = " ++ show(clamp2) ++ " (should be 0)")
+    
+    |- Clamp above upper bound
+    let clamp3 = clamp(15, 0, 10)
+    println("  clamp(15, 0, 10) = " ++ show(clamp3) ++ " (should be 10)")
+    
+    |- Clamp at boundaries
+    let clamp4 = clamp(0, 0, 10)
+    println("  clamp(0, 0, 10) = " ++ show(clamp4) ++ " (should be 0)")
+    
+    let clamp5 = clamp(10, 0, 10)
+    println("  clamp(10, 0, 10) = " ++ show(clamp5) ++ " (should be 10)")
+    
+    |- Float clamp
+    let clamp6 = clamp(3.14, 0.0, 5.0)
+    println("  clamp(3.14, 0.0, 5.0) = " ++ show(clamp6) ++ " (should be 3.14)")
+    
+    let clamp7 = clamp(7.5, 0.0, 5.0)
+    println("  clamp(7.5, 0.0, 5.0) = " ++ show(clamp7) ++ " (should be 5.0)")
+    
+    top 0
+}
+
+|- Test sign function
+def test_sign(): Int {
+    println("")
+    println("Testing sign():")
+    
+    |- Positive numbers
+    let sign1 = sign(42)
+    println("  sign(42) = " ++ show(sign1) ++ " (should be 1)")
+    
+    let sign2 = sign(3.14)
+    println("  sign(3.14) = " ++ show(sign2) ++ " (should be 1)")
+    
+    |- Negative numbers
+    let sign3 = sign(-42)
+    println("  sign(-42) = " ++ show(sign3) ++ " (should be -1)")
+    
+    let sign4 = sign(-3.14)
+    println("  sign(-3.14) = " ++ show(sign4) ++ " (should be -1)")
+    
+    |- Zero
+    let sign5 = sign(0)
+    println("  sign(0) = " ++ show(sign5) ++ " (should be 0)")
+    
+    let sign6 = sign(0.0)
+    println("  sign(0.0) = " ++ show(sign6) ++ " (should be 0)")
+    
+    top 0
+}
+
+def main(): Int {
+    println("=== std.math Test Suite ===")
+    println("")
+    
+    test_min()
+    test_max()
+    test_clamp()
+    test_sign()
+    
+    println("")
+    println("=== All Math Tests Complete ===")
+    top 0
+}

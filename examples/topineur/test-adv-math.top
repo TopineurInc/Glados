@@ -1,0 +1,59 @@
+package test_adv_math
+
+|- Advanced math builtins tests: pow, floor, ceil, round, trig, constants
+
+def test_pow(): Int {
+    println("Testing pow():")
+    println("  pow(2, 3) = " ++ show(pow(2, 3)) ++ " (should be 8.0)")
+    println("  pow(9, 0.5) = " ++ show(pow(9, 0.5)) ++ " (should be 3.0)")
+    println("  pow(2.5, 2) = " ++ show(pow(2.5, 2)) ++ " (should be 6.25)")
+    top 0
+}
+
+def test_rounding(): Int {
+    println("")
+    println("Testing floor/ceil/round:")
+    println("  floor(3.7) = " ++ show(floor(3.7)) ++ " (should be 3)")
+    println("  ceil(3.1) = " ++ show(ceil(3.1)) ++ " (should be 4)")
+    println("  round(3.5) = " ++ show(round(3.5)) ++ " (Haskell rounds to 4)")
+    println("  round(2.5) = " ++ show(round(2.5)) ++ " (Haskell rounds to 2)")
+    println("  floor(5) = " ++ show(floor(5)) ++ " (should be 5)")
+    println("  ceil(5) = " ++ show(ceil(5)) ++ " (should be 5)")
+    println("  round(5) = " ++ show(round(5)) ++ " (should be 5)")
+    top 0
+}
+
+def test_trig(): Int {
+    println("")
+    println("Testing trig functions (radians):")
+    println("  sin(0) = " ++ show(sin(0)) ++ " (should be 0.0)")
+    println("  cos(0) = " ++ show(cos(0)) ++ " (should be 1.0)")
+    println("  tan(0) = " ++ show(tan(0)) ++ " (should be 0.0)")
+    println("  asin(0) = " ++ show(asin(0)) ++ " (should be 0.0)")
+    println("  acos(1) = " ++ show(acos(1)) ++ " (should be 0.0)")
+    println("  atan(1) = " ++ show(atan(1)) ++ " (should be ~0.785)")
+    println("  atan2(1, 1) = " ++ show(atan2(1, 1)) ++ " (should be ~0.785)")
+    top 0
+}
+
+def test_constants(): Int {
+    println("")
+    println("Testing constants:")
+    println("  pi = " ++ show(pi))
+    println("  e = " ++ show(e))
+    top 0
+}
+
+def main(): Int {
+    println("=== Advanced Math Builtins Test Suite ===")
+    println("")
+
+    test_pow()
+    test_rounding()
+    test_trig()
+    test_constants()
+
+    println("")
+    println("=== All Adv Math Tests Complete ===")
+    top 0
+}
