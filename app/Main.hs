@@ -38,6 +38,7 @@ main = do
     ["--compiled", file] -> showCompiled config file
     ["--bytecode", file] -> showBytecode config file
     ["--parse-top", file] -> parseTopineurFile file
+    ["--version"] -> putStrLn "GLaDOS version 1.0.0\nThe Topineur and Lisp compiler."
     [file] -> runFile config file
     _ ->
       exitWithError "Invalid arguments. Use --help for usage."
