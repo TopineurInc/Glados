@@ -1,0 +1,304 @@
+{
+  "name": "Topineur",
+  "scopeName": "source.topineur",
+  "fileTypes": [
+    "top"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#decorators"
+    },
+    {
+      "include": "#package-declaration"
+    },
+    {
+      "include": "#import-declaration"
+    },
+    {
+      "include": "#object-type"
+    },
+    {
+      "include": "#function-definition"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#booleans"
+    },
+    {
+      "include": "#self"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#logical-keywords"
+    },
+    {
+      "include": "#type-annotation"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#types"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.pipe-dash.topineur",
+          "match": "\\|-.*$"
+        }
+      ]
+    },
+    "decorators": {
+      "patterns": [
+        {
+          "name": "entity.other.attribute-name.decorator.topineur",
+          "match": "@[A-Za-z_][A-Za-z0-9_]*"
+        }
+      ]
+    },
+    "package-declaration": {
+      "begin": "^(\\s*)(package)\\s+",
+      "beginCaptures": {
+        "2": {
+          "name": "keyword.declaration.namespace.topineur"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "name": "entity.name.namespace.topineur",
+          "match": "[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*"
+        }
+      ]
+    },
+    "import-declaration": {
+      "begin": "^(\\s*)(import)\\s+",
+      "beginCaptures": {
+        "2": {
+          "name": "keyword.declaration.import.topineur"
+        }
+      },
+      "end": "$",
+      "patterns": [
+        {
+          "name": "entity.name.import.topineur",
+          "match": "[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*"
+        }
+      ]
+    },
+    "object-type": {
+      "match": "\\b(object)\\s+(type)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.declaration.class.topineur"
+        },
+        "2": {
+          "name": "keyword.declaration.class.topineur"
+        },
+        "3": {
+          "name": "entity.name.type.topineur"
+        }
+      }
+    },
+    "function-definition": {
+      "match": "\\b(def)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.declaration.function.topineur"
+        },
+        "2": {
+          "name": "entity.name.function.topineur"
+        }
+      }
+    },
+    "strings": {
+      "name": "string.quoted.double.topineur",
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.topineur"
+        }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.topineur"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.topineur",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.topineur",
+          "match": "(?<![A-Za-z0-9_])-?\\b\\d+(?:_\\d+)*(?:\\.\\d+(?:_\\d+)*)\\b"
+        },
+        {
+          "name": "constant.numeric.integer.topineur",
+          "match": "(?<![A-Za-z0-9_])-?\\b\\d+\\b"
+        }
+      ]
+    },
+    "booleans": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.topineur",
+          "match": "\\b(?:true|false)\\b"
+        }
+      ]
+    },
+    "self": {
+      "patterns": [
+        {
+          "name": "variable.language.self.topineur",
+          "match": "\\bself\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.topineur",
+          "match": "\\b(?:if|then|else|for|in|do|end|while|top)\\b"
+        },
+        {
+          "name": "keyword.declaration.topineur",
+          "match": "\\b(?:let|fun)\\b"
+        }
+      ]
+    },
+    "logical-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.operator.logical.topineur",
+          "match": "\\b(?:and|or|not)\\b"
+        }
+      ]
+    },
+    "type-annotation": {
+      "patterns": [
+        {
+          "name": "meta.type-annotation.topineur",
+          "begin": "(:)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.separator.type.annotation.topineur"
+            }
+          },
+          "end": "(?=,|\\)|\\{|=|->|\\n)",
+          "patterns": [
+            {
+              "include": "#types"
+            },
+            {
+              "include": "#generics"
+            },
+            {
+              "match": "\\s+",
+              "name": "meta.whitespace"
+            }
+          ]
+        }
+      ]
+    },
+    "generics": {
+      "name": "meta.generic.topineur",
+      "begin": "\\[",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.generic.begin.topineur"
+        }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.generic.end.topineur"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#types"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.delimiter.topineur"
+        },
+        {
+          "match": "\\s+",
+          "name": "meta.whitespace"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.range.topineur",
+          "match": "\\.\\."
+        },
+        {
+          "name": "keyword.operator.concatenation.topineur",
+          "match": "\\+\\+"
+        },
+        {
+          "name": "keyword.operator.comparison.topineur",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.assignment.topineur",
+          "match": "="
+        },
+        {
+          "name": "keyword.operator.logical.topineur",
+          "match": "&&|\\|\\||!"
+        },
+        {
+          "name": "keyword.operator.lambda.topineur",
+          "match": "->"
+        },
+        {
+          "name": "keyword.operator.arithmetic.topineur",
+          "match": "\\+|-|\\*|/|%"
+        },
+        {
+          "name": "punctuation.separator.comma.topineur",
+          "match": ","
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "support.type.primitive.topineur",
+          "match": "\\b(?:Int|Float|Bool|String|Unit|Any|List|Tuple)\\b"
+        },
+        {
+          "name": "entity.name.type.topineur",
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+        }
+      ]
+    }
+  }
+}

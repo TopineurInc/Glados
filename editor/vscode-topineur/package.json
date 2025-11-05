@@ -1,0 +1,36 @@
+{
+  "name": "topineur-language-support",
+  "displayName": "Topineur Language Support",
+  "description": "Adds syntax highlighting and editor configuration for Topineur (.top) files used in the GLaDOS project.",
+  "version": "0.1.0",
+  "publisher": "glados",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.87.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "topineur",
+        "aliases": [
+          "Topineur",
+          "top"
+        ],
+        "extensions": [
+          ".top"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "topineur",
+        "scopeName": "source.topineur",
+        "path": "./syntaxes/top.tmLanguage.json"
+      }
+    ]
+  }
+}
