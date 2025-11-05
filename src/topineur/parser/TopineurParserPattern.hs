@@ -18,52 +18,66 @@ import TopineurParserTypes
 import TopineurParserSymbols
 import TopineurParserUtils
 
+tupleType :: Parser TypeAnn
+tupleType = do
+  l0 <- keyword "Tuple"
+  _ <- symbol "["
+  ts <- typeAnn `sepBy1` symbol ","
+  _ <- symbol "]"
+  return (TTuple l0 ts)
+
+genericType :: Parser TypeAnn
+genericType = do
+  (l, n) <- ident
+  _ <- symbol "["
+  ts <- typeAnn `sepBy1` symbol ","
+  _ <- symbol "]"
+  return (TGeneric l n ts)
+
+upperType :: Parser TypeAnn
+upperType = do
+  (l, n) <- upperIdent
+  return (TUpperIdent l n)
+
+identType :: Parser TypeAnn
+identType = do
+  (l, n) <- ident
+  return (TIdent l n)
+
 typeAnn :: Parser TypeAnn
 typeAnn = try tupleType <|> try genericType <|> try upperType <|> identType
-  where
-    identType = do
-      (l, n) <- ident
-      return (TIdent l n)
-    upperType = do
-      (l, n) <- upperIdent
-      return (TUpperIdent l n)
-    genericType = do
-      (l, n) <- ident
-      _ <- symbol "["
-      ts <- typeAnn `sepBy1` symbol ","
-      _ <- symbol "]"
-      return (TGeneric l n ts)
-    tupleType = do
-      l0 <- keyword "Tuple"
-      _ <- symbol "["
-      ts <- typeAnn `sepBy1` symbol ","
-      _ <- symbol "]"
-      return (TTuple l0 ts)
+
+tupleParam :: Parser Param
+tupleParam = do
+  pos <- getPosition
+  _ <- symbol "("
+  ps <- param `sepBy1` symbol ","
+  _ <- symbol ")"
+  return (PTuple (toLoc pos) ps)
+
+singleParam :: Parser Param
+singleParam = do
+  (l, n) <- ident
+  mt <- optionMaybe (symbol ":" >> typeAnn)
+  return (PVar l n (fromMaybe (TIdent l "Any") mt))
 
 param :: Parser Param
 param = try tupleParam <|> singleParam
-  where
-    singleParam = do
-      (l, n) <- ident
-      mt <- optionMaybe (symbol ":" >> typeAnn)
-      return (PVar l n (fromMaybe (TIdent l "Any") mt))
-    tupleParam = do
-      pos <- getPosition
-      _ <- symbol "("
-      ps <- param `sepBy1` symbol ","
-      _ <- symbol ")"
-      return (PTuple (toLoc pos) ps)
+
+varPat :: Parser Pattern
+varPat = do
+  (l, n) <- ident
+  mt <- optionMaybe (symbol ":" >> typeAnn)
+  return (PVarPat l n mt)
+
+
+tuplePat :: Parser Pattern
+tuplePat = do
+  pos <- getPosition
+  _ <- symbol "("
+  ps <- patternP `sepBy1` symbol ","
+  _ <- symbol ")"
+  return (PTuplePat (toLoc pos) ps)
 
 patternP :: Parser Pattern
 patternP = try tuplePat <|> varPat
-  where
-    varPat = do
-      (l, n) <- ident
-      mt <- optionMaybe (symbol ":" >> typeAnn)
-      return (PVarPat l n mt)
-    tuplePat = do
-      pos <- getPosition
-      _ <- symbol "("
-      ps <- patternP `sepBy1` symbol ","
-      _ <- symbol ")"
-      return (PTuplePat (toLoc pos) ps)
